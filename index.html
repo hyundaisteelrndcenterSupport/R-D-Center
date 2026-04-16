@@ -1,0 +1,285 @@
+<!DOCTYPE html><html lang="ko">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>분전반 관리책임자 입력</title>
+ <style>
+   * { box-sizing: border-box; }
+   body {
+     margin: 0;
+     padding: 20px;
+     font-family: Arial, sans-serif;
+     background: #f5f5f5;
+     color: #222;
+   }
+   .wrap {
+     max-width: 760px;
+     margin: 0 auto;
+   }
+   h1 {
+     margin: 0 0 16px;
+     font-size: 24px;
+   }
+   .toolbar {
+     display: grid;
+     gap: 10px;
+     margin-bottom: 16px;
+   }
+   select, input, button {
+     font-size: 16px;
+   }
+   select, input {
+     width: 100%;
+     padding: 10px 12px;
+     border: 1px solid #bbb;
+     border-radius: 6px;
+     background: #fff;
+   }
+   table {
+     width: 100%;
+     border-collapse: collapse;
+     background: #fff;
+     table-layout: fixed;
+   }
+   td {
+     border: 1px solid #9b9b9b;
+     padding: 10px 8px;
+     text-align: center;
+     vertical-align: middle;
+     word-break: keep-all;
+   }
+   .header {
+     background: #FFC000;
+     color: #000000;
+     font-weight: 700;
+   }
+   .side {
+     width: 60px;
+     font-weight: 700;
+     writing-mode: vertical-rl;
+     text-orientation: mixed;
+     letter-spacing: 1px;
+   }
+   .btn-row {
+     display: grid;
+     grid-template-columns: 1fr 1fr;
+     gap: 10px;
+     margin-top: 14px;
+   }
+   button {
+     border: none;
+     border-radius: 8px;
+     padding: 14px 12px;
+     cursor: pointer;
+     font-weight: 700;
+   }
+   .save-btn {
+     background: #1565c0;
+     color: #fff;
+   }
+   .delete-btn {
+     background: #c62828;
+     color: #fff;
+   }
+   .guide {
+     margin-top: 12px;
+     color: #555;
+     font-size: 14px;
+   }
+ </style>
+</head>
+<body>
+ <div class="wrap">
+   <h1>분전반 관리책임자 입력 / 수정 / 삭제</h1><div class="toolbar">
+ <select id="selector">
+   <option value="">기존 관리번호 선택 (수정/삭제)</option>
+ </select>
+</div>
+
+<table>
+ <tr>
+   <td class="header">관리번호</td>
+   <td colspan="3"><input id="id" placeholder="예: FA-1" /></td>
+ </tr>
+ <tr>
+   <td class="header">팀</td>
+   <td colspan="3"><input id="team" placeholder="예: R&D안전인프라팀" /></td>
+ </tr>
+
+ <tr>
+   <td class="side" rowspan="2">관리책임자</td>
+   <td>정</td>
+   <td colspan="2"><input id="leader" placeholder="정 책임자 성함" /></td>
+ </tr>
+ <tr>
+   <td>부</td>
+   <td colspan="2"><input id="sub" placeholder="부 책임자 성함" /></td>
+ </tr>
+
+ <tr>
+   <td class="side" rowspan="4">연락번호</td>
+   <td rowspan="2">정</td>
+   <td>전화번호</td>
+   <td><input id="phone1" placeholder="예: 02-1234-5678" /></td>
+ </tr>
+ <tr>
+   <td>휴대전화번호</td>
+   <td><input id="mobile1" placeholder="예: 010-1234-5678" /></td>
+ </tr>
+ <tr>
+   <td rowspan="2">부</td>
+   <td>전화번호</td>
+   <td><input id="phone2" placeholder="예: 02-9876-5432" /></td>
+ </tr>
+ <tr>
+   <td>휴대전화번호</td>
+   <td><input id="mobile2" placeholder="예: 010-9876-5432" /></td>
+ </tr>
+</table>
+
+<div class="btn-row">
+ <button class="save-btn" id="saveBtn">저장 / 수정</button>
+ <button class="delete-btn" id="deleteBtn">삭제</button>
+</div>
+
+<div class="guide">
+ 같은 관리번호로 저장하면 기존 데이터가 수정되고, 새로운 관리번호면 신규 데이터로 저장됩니다.
+</div>
+
+ </div>  <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+   import {
+     getFirestore,
+     doc,
+     setDoc,
+     collection,
+     onSnapshot,
+     deleteDoc
+   } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+   const firebaseConfig = {
+  apiKey: "AIzaSyCGvldk9ahlt_AgJ440AkEBAPw8A1BKVNo",
+  authDomain: "testqr3-56878.firebaseapp.com",
+  projectId: "testqr3-56878",
+  storageBucket: "testqr3-56878.firebasestorage.app",
+  messagingSenderId: "721224574707",
+  appId: "1:721224574707:web:79a99b1d7e61f0afe87986"
+   };
+
+   const app = initializeApp(firebaseConfig);
+   const db = getFirestore(app);
+
+   const selector = document.getElementById("selector");
+   const idInput = document.getElementById("id");
+   const teamInput = document.getElementById("team");
+   const leaderInput = document.getElementById("leader");
+   const subInput = document.getElementById("sub");
+   const phone1Input = document.getElementById("phone1");
+   const mobile1Input = document.getElementById("mobile1");
+   const phone2Input = document.getElementById("phone2");
+   const mobile2Input = document.getElementById("mobile2");
+   const saveBtn = document.getElementById("saveBtn");
+   const deleteBtn = document.getElementById("deleteBtn");
+
+   let hydrants = {};
+
+   function fillForm(data) {
+     idInput.value = data.id || "";
+     teamInput.value = data.team || "";
+     leaderInput.value = data.leader || "";
+     subInput.value = data.sub || "";
+     phone1Input.value = data.phone1 || "";
+     mobile1Input.value = data.mobile1 || "";
+     phone2Input.value = data.phone2 || "";
+     mobile2Input.value = data.mobile2 || "";
+   }
+
+   function clearForm() {
+     selector.value = "";
+     fillForm({});
+   }
+
+   async function saveData() {
+     const id = idInput.value.trim();
+     if (!id) {
+       alert("관리번호를 입력하세요.");
+       idInput.focus();
+       return;
+     }
+
+     const data = {
+       team: teamInput.value.trim(),
+       leader: leaderInput.value.trim(),
+       sub: subInput.value.trim(),
+       phone1: phone1Input.value.trim(),
+       mobile1: mobile1Input.value.trim(),
+       phone2: phone2Input.value.trim(),
+       mobile2: mobile2Input.value.trim()
+     };
+
+     try {
+       await setDoc(doc(db, "hydrant", id), data, { merge: false });
+       alert("저장 / 수정 완료");
+     } catch (error) {
+       console.error(error);
+       alert("저장 중 오류가 발생했습니다. 콘솔을 확인하세요.");
+     }
+   }
+
+   async function deleteData() {
+     const id = idInput.value.trim();
+     if (!id) {
+       alert("삭제할 관리번호를 선택하거나 입력하세요.");
+       return;
+     }
+
+     const ok = confirm(`${id} 데이터를 삭제하시겠습니까?\n삭제 후 되돌릴 수 없습니다.`);
+     if (!ok) return;
+
+     try {
+       await deleteDoc(doc(db, "hydrant", id));
+       alert("삭제 완료");
+       clearForm();
+     } catch (error) {
+       console.error(error);
+       alert("삭제 중 오류가 발생했습니다. 콘솔을 확인하세요.");
+     }
+   }
+
+   selector.addEventListener("change", (e) => {
+     const selectedId = e.target.value;
+     if (!selectedId || !hydrants[selectedId]) {
+       return;
+     }
+     fillForm(hydrants[selectedId]);
+   });
+
+   saveBtn.addEventListener("click", saveData);
+   deleteBtn.addEventListener("click", deleteData);
+
+   onSnapshot(collection(db, "hydrant"), (snapshot) => {
+     hydrants = {};
+     selector.innerHTML = '<option value="">기존 관리번호 선택 (수정/삭제)</option>';
+
+     const ids = [];
+     snapshot.forEach((docSnap) => {
+       const id = docSnap.id;
+       const data = docSnap.data();
+       hydrants[id] = { id, ...data };
+       ids.push(id);
+     });
+
+     ids.sort((a, b) => a.localeCompare(b, 'ko'));
+
+     for (const id of ids) {
+       const option = document.createElement("option");
+       option.value = id;
+       option.textContent = id;
+       selector.appendChild(option);
+     }
+   }, (error) => {
+     console.error(error);
+     alert("데이터 목록을 불러오지 못했습니다. Firebase 설정 또는 권한을 확인하세요.");
+   });
+ </script></body>
+</html>
