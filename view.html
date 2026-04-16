@@ -1,0 +1,199 @@
+<!DOCTYPE html><html lang="ko">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>소화전 관리 정보</title>
+ <style>
+   * { box-sizing: border-box; }
+   body {
+     margin: 0;
+     padding: 20px;
+     font-family: Arial, sans-serif;
+     background: #fff;
+     color: #222;
+   }
+   .wrap {
+     max-width: 760px;
+     margin: 0 auto;
+   }
+   h1 {
+     margin: 0 0 16px;
+     font-size: 24px;
+   }
+   table {
+     width: 100%;
+     border-collapse: collapse;
+     background: #fff;
+   }
+   colgroup col:nth-child(1) { width: 14%; }
+   colgroup col:nth-child(2) { width: 12%; }
+   colgroup col:nth-child(3) { width: 24%; }
+   colgroup col:nth-child(4) { width: 50%; }
+   td {
+     border: 1px solid #9b9b9b;
+     padding: 10px 8px;
+     text-align: center;
+     vertical-align: middle;
+     word-break: keep-all;
+   }
+   .header {
+     background: #d60000;
+     color: #fff;
+     font-weight: 700;
+   }
+   .side {
+     width: 60px;
+     font-weight: 700;
+     writing-mode: vertical-rl;
+     text-orientation: mixed;
+     letter-spacing: 1px;
+   }
+   .call-cell {
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     gap: 8px;
+     flex-wrap: wrap;
+   }
+   .call-btn {
+     width: 42px;
+     height: 42px;
+     border-radius: 999px;
+     border: none;
+     background: #35a853;
+     color: white;
+     font-size: 18px;
+     cursor: pointer;
+     flex: 0 0 auto;
+   }
+   .empty {
+     padding: 18px;
+     border: 1px dashed #bbb;
+     border-radius: 8px;
+     color: #666;
+     text-align: center;
+     background: #fafafa;
+   }
+ </style>
+</head>
+<body>
+ <div class="wrap">
+   <h1>소화전 관리 정보</h1>
+   <div id="display" class="empty">소화전 정보를 불러오는 중입니다.</div>
+ </div>  <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+   import {
+     getFirestore,
+     doc,
+     onSnapshot
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+   const firebaseConfig = {
+    apiKey: "AIzaSyATKtB-v7bChIEU-NvUd2R45x870SBbzqI",
+    authDomain: "testqr2-28aa7.firebaseapp.com",
+    projectId: "testqr2-28aa7",
+    storageBucket: "testqr2-28aa7.firebasestorage.app",
+    messagingSenderId: "617884297687",
+    appId: "1:617884297687:web:2b440f823a776f06990392"
+   };
+
+   const app = initializeApp(firebaseConfig);
+   const db = getFirestore(app);
+   const display = document.getElementById("display");
+
+   const urlParams = new URLSearchParams(window.location.search);
+   const requestedId = urlParams.get("id");
+
+   function callNumber(num) {
+     if (!num) return;
+     window.location.href = `tel:${num}`;
+   }
+
+   window.callNumber = callNumber;
+
+   function render(data) {
+     display.className = "";
+     display.innerHTML = `
+       <table>
+         <colgroup>
+           <col><col><col><col>
+         </colgroup>
+         <tr>
+           <td class="header">관리번호</td>
+           <td class="header" colspan="3">${data.id || ""}</td>
+         </tr>
+         <tr>
+           <td class="header">팀</td>
+           <td class="header" colspan="3">${data.team || ""}</td>
+         </tr>
+         <tr>
+           <td class="side" rowspan="2">관리책임자</td>
+           <td>정</td>
+           <td colspan="2">${data.leader || ""}</td>
+         </tr>
+         <tr>
+           <td>부</td>
+           <td colspan="2">${data.sub || ""}</td>
+         </tr>
+         <tr>
+           <td class="side" rowspan="4">연락번호</td>
+           <td rowspan="2">정</td>
+           <td>전화번호</td>
+           <td>
+             <div class="call-cell">
+               <span>${data.phone1 || ""}</span>
+               <button class="call-btn" onclick="callNumber('${data.phone1 || ""}')">📞</button>
+             </div>
+           </td>
+         </tr>
+         <tr>
+           <td>휴대전화번호</td>
+           <td>
+             <div class="call-cell">
+               <span>${data.mobile1 || ""}</span>
+               <button class="call-btn" onclick="callNumber('${data.mobile1 || ""}')">📞</button>
+             </div>
+           </td>
+         </tr>
+         <tr>
+           <td rowspan="2">부</td>
+           <td>전화번호</td>
+           <td>
+             <div class="call-cell">
+               <span>${data.phone2 || ""}</span>
+               <button class="call-btn" onclick="callNumber('${data.phone2 || ""}')">📞</button>
+             </div>
+           </td>
+         </tr>
+         <tr>
+           <td>휴대전화번호</td>
+           <td>
+             <div class="call-cell">
+               <span>${data.mobile2 || ""}</span>
+               <button class="call-btn" onclick="callNumber('${data.mobile2 || ""}')">📞</button>
+             </div>
+           </td>
+         </tr>
+       </table>
+     `;
+   }
+
+   if (!requestedId) {
+     display.textContent = "잘못된 접근입니다. QR 또는 view.html?id=관리번호 형식의 링크로 접속하세요.";
+   } else {
+     onSnapshot(doc(db, "hydrant", requestedId), (docSnap) => {
+       if (!docSnap.exists()) {
+         display.className = "empty";
+         display.textContent = `관리번호 ${requestedId} 데이터가 없습니다.`;
+         return;
+       }
+
+       render({ id: docSnap.id, ...docSnap.data() });
+     }, (error) => {
+       console.error(error);
+       display.className = "empty";
+       display.textContent = "데이터를 불러오지 못했습니다. Firebase 설정 또는 권한을 확인하세요.";
+     });
+   }
+ </script></body>
+</html>
