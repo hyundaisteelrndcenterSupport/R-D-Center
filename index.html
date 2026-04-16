@@ -1,0 +1,2118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>실험실 관리자 웹앱</title>
+
+ <style>
+   :root {
+     --bg:#f3f4f6;
+     --panel:#fff;
+     --grid:#e5e7eb;
+     --lab:#f7dce3;
+     --office:#ffffff;
+     --corridor:#f8efc8;
+     --utility:#ececec;
+     --storage:#f5efe2;
+     --highlight:#f59e0b;
+     --select:rgba(37,99,235,.24);
+     --preview:rgba(16,185,129,.18);
+     --head:#e8eefc;
+     --muted:#6b7280;
+     --blue:#2563eb;
+     --red:#dc2626;
+     --green:#16a34a;
+   }
+
+   * { box-sizing:border-box; }
+
+   body {
+     margin:0;
+     font-family:Arial,sans-serif;
+     background:var(--bg);
+     color:#222;
+   }
+
+   .app {
+     max-width:1750px;
+     margin:0 auto;
+     padding:18px;
+   }
+
+   .topbar {
+     display:flex;
+     justify-content:space-between;
+     gap:16px;
+     align-items:flex-start;
+     margin-bottom:14px;
+   }
+
+   h1 {
+     margin:0;
+     font-size:28px;
+   }
+
+   .sub {
+     margin-top:6px;
+     color:var(--muted);
+     font-size:14px;
+   }
+
+   .toolbar {
+     display:flex;
+     gap:8px;
+     flex-wrap:wrap;
+     align-items:center;
+   }
+
+   input, select, button, textarea {
+     font-size:14px;
+     border:1px solid #cfd4dc;
+     border-radius:8px;
+     background:#fff;
+     padding:10px 12px;
+   }
+
+   textarea {
+     width:100%;
+     min-height:120px;
+     resize:vertical;
+     font-family:inherit;
+   }
+
+   button {
+     cursor:pointer;
+     font-weight:700;
+   }
+
+   .primary {
+     background:var(--blue);
+     color:#fff;
+     border-color:var(--blue);
+   }
+
+   .danger {
+     background:var(--red);
+     color:#fff;
+     border-color:var(--red);
+   }
+
+   .success {
+     background:var(--green);
+     color:#fff;
+     border-color:var(--green);
+   }
+
+   .ghost {
+     background:#fff;
+     color:#111827;
+   }
+
+   .panel {
+     background:var(--panel);
+     border:1px solid #ddd;
+     border-radius:16px;
+     box-shadow:0 4px 18px rgba(0,0,0,.05);
+     overflow:hidden;
+     margin-bottom:16px;
+   }
+
+   .panel-header {
+     padding:14px 18px;
+     border-bottom:1px solid #ececec;
+     display:flex;
+     justify-content:space-between;
+     align-items:center;
+     gap:12px;
+   }
+
+   .panel-header h2 {
+     margin:0;
+     font-size:20px;
+   }
+
+   .layout-wrap, .editor-wrap {
+     padding:16px;
+   }
+
+   .layout-canvas {
+     position:relative;
+     width:100%;
+     aspect-ratio:30/13;
+     border:2px solid #444;
+     border-radius:8px;
+     overflow:hidden;
+     background:#fafafa;
+     user-select:none;
+     touch-action:none;
+   }
+
+   .layout-grid {
+     position:absolute;
+     inset:0;
+     display:grid;
+     grid-template-columns:repeat(60,1fr);
+     grid-template-rows:repeat(26,1fr);
+     z-index:1;
+   }
+
+   .grid-cell {
+     border-right:1px solid var(--grid);
+     border-bottom:1px solid var(--grid);
+   }
+
+   .grid-cell.selected {
+     background:var(--select);
+   }
+
+   .grid-cell.preview {
+     background:var(--preview);
+   }
+
+   .region-group {
+     position:absolute;
+     z-index:2;
+     pointer-events:none;
+   }
+
+   .region-group.layer-lab {
+     z-index:4;
+   }
+
+   .region-piece {
+     position:absolute;
+     border:none;
+     cursor:pointer;
+   }
+
+   .region-piece.lab { background:var(--lab); }
+   .region-piece.office { background:var(--office); }
+   .region-piece.corridor { background:var(--corridor); }
+   .region-piece.utility { background:var(--utility); }
+   .region-piece.storage { background:var(--storage); }
+
+   .region-outline {
+     position:absolute;
+     inset:0;
+     pointer-events:none;
+     z-index:6;
+   }
+
+   .region-outline svg {
+     width:100%;
+     height:100%;
+     overflow:visible;
+     display:block;
+   }
+
+   .region-outline path.lab-outline {
+     fill:none;
+     stroke:rgba(0,0,0,.72);
+     stroke-width:1.2;
+     vector-effect:non-scaling-stroke;
+     stroke-linecap:butt;
+     stroke-linejoin:miter;
+   }
+
+   .region-group.highlight .region-outline path {
+     stroke:var(--highlight);
+     stroke-width:2.2;
+   }
+
+   .label-layer {
+     position:absolute;
+     inset:0;
+     pointer-events:none;
+     z-index:7;
+   }
+
+   .region-number-badge {
+     position:absolute;
+     min-width:18px;
+     min-height:16px;
+     padding:1px 4px;
+     font-size:10px;
+     font-weight:700;
+     line-height:1.2;
+     color:#374151;
+     background:rgba(255,255,255,.92);
+     border-radius:4px;
+     box-shadow:0 1px 2px rgba(0,0,0,.08);
+     pointer-events:auto;
+     cursor:pointer;
+     transform:translate(0, 0);
+   }
+
+   .region-name-badge {
+     position:absolute;
+     max-width:90px;
+     padding:0;
+     font-size:9px;
+     line-height:1.15;
+     text-align:center;
+     font-weight:700;
+     background:transparent;
+     border-radius:0;
+     box-shadow:none;
+     pointer-events:auto;
+     cursor:pointer;
+     transform:translate(-50%, -50%);
+     white-space:normal;
+     word-break:keep-all;
+     overflow-wrap:normal;
+     line-break:auto;
+     text-shadow:0 0 6px rgba(255,255,255,.95);
+     display:-webkit-box;
+     -webkit-line-clamp:2;
+     -webkit-box-orient:vertical;
+     overflow:hidden;
+     color:#111827;
+   }
+
+   .region-name-badge.lab {
+     color:#8d4756;
+   }
+
+   .region-name-badge.office,
+   .region-name-badge.corridor,
+   .region-name-badge.utility,
+   .region-name-badge.storage {
+     color:#111827;
+   }
+
+   .region-group.highlight .region-number-badge {
+     box-shadow:
+       0 1px 2px rgba(0,0,0,.08),
+       0 0 0 3px rgba(245,158,11,.22);
+   }
+
+   .region-group.highlight .region-name-badge {
+     text-shadow:
+       0 0 8px rgba(255,255,255,1),
+       0 0 3px rgba(245,158,11,.18);
+   }
+
+   .legend {
+     margin-top:12px;
+     display:flex;
+     flex-wrap:wrap;
+     gap:12px;
+     font-size:13px;
+     color:#555;
+   }
+
+   .legend-item {
+     display:flex;
+     align-items:center;
+     gap:8px;
+   }
+
+   .legend-color {
+     width:18px;
+     height:18px;
+     border-radius:4px;
+     border:1px solid #777;
+   }
+
+   .hint-box {
+     padding:10px 12px;
+     border-radius:10px;
+     background:#f8fafc;
+     border:1px solid #e5e7eb;
+     color:#475569;
+     font-size:13px;
+   }
+
+   .form-grid {
+     display:grid;
+     gap:10px;
+   }
+
+   .form-row {
+     display:grid;
+     grid-template-columns:140px 1fr;
+     gap:10px;
+     align-items:center;
+   }
+
+   .form-row label {
+     font-weight:700;
+     color:#374151;
+   }
+
+   .small-grid {
+     display:grid;
+     grid-template-columns:repeat(2,1fr);
+     gap:10px;
+   }
+
+   .section-title {
+     margin:8px 0 0;
+     font-size:16px;
+     font-weight:700;
+   }
+
+   .action-row {
+     display:flex;
+     gap:8px;
+     flex-wrap:wrap;
+   }
+
+   .scroll-box {
+     max-height:460px;
+     overflow:auto;
+     border-top:1px solid #e5e7eb;
+   }
+
+   .mini-table {
+     width:100%;
+     border-collapse:collapse;
+   }
+
+   .mini-table th,
+   .mini-table td {
+     border:1px solid #dbe0e7;
+     padding:9px 10px;
+     text-align:center;
+     vertical-align:top;
+     font-size:13px;
+   }
+
+   .mini-table thead th {
+     background:var(--head);
+   }
+
+   .table-input {
+     width:100%;
+     border:1px solid #d1d5db;
+     border-radius:6px;
+     padding:7px 8px;
+     font-size:12px;
+   }
+
+   .empty-state {
+     padding:24px;
+     text-align:center;
+     color:var(--muted);
+     border:1px dashed #d1d5db;
+     border-radius:12px;
+     background:#fafafa;
+   }
+
+   .muted { color:var(--muted); }
+
+   .row-tools {
+     display:flex;
+     gap:6px;
+     justify-content:center;
+     align-items:center;
+   }
+
+   .mini-btn {
+     padding:6px 8px;
+     font-size:12px;
+     border-radius:6px;
+   }
+
+   .table-actions {
+     display:flex;
+     gap:8px;
+     padding:10px 0 0;
+     flex-wrap:wrap;
+   }
+
+   .import-hint {
+     font-size:12px;
+     color:var(--muted);
+     margin-top:8px;
+   }
+
+   .hidden-file {
+     display:none;
+   }
+
+   .paste-box {
+     margin-top:10px;
+     padding:10px;
+     border:1px dashed #cbd5e1;
+     border-radius:10px;
+     background:#fafafa;
+   }
+
+   .paste-box[hidden] {
+     display:none;
+   }
+
+   .paste-actions {
+     display:flex;
+     gap:8px;
+     margin-top:8px;
+     flex-wrap:wrap;
+   }
+
+   @media (max-width:900px) {
+     .topbar { flex-direction:column; }
+     .form-row { grid-template-columns:1fr; }
+     .small-grid { grid-template-columns:1fr; }
+     .region-name-badge { font-size:8px; max-width:72px; }
+   }
+ </style>
+</head>
+<body>
+ <div class="app">
+   <div class="topbar">
+     <div>
+       <h1>실험실 관리자 웹앱</h1>
+       <div class="sub">기존 실험실 클릭 후 셀을 추가/해제하면 같은 실험실 면적이 수정됩니다.</div>
+     </div>
+     <div class="toolbar">
+       <select id="layoutSelector"></select>
+       <input id="labSearch" placeholder="실험실명 또는 번호 검색" />
+       <button id="newLayoutBtn" type="button" class="success">새 레이아웃</button>
+       <button id="saveLayoutBtn" type="button" class="primary">레이아웃 저장</button>
+       <button id="deleteLayoutBtn" type="button" class="danger">레이아웃 삭제</button>
+       <button id="newRegionBtn" type="button" class="primary">선택 셀로 새 구역 만들기</button>
+       <button id="clearSelectionBtn" type="button">셀 선택 해제</button>
+     </div>
+   </div>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>레이아웃</h2>
+         <div class="sub">드래그는 범위 토글, 클릭은 셀 단위 토글입니다. 기존 실험실 선택 후 면적 수정 가능합니다.</div>
+       </div>
+       <div id="selectedBadge" class="muted">선택된 구역 없음</div>
+     </div>
+
+     <div class="layout-wrap">
+       <div class="form-grid" style="margin-bottom:12px;">
+         <div class="form-row">
+           <label>레이아웃 ID</label>
+           <input id="layoutId" placeholder="예: research-building" />
+         </div>
+         <div class="form-row">
+           <label>레이아웃명</label>
+           <input id="layoutName" placeholder="예: 연구동" />
+         </div>
+         <div class="form-row">
+           <label>설명</label>
+           <input id="layoutDescription" placeholder="예: 연구동 1층" />
+         </div>
+       </div>
+
+       <div id="layoutCanvas" class="layout-canvas">
+         <div id="layoutGrid" class="layout-grid"></div>
+       </div>
+
+       <div class="legend">
+         <div class="legend-item"><span class="legend-color" style="background:#f7dce3"></span>실험실</div>
+         <div class="legend-item"><span class="legend-color" style="background:#ffffff"></span>사무/공용공간</div>
+         <div class="legend-item"><span class="legend-color" style="background:#f8efc8"></span>실험실 내 통로</div>
+         <div class="legend-item"><span class="legend-color" style="background:#ececec"></span>설비/유틸리티</div>
+         <div class="legend-item"><span class="legend-color" style="background:#f5efe2"></span>창고/보관공간</div>
+       </div>
+     </div>
+   </section>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>실험실 편집</h2>
+         <div class="sub">기존 실험실 편집 또는 신규 생성</div>
+       </div>
+     </div>
+
+     <div id="editorEmpty" class="editor-wrap">
+       <div class="empty-state">기존 구역을 선택하거나 셀을 선택해 새 구역을 만드세요.</div>
+     </div>
+
+     <div id="editorWrap" class="editor-wrap" style="display:none;">
+       <div class="hint-box">
+         기존 실험실을 클릭하면 편집 모드입니다. 셀을 추가/해제한 뒤 “실험실 저장”을 누르면 같은 실험실 면적이 수정됩니다.
+       </div>
+
+       <div class="form-grid" style="margin-top:10px;">
+         <div class="form-row">
+           <label>문서 ID</label>
+           <input id="formId" readonly />
+         </div>
+         <div class="form-row">
+           <label>구역 타입</label>
+           <select id="formType">
+             <option value="lab">실험실</option>
+             <option value="office">사무/공용공간</option>
+             <option value="corridor">통로</option>
+             <option value="utility">설비/유틸리티</option>
+             <option value="storage">창고/보관공간</option>
+           </select>
+         </div>
+         <div class="form-row">
+           <label>번호</label>
+           <input id="formNumber" placeholder="예: 1" />
+         </div>
+         <div class="form-row">
+           <label>실험실명</label>
+           <input id="formLabName" placeholder="예: 진공용해실험장" />
+         </div>
+         <div class="form-row">
+           <label>담당팀</label>
+           <input id="formTeam" />
+         </div>
+         <div class="form-row">
+           <label>책임자(정)</label>
+           <input id="formManagerMain" />
+         </div>
+         <div class="form-row">
+           <label>책임자(부)</label>
+           <input id="formManagerSub" />
+         </div>
+       </div>
+
+       <div class="section-title">현재 셀 범위 정보</div>
+       <div class="small-grid">
+         <div class="form-row">
+           <label>시작 X</label>
+           <input id="formX" type="number" readonly />
+         </div>
+         <div class="form-row">
+           <label>시작 Y</label>
+           <input id="formY" type="number" readonly />
+         </div>
+         <div class="form-row">
+           <label>너비 W</label>
+           <input id="formW" type="number" readonly />
+         </div>
+         <div class="form-row">
+           <label>높이 H</label>
+           <input id="formH" type="number" readonly />
+         </div>
+       </div>
+
+       <div class="form-row">
+         <label>선택 셀 수</label>
+         <input id="formCellCount" readonly />
+       </div>
+
+       <div class="action-row">
+         <button id="saveLabBtn" class="primary" type="button">실험실 저장</button>
+         <button id="resetBtn" type="button">현재값 다시 불러오기</button>
+         <button id="deleteLabBtn" class="danger" type="button">실험실 삭제</button>
+       </div>
+     </div>
+   </section>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>근무자</h2>
+         <div class="sub">행 추가/삭제 가능, 엑셀 업로드/복붙 가능</div>
+       </div>
+     </div>
+     <div class="editor-wrap">
+       <div class="scroll-box">
+         <table class="mini-table">
+           <thead>
+             <tr>
+               <th>번호</th>
+               <th>팀</th>
+               <th>직급</th>
+               <th>이름</th>
+               <th>관리</th>
+             </tr>
+           </thead>
+           <tbody id="workersBody"></tbody>
+         </table>
+       </div>
+       <div class="table-actions">
+         <button id="addWorkerBtn" type="button" class="primary mini-btn">근무자 추가</button>
+         <button id="importWorkersBtn" type="button" class="ghost mini-btn">근무자 엑셀 업로드</button>
+         <button id="toggleWorkersPasteBtn" type="button" class="ghost mini-btn">근무자 복붙 입력</button>
+         <input id="workersExcelInput" class="hidden-file" type="file" accept=".xlsx,.xls,.csv" />
+       </div>
+       <div id="workersPasteBox" class="paste-box" hidden>
+         <div class="import-hint">탭 또는 쉼표로 구분된 4열: 번호 / 팀 / 직급 / 이름</div>
+         <textarea id="workersPasteInput" placeholder="예시&#10;1 생산팀 연구원 홍길동&#10;2 공정팀 책임자 김철수"></textarea>
+         <div class="paste-actions">
+           <button id="applyWorkersPasteBtn" type="button" class="primary mini-btn">근무자 붙여넣기 반영</button>
+           <button id="clearWorkersPasteBtn" type="button" class="mini-btn">입력창 비우기</button>
+         </div>
+       </div>
+       <div class="import-hint">근무자 헤더 예시: no, team, title, name 또는 번호, 팀, 직급, 이름</div>
+     </div>
+   </section>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>취급 화학물질 / MSDS</h2>
+         <div class="sub">행 추가/삭제 가능, 엑셀 업로드/복붙 가능</div>
+       </div>
+     </div>
+     <div class="editor-wrap">
+       <div class="scroll-box">
+         <table class="mini-table">
+           <thead>
+             <tr>
+               <th>번호</th>
+               <th>제품명</th>
+               <th>MSDS 파일명</th>
+               <th>MSDS 링크</th>
+               <th>관리</th>
+             </tr>
+           </thead>
+           <tbody id="chemicalsBody"></tbody>
+         </table>
+       </div>
+       <div class="table-actions">
+         <button id="addChemicalBtn" type="button" class="primary mini-btn">화학물질 추가</button>
+         <button id="importChemicalsBtn" type="button" class="ghost mini-btn">화학물질 엑셀 업로드</button>
+         <button id="toggleChemicalsPasteBtn" type="button" class="ghost mini-btn">화학물질 복붙 입력</button>
+         <input id="chemicalsExcelInput" class="hidden-file" type="file" accept=".xlsx,.xls,.csv" />
+       </div>
+       <div id="chemicalsPasteBox" class="paste-box" hidden>
+         <div class="import-hint">탭 또는 쉼표로 구분된 4열: 번호 / 제품명 / MSDS파일명 / MSDS링크</div>
+         <textarea id="chemicalsPasteInput" placeholder="예시&#10;1 황산 황산_MSDS.pdf https://example.com&#10;2 아세톤 아세톤_MSDS.pdf https://example.com"></textarea>
+         <div class="paste-actions">
+           <button id="applyChemicalsPasteBtn" type="button" class="primary mini-btn">화학물질 붙여넣기 반영</button>
+           <button id="clearChemicalsPasteBtn" type="button" class="mini-btn">입력창 비우기</button>
+         </div>
+       </div>
+       <div class="import-hint">화학물질 헤더 예시: no, name, msdsName, msdsUrl 또는 번호, 제품명, MSDS파일명, MSDS링크</div>
+     </div>
+   </section>
+ </div>
+
+ <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+ <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+   import {
+     getFirestore,
+     collection,
+     getDocs,
+     doc,
+     getDoc,
+     setDoc,
+     deleteDoc,
+     query,
+     where
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+   const firebaseConfig = {
+  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+  authDomain: "lab-test-888d2.firebaseapp.com",
+  projectId: "lab-test-888d2",
+  storageBucket: "lab-test-888d2.firebasestorage.app",
+  messagingSenderId: "417323251483",
+  appId: "1:417323251483:web:2938bce7431260aff385be",
+  measurementId: "G-EK060DBSQK"
+   };
+
+   const app = initializeApp(firebaseConfig);
+   const db = getFirestore(app);
+
+   const GRID_COLS = 60;
+   const GRID_ROWS = 26;
+
+   let layoutsMap = {};
+   let currentLayoutId = null;
+   let spaces = [];
+   let selectedId = null;
+   let currentData = null;
+
+   let selection = null;
+   let dragStart = null;
+   let isDragging = false;
+   let movedDuringDrag = false;
+   let dragPreviewCells = new Set();
+
+   let workerRowsData = [];
+   let chemicalRowsData = [];
+
+   const layoutSelector = document.getElementById("layoutSelector");
+   const newLayoutBtn = document.getElementById("newLayoutBtn");
+   const saveLayoutBtn = document.getElementById("saveLayoutBtn");
+   const deleteLayoutBtn = document.getElementById("deleteLayoutBtn");
+   const layoutIdInput = document.getElementById("layoutId");
+   const layoutNameInput = document.getElementById("layoutName");
+   const layoutDescriptionInput = document.getElementById("layoutDescription");
+   const layoutCanvas = document.getElementById("layoutCanvas");
+   const layoutGrid = document.getElementById("layoutGrid");
+   const selectedBadge = document.getElementById("selectedBadge");
+   const labSearch = document.getElementById("labSearch");
+   const newRegionBtn = document.getElementById("newRegionBtn");
+   const clearSelectionBtn = document.getElementById("clearSelectionBtn");
+
+   const editorEmpty = document.getElementById("editorEmpty");
+   const editorWrap = document.getElementById("editorWrap");
+
+   const formId = document.getElementById("formId");
+   const formType = document.getElementById("formType");
+   const formNumber = document.getElementById("formNumber");
+   const formLabName = document.getElementById("formLabName");
+   const formTeam = document.getElementById("formTeam");
+   const formManagerMain = document.getElementById("formManagerMain");
+   const formManagerSub = document.getElementById("formManagerSub");
+   const formX = document.getElementById("formX");
+   const formY = document.getElementById("formY");
+   const formW = document.getElementById("formW");
+   const formH = document.getElementById("formH");
+   const formCellCount = document.getElementById("formCellCount");
+
+   const workersBody = document.getElementById("workersBody");
+   const chemicalsBody = document.getElementById("chemicalsBody");
+
+   const saveLabBtnEl = document.getElementById("saveLabBtn");
+   const resetBtn = document.getElementById("resetBtn");
+   const deleteLabBtn = document.getElementById("deleteLabBtn");
+   const addWorkerBtn = document.getElementById("addWorkerBtn");
+   const addChemicalBtn = document.getElementById("addChemicalBtn");
+   const importWorkersBtn = document.getElementById("importWorkersBtn");
+   const importChemicalsBtn = document.getElementById("importChemicalsBtn");
+   const workersExcelInput = document.getElementById("workersExcelInput");
+   const chemicalsExcelInput = document.getElementById("chemicalsExcelInput");
+
+   const toggleWorkersPasteBtn = document.getElementById("toggleWorkersPasteBtn");
+   const workersPasteBox = document.getElementById("workersPasteBox");
+   const workersPasteInput = document.getElementById("workersPasteInput");
+   const applyWorkersPasteBtn = document.getElementById("applyWorkersPasteBtn");
+   const clearWorkersPasteBtn = document.getElementById("clearWorkersPasteBtn");
+
+   const toggleChemicalsPasteBtn = document.getElementById("toggleChemicalsPasteBtn");
+   const chemicalsPasteBox = document.getElementById("chemicalsPasteBox");
+   const chemicalsPasteInput = document.getElementById("chemicalsPasteInput");
+   const applyChemicalsPasteBtn = document.getElementById("applyChemicalsPasteBtn");
+   const clearChemicalsPasteBtn = document.getElementById("clearChemicalsPasteBtn");
+
+   const fallbackLayouts = {
+     "research-building": {
+       name: "연구동",
+       description: "연구동 1층",
+       regions: []
+     },
+     "integrated-center-new": {
+       name: "통합개발센터 증축동",
+       description: "증축동 1층",
+       regions: []
+     },
+     "integrated-center-old": {
+       name: "통합개발센터 기존동",
+       description: "기존동 1층",
+       regions: []
+     }
+   };
+
+   function rectToCells(x, y, w, h) {
+     const cells = [];
+     for (let yy = y; yy < y + h; yy++) {
+       for (let xx = x; xx < x + w; xx++) {
+         cells.push(`${xx}-${yy}`);
+       }
+     }
+     return cells;
+   }
+
+   function cellKey(x, y) {
+     return `${x}-${y}`;
+   }
+
+   function parseCell(key) {
+     const [x, y] = String(key).split("-").map(Number);
+     return { x, y };
+   }
+
+   function sanitizeCells(cells = []) {
+     const unique = new Set();
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       if (
+         Number.isInteger(x) &&
+         Number.isInteger(y) &&
+         x >= 1 && x <= GRID_COLS &&
+         y >= 1 && y <= GRID_ROWS
+       ) {
+         unique.add(cellKey(x, y));
+       }
+     }
+     return Array.from(unique);
+   }
+
+   function boundsFromCells(cells = []) {
+     if (!cells.length) return { x:1, y:1, w:1, h:1 };
+     const coords = cells.map(parseCell);
+     const xs = coords.map(c => c.x);
+     const ys = coords.map(c => c.y);
+     const minX = Math.min(...xs);
+     const minY = Math.min(...ys);
+     const maxX = Math.max(...xs);
+     const maxY = Math.max(...ys);
+     return {
+       x: minX,
+       y: minY,
+       w: maxX - minX + 1,
+       h: maxY - minY + 1
+     };
+   }
+
+   function getBestLabelPosition(cells) {
+     if (!cells.length) return { x: 1, y: 1 };
+
+     const coords = cells.map(parseCell);
+     const rows = new Map();
+
+     for (const c of coords) {
+       if (!rows.has(c.y)) rows.set(c.y, []);
+       rows.get(c.y).push(c.x);
+     }
+
+     const segments = [];
+
+     for (const [y, xs] of rows.entries()) {
+       const sorted = [...xs].sort((a, b) => a - b);
+       if (!sorted.length) continue;
+
+       let segStart = sorted[0];
+       let prev = sorted[0];
+
+       for (let i = 1; i <= sorted.length; i++) {
+         const cur = sorted[i];
+
+         if (cur === prev + 1) {
+           prev = cur;
+           continue;
+         }
+
+         segments.push({
+           y,
+           startX: segStart,
+           endX: prev,
+           length: prev - segStart + 1
+         });
+
+         segStart = cur;
+         prev = cur;
+       }
+     }
+
+     if (!segments.length) return coords[0];
+
+     const maxLength = Math.max(...segments.map(s => s.length));
+     const longestSegments = segments.filter(s => s.length === maxLength);
+
+     const ys = coords.map(c => c.y);
+     const minY = Math.min(...ys);
+     const maxY = Math.max(...ys);
+     const centerY = (minY + maxY) / 2;
+
+     longestSegments.sort((a, b) => {
+       const da = Math.abs(a.y - centerY);
+       const db = Math.abs(b.y - centerY);
+       if (da !== db) return da - db;
+       return a.y - b.y;
+     });
+
+     const best = longestSegments[0];
+
+     return {
+       x: (best.startX + best.endX) / 2,
+       y: best.y
+     };
+   }
+
+   function normalizeRegion(region) {
+     const hasCells = Array.isArray(region?.cells) && region.cells.length > 0;
+     const cells = hasCells
+       ? sanitizeCells(region.cells)
+       : rectToCells(
+           Number(region?.x || 1),
+           Number(region?.y || 1),
+           Number(region?.w || 1),
+           Number(region?.h || 1)
+         );
+
+     const bounds = boundsFromCells(cells);
+     const topLeft = [...cells]
+       .map(parseCell)
+       .sort((a, b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
+     const bestLabel = getBestLabelPosition(cells);
+
+     return {
+       id: region?.id || "",
+       type: region?.type || "lab",
+       number: region?.number || "",
+       labName: region?.labName || "",
+       cells,
+       topLeftX: topLeft.x,
+       topLeftY: topLeft.y,
+       labelX: bestLabel.x,
+       labelY: bestLabel.y,
+       ...bounds
+     };
+   }
+
+   function makeDefaultLabData(layoutId, regionId) {
+     return {
+       id: `${layoutId}__${regionId}`,
+       layoutId,
+       regionId,
+       type: "lab",
+       number: "",
+       labName: "",
+       team: "",
+       managerMain: "",
+       managerSub: "",
+       cells: [],
+       workers: [{ no:1, team:"", title:"", name:"" }],
+       chemicals: [{ no:1, name:"", msdsName:"", msdsUrl:"" }]
+     };
+   }
+
+   function resetEditorView() {
+     editorWrap.style.display = "none";
+     editorEmpty.style.display = "grid";
+     selectedBadge.textContent = "선택된 구역 없음";
+     formCellCount.value = "";
+     formX.value = "";
+     formY.value = "";
+     formW.value = "";
+     formH.value = "";
+   }
+
+   async function loadLayouts() {
+     try {
+       const snap = await getDocs(collection(db, "layouts"));
+       layoutsMap = {};
+       snap.forEach((d) => {
+         const data = d.data();
+         layoutsMap[d.id] = {
+           ...data,
+           regions: Array.isArray(data.regions) ? data.regions.map(normalizeRegion) : []
+         };
+       });
+
+       if (!Object.keys(layoutsMap).length) {
+         layoutsMap = JSON.parse(JSON.stringify(fallbackLayouts));
+       }
+     } catch (e) {
+       console.error(e);
+       layoutsMap = JSON.parse(JSON.stringify(fallbackLayouts));
+     }
+
+     populateLayoutSelector();
+   }
+
+   function populateLayoutSelector() {
+     layoutSelector.innerHTML = "";
+
+     Object.entries(layoutsMap).forEach(([id, data]) => {
+       const opt = document.createElement("option");
+       opt.value = id;
+       opt.textContent = data.name || id;
+       layoutSelector.appendChild(opt);
+     });
+
+     if (!currentLayoutId) {
+       currentLayoutId = Object.keys(layoutsMap)[0] || null;
+     }
+
+     if (currentLayoutId) {
+       layoutSelector.value = currentLayoutId;
+     }
+
+     loadCurrentLayoutIntoUI();
+   }
+
+   function loadCurrentLayoutIntoUI() {
+     const layout = layoutsMap[currentLayoutId];
+     if (!layout) return;
+
+     layoutIdInput.value = currentLayoutId;
+     layoutNameInput.value = layout.name || "";
+     layoutDescriptionInput.value = layout.description || "";
+     spaces = Array.isArray(layout.regions) ? [...layout.regions] : [];
+
+     selectedId = null;
+     currentData = null;
+     selection = null;
+     dragPreviewCells = new Set();
+
+     renderLayout(labSearch?.value || "");
+     resetEditorView();
+   }
+
+   async function saveCurrentLayout() {
+     const inputId = layoutIdInput.value.trim();
+     if (!inputId) {
+       alert("레이아웃 ID를 입력하세요. 예: research-building");
+       return;
+     }
+
+     if (!currentLayoutId || currentLayoutId !== inputId) {
+       if (layoutsMap[inputId] && currentLayoutId !== inputId) {
+         alert("이미 존재하는 레이아웃 ID입니다. 다른 ID를 사용하세요.");
+         return;
+       }
+       currentLayoutId = inputId;
+     }
+
+     const payload = {
+       name: layoutNameInput.value.trim() || inputId,
+       description: layoutDescriptionInput.value.trim(),
+       regions: spaces.map((space) => {
+         const normalized = normalizeRegion(space);
+         return {
+           id: normalized.id,
+           type: normalized.type,
+           number: normalized.number || "",
+           labName: normalized.labName || "",
+           cells: normalized.cells,
+           x: normalized.x,
+           y: normalized.y,
+           w: normalized.w,
+           h: normalized.h
+         };
+       }),
+       updatedAt: new Date().toISOString()
+     };
+
+     try {
+       await setDoc(doc(db, "layouts", currentLayoutId), payload, { merge:true });
+       layoutsMap[currentLayoutId] = {
+         ...payload,
+         regions: payload.regions.map(normalizeRegion)
+       };
+       populateLayoutSelector();
+       layoutSelector.value = currentLayoutId;
+       alert("레이아웃 저장 완료");
+     } catch (e) {
+       console.error(e);
+       alert("레이아웃 저장 실패: " + e.message);
+     }
+   }
+
+   function createNewLayout() {
+     const inputId = layoutIdInput.value.trim();
+     if (!inputId) {
+       alert("먼저 레이아웃 ID를 입력하세요. 예: research-building");
+       return;
+     }
+
+     if (layoutsMap[inputId]) {
+       alert("이미 존재하는 레이아웃 ID입니다.");
+       return;
+     }
+
+     currentLayoutId = inputId;
+     layoutsMap[inputId] = {
+       name: layoutNameInput.value.trim() || "새 레이아웃",
+       description: layoutDescriptionInput.value.trim(),
+       regions: []
+     };
+
+     populateLayoutSelector();
+     layoutSelector.value = currentLayoutId;
+     loadCurrentLayoutIntoUI();
+     alert("새 레이아웃이 생성되었습니다. 이제 레이아웃 저장을 누르세요.");
+   }
+
+   async function deleteCurrentLayout() {
+     if (!currentLayoutId) return;
+
+     const layoutName = layoutsMap[currentLayoutId]?.name || currentLayoutId;
+     const ok = confirm(`레이아웃 "${layoutName}" (${currentLayoutId}) 을(를) 삭제할까요?\n\n연결된 labs 문서도 함께 삭제합니다.`);
+     if (!ok) return;
+
+     try {
+       const q = query(collection(db, "labs"), where("layoutId", "==", currentLayoutId));
+       const labsSnap = await getDocs(q);
+
+       for (const d of labsSnap.docs) {
+         await deleteDoc(doc(db, "labs", d.id));
+       }
+
+       await deleteDoc(doc(db, "layouts", currentLayoutId));
+       delete layoutsMap[currentLayoutId];
+
+       const remainingIds = Object.keys(layoutsMap);
+       if (!remainingIds.length) {
+         currentLayoutId = null;
+         spaces = [];
+         selectedId = null;
+         currentData = null;
+         selection = null;
+         dragPreviewCells = new Set();
+         layoutSelector.innerHTML = "";
+         layoutIdInput.value = "";
+         layoutNameInput.value = "";
+         layoutDescriptionInput.value = "";
+         renderLayout("");
+         resetEditorView();
+         alert("레이아웃 삭제 완료");
+         return;
+       }
+
+       currentLayoutId = remainingIds[0];
+       populateLayoutSelector();
+       alert("레이아웃 삭제 완료");
+     } catch (e) {
+       console.error(e);
+       alert("레이아웃 삭제 실패: " + e.message);
+     }
+   }
+
+   async function loadLabData(layoutId, regionId) {
+     const docId = `${layoutId}__${regionId}`;
+     try {
+       const snap = await getDoc(doc(db, "labs", docId));
+       if (snap.exists()) {
+         const data = snap.data();
+         const normalized = normalizeRegion(data);
+         return {
+           ...makeDefaultLabData(layoutId, regionId),
+           id: snap.id,
+           ...data,
+           ...normalized,
+           cells: normalized.cells
+         };
+       }
+     } catch (e) {
+       console.error(e);
+     }
+
+     const found = spaces.find(s => s.id === regionId);
+     const normalized = normalizeRegion(found || {});
+     return {
+       ...makeDefaultLabData(layoutId, regionId),
+       ...(found || {}),
+       ...normalized,
+       regionId,
+       layoutId
+     };
+   }
+
+   function renderGrid() {
+     layoutGrid.innerHTML = "";
+     const preview = dragPreviewCells || new Set();
+     const selectedCells = selection?.cells || new Set();
+
+     for (let y = 1; y <= GRID_ROWS; y++) {
+       for (let x = 1; x <= GRID_COLS; x++) {
+         const key = cellKey(x, y);
+         const cell = document.createElement("div");
+         cell.className = "grid-cell";
+         cell.dataset.x = String(x);
+         cell.dataset.y = String(y);
+
+         if (selectedCells.has(key)) cell.classList.add("selected");
+         if (preview.has(key) && !selectedCells.has(key)) cell.classList.add("preview");
+
+         layoutGrid.appendChild(cell);
+       }
+     }
+   }
+
+   function buildOutlinePath(cells, bounds) {
+     const cellSet = new Set(cells);
+     const dirs = [
+       { dx: 0, dy: -1, side: "top" },
+       { dx: 1, dy: 0, side: "right" },
+       { dx: 0, dy: 1, side: "bottom" },
+       { dx: -1, dy: 0, side: "left" }
+     ];
+
+     const segments = [];
+
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       for (const dir of dirs) {
+         const nx = x + dir.dx;
+         const ny = y + dir.dy;
+         if (!cellSet.has(cellKey(nx, ny))) {
+           const lx = x - bounds.x;
+           const ly = y - bounds.y;
+
+           if (dir.side === "top") {
+             segments.push(`M ${lx} ${ly} L ${lx + 1} ${ly}`);
+           } else if (dir.side === "right") {
+             segments.push(`M ${lx + 1} ${ly} L ${lx + 1} ${ly + 1}`);
+           } else if (dir.side === "bottom") {
+             segments.push(`M ${lx} ${ly + 1} L ${lx + 1} ${ly + 1}`);
+           } else if (dir.side === "left") {
+             segments.push(`M ${lx} ${ly} L ${lx} ${ly + 1}`);
+           }
+         }
+       }
+     }
+
+     return segments.join(" ");
+   }
+
+   function renderRegionGroup(space, filterText = "") {
+     const normalized = normalizeRegion(space);
+     const displayName =
+       normalized.type === "lab"
+         ? `${normalized.number ? normalized.number + " / " : ""}${normalized.labName || ""}`
+         : (normalized.labName || "");
+
+     const matches = !filterText || displayName.toLowerCase().includes(filterText);
+     const isEditingThisRegion = selectedId === normalized.id;
+
+     const group = document.createElement("div");
+     group.className = `region-group${isEditingThisRegion ? " highlight" : ""}${normalized.type === "lab" ? " layer-lab" : ""}`;
+     if (filterText && !matches) group.style.opacity = "0.3";
+
+     group.style.left = `${((normalized.x - 1) / GRID_COLS) * 100}%`;
+     group.style.top = `${((normalized.y - 1) / GRID_ROWS) * 100}%`;
+     group.style.width = `${(normalized.w / GRID_COLS) * 100}%`;
+     group.style.height = `${(normalized.h / GRID_ROWS) * 100}%`;
+
+     const selectThisRegion = async (e) => {
+       e.stopPropagation();
+       await selectRegion(normalized.id, true);
+     };
+
+     normalized.cells.forEach((key) => {
+       const { x, y } = parseCell(key);
+       const localX = x - normalized.x;
+       const localY = y - normalized.y;
+
+       const piece = document.createElement("div");
+       piece.className = `region-piece ${normalized.type}`;
+       piece.style.left = `${(localX / normalized.w) * 100}%`;
+       piece.style.top = `${(localY / normalized.h) * 100}%`;
+       piece.style.width = `${(1 / normalized.w) * 100}%`;
+       piece.style.height = `${(1 / normalized.h) * 100}%`;
+
+       if (isEditingThisRegion) {
+         piece.style.pointerEvents = "none";
+       } else {
+         piece.style.pointerEvents = "auto";
+         piece.addEventListener("click", selectThisRegion);
+       }
+
+       group.appendChild(piece);
+     });
+
+     if (normalized.type === "lab") {
+       const outline = document.createElement("div");
+       outline.className = "region-outline";
+
+       const svgNS = "http://www.w3.org/2000/svg";
+       const svg = document.createElementNS(svgNS, "svg");
+       svg.setAttribute("viewBox", `0 0 ${normalized.w} ${normalized.h}`);
+       svg.setAttribute("preserveAspectRatio", "none");
+
+       const path = document.createElementNS(svgNS, "path");
+       path.setAttribute("class", "lab-outline");
+       path.setAttribute("d", buildOutlinePath(normalized.cells, normalized));
+
+       svg.appendChild(path);
+       outline.appendChild(svg);
+       group.appendChild(outline);
+     }
+
+     const labelLayer = document.createElement("div");
+     labelLayer.className = "label-layer";
+
+     if (normalized.number) {
+       const numberBadge = document.createElement("div");
+       numberBadge.className = "region-number-badge";
+       numberBadge.textContent = normalized.number;
+       numberBadge.style.left = `${((normalized.topLeftX - normalized.x) / normalized.w) * 100}%`;
+       numberBadge.style.top = `${((normalized.topLeftY - normalized.y) / normalized.h) * 100}%`;
+       if (!isEditingThisRegion) numberBadge.addEventListener("click", selectThisRegion);
+       labelLayer.appendChild(numberBadge);
+     }
+
+     if (normalized.labName) {
+       const nameBadge = document.createElement("div");
+       nameBadge.className = `region-name-badge ${normalized.type}`;
+       nameBadge.textContent = normalized.labName;
+       nameBadge.style.left = `${((normalized.labelX - normalized.x + 0.5) / normalized.w) * 100}%`;
+       nameBadge.style.top = `${((normalized.labelY - normalized.y + 0.5) / normalized.h) * 100}%`;
+       if (!isEditingThisRegion) nameBadge.addEventListener("click", selectThisRegion);
+       labelLayer.appendChild(nameBadge);
+     }
+
+     group.appendChild(labelLayer);
+     return group;
+   }
+
+   function renderLayout(filterText = "") {
+     layoutCanvas.querySelectorAll(".region-group").forEach(el => el.remove());
+     const normalizedFilter = filterText.trim().toLowerCase();
+
+     const sortedSpaces = [...spaces].sort((a, b) => {
+       const aIsLab = a.type === "lab" ? 1 : 0;
+       const bIsLab = b.type === "lab" ? 1 : 0;
+       return aIsLab - bIsLab;
+     });
+
+     sortedSpaces.forEach((space) => {
+       layoutCanvas.appendChild(renderRegionGroup(space, normalizedFilter));
+     });
+
+     renderGrid();
+   }
+
+   function updateSelectionBoundsFromCells() {
+     if (!selection?.cells || selection.cells.size === 0) {
+       selection = null;
+       formX.value = "";
+       formY.value = "";
+       formW.value = "";
+       formH.value = "";
+       formCellCount.value = "";
+       renderGrid();
+       return;
+     }
+
+     const cells = Array.from(selection.cells);
+     const bounds = boundsFromCells(cells);
+     selection.x = bounds.x;
+     selection.y = bounds.y;
+     selection.w = bounds.w;
+     selection.h = bounds.h;
+
+     formX.value = selection.x;
+     formY.value = selection.y;
+     formW.value = selection.w;
+     formH.value = selection.h;
+     formCellCount.value = cells.length;
+
+     renderGrid();
+   }
+
+   function buildPreviewRectCells(start, end) {
+     const cells = new Set();
+     const x1 = Math.min(start.x, end.x);
+     const y1 = Math.min(start.y, end.y);
+     const x2 = Math.max(start.x, end.x);
+     const y2 = Math.max(start.y, end.y);
+
+     for (let y = y1; y <= y2; y++) {
+       for (let x = x1; x <= x2; x++) {
+         cells.add(cellKey(x, y));
+       }
+     }
+     return cells;
+   }
+
+   function applyRectSelection(start, end) {
+     const x1 = Math.min(start.x, end.x);
+     const y1 = Math.min(start.y, end.y);
+     const x2 = Math.max(start.x, end.x);
+     const y2 = Math.max(start.y, end.y);
+
+     if (!selection || !selection.cells) {
+       selection = {
+         cells: new Set(),
+         x: x1,
+         y: y1,
+         w: 1,
+         h: 1
+       };
+     }
+
+     const rectKeys = [];
+     for (let y = y1; y <= y2; y++) {
+       for (let x = x1; x <= x2; x++) {
+         rectKeys.push(cellKey(x, y));
+       }
+     }
+
+     const allAlreadySelected = rectKeys.every((key) => selection.cells.has(key));
+
+     if (allAlreadySelected) {
+       rectKeys.forEach((key) => selection.cells.delete(key));
+     } else {
+       rectKeys.forEach((key) => selection.cells.add(key));
+     }
+
+     updateSelectionBoundsFromCells();
+   }
+
+   function ensureEditorVisibleForSelection() {
+     if (editorWrap.style.display === "none") {
+       editorEmpty.style.display = "none";
+       editorWrap.style.display = "grid";
+     }
+   }
+
+   function bindGridSelection() {
+     layoutGrid.addEventListener("pointerdown", (e) => {
+       const cell = e.target.closest(".grid-cell");
+       if (!cell) return;
+
+       const x = Number(cell.dataset.x);
+       const y = Number(cell.dataset.y);
+
+       dragStart = { x, y };
+       isDragging = true;
+       movedDuringDrag = false;
+       dragPreviewCells = new Set();
+       renderGrid();
+     });
+
+     layoutGrid.addEventListener("pointermove", (e) => {
+       if (!isDragging || !dragStart) return;
+       const cell = e.target.closest(".grid-cell");
+       if (!cell) return;
+
+       const x = Number(cell.dataset.x);
+       const y = Number(cell.dataset.y);
+
+       if (x !== dragStart.x || y !== dragStart.y) {
+         movedDuringDrag = true;
+         dragPreviewCells = buildPreviewRectCells(dragStart, { x, y });
+         renderGrid();
+       }
+     });
+
+     window.addEventListener("pointerup", (e) => {
+       if (!isDragging || !dragStart) {
+         isDragging = false;
+         dragStart = null;
+         dragPreviewCells = new Set();
+         return;
+       }
+
+       let endX = dragStart.x;
+       let endY = dragStart.y;
+       const cell = e.target?.closest?.(".grid-cell");
+       if (cell) {
+         endX = Number(cell.dataset.x);
+         endY = Number(cell.dataset.y);
+       }
+
+       if (!selection || !selection.cells) {
+         selection = {
+           cells: new Set(),
+           x: dragStart.x,
+           y: dragStart.y,
+           w: 1,
+           h: 1
+         };
+
+         if (!formId.value.trim()) {
+           editorEmpty.style.display = "none";
+           editorWrap.style.display = "grid";
+           renderWorkers([]);
+           renderChemicals([]);
+         }
+       }
+
+       if (movedDuringDrag) {
+         applyRectSelection(dragStart, { x: endX, y: endY });
+       } else {
+         const key = cellKey(dragStart.x, dragStart.y);
+         if (selection.cells.has(key)) {
+           selection.cells.delete(key);
+         } else {
+           selection.cells.add(key);
+         }
+         updateSelectionBoundsFromCells();
+       }
+
+       ensureEditorVisibleForSelection();
+
+       dragPreviewCells = new Set();
+       isDragging = false;
+       dragStart = null;
+       movedDuringDrag = false;
+     });
+   }
+
+   function renderWorkers(rows = []) {
+     workerRowsData = rows.length
+       ? rows.map(r => ({ ...r }))
+       : [{ no:1, team:"", title:"", name:"" }];
+
+     workersBody.innerHTML = "";
+     workerRowsData.forEach((row, i) => {
+       const tr = document.createElement("tr");
+       tr.innerHTML = `
+         <td><input class="table-input" data-type="worker" data-index="${i}" data-field="no" value="${row.no ?? ""}"></td>
+         <td><input class="table-input" data-type="worker" data-index="${i}" data-field="team" value="${row.team ?? ""}"></td>
+         <td><input class="table-input" data-type="worker" data-index="${i}" data-field="title" value="${row.title ?? ""}"></td>
+         <td><input class="table-input" data-type="worker" data-index="${i}" data-field="name" value="${row.name ?? ""}"></td>
+         <td><div class="row-tools"><button type="button" class="mini-btn danger worker-delete-btn" data-index="${i}">삭제</button></div></td>
+       `;
+       workersBody.appendChild(tr);
+     });
+     bindWorkerDeleteButtons();
+   }
+
+   function renderChemicals(rows = []) {
+     chemicalRowsData = rows.length
+       ? rows.map(r => ({ ...r }))
+       : [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
+
+     chemicalsBody.innerHTML = "";
+     chemicalRowsData.forEach((row, i) => {
+       const tr = document.createElement("tr");
+       tr.innerHTML = `
+         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="no" value="${row.no ?? ""}"></td>
+         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="name" value="${row.name ?? ""}"></td>
+         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsName" value="${row.msdsName ?? ""}"></td>
+         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsUrl" value="${row.msdsUrl ?? ""}" placeholder="MSDS 링크 입력"></td>
+         <td><div class="row-tools"><button type="button" class="mini-btn danger chemical-delete-btn" data-index="${i}">삭제</button></div></td>
+       `;
+       chemicalsBody.appendChild(tr);
+     });
+     bindChemicalDeleteButtons();
+   }
+
+   function collectRows(type, fields) {
+     const grouped = {};
+     document.querySelectorAll(`[data-type="${type}"]`).forEach((el) => {
+       const idx = el.dataset.index;
+       const field = el.dataset.field;
+       if (!grouped[idx]) grouped[idx] = {};
+       grouped[idx][field] = el.value.trim();
+     });
+
+     return Object.keys(grouped)
+       .sort((a, b) => Number(a) - Number(b))
+       .map(idx => grouped[idx])
+       .filter(row => fields.some(field => String(row[field] || "").trim() !== ""));
+   }
+
+   function readWorkerRowsFromDOM() {
+     return collectRows("worker", ["no", "team", "title", "name"]);
+   }
+
+   function readChemicalRowsFromDOM() {
+     return collectRows("chemical", ["no", "name", "msdsName", "msdsUrl"]);
+   }
+
+   function bindWorkerDeleteButtons() {
+     document.querySelectorAll(".worker-delete-btn").forEach((btn) => {
+       btn.addEventListener("click", () => {
+         const idx = Number(btn.dataset.index);
+         workerRowsData = readWorkerRowsFromDOM();
+         workerRowsData.splice(idx, 1);
+         workerRowsData = workerRowsData.map((row, i) => ({ ...row, no: i + 1 }));
+         renderWorkers(workerRowsData);
+       });
+     });
+   }
+
+   function bindChemicalDeleteButtons() {
+     document.querySelectorAll(".chemical-delete-btn").forEach((btn) => {
+       btn.addEventListener("click", () => {
+         const idx = Number(btn.dataset.index);
+         chemicalRowsData = readChemicalRowsFromDOM();
+         chemicalRowsData.splice(idx, 1);
+         chemicalRowsData = chemicalRowsData.map((row, i) => ({ ...row, no: i + 1 }));
+         renderChemicals(chemicalRowsData);
+       });
+     });
+   }
+
+   function fillEditor(data) {
+     editorEmpty.style.display = "none";
+     editorWrap.style.display = "grid";
+
+     const normalized = normalizeRegion(data);
+
+     formId.value = data.regionId || "";
+     formType.value = data.type || "lab";
+     formNumber.value = data.number || "";
+     formLabName.value = data.labName || "";
+     formTeam.value = data.team || "";
+     formManagerMain.value = data.managerMain || "";
+     formManagerSub.value = data.managerSub || "";
+
+     selection = {
+       cells: new Set(normalized.cells),
+       x: normalized.x,
+       y: normalized.y,
+       w: normalized.w,
+       h: normalized.h
+     };
+
+     formX.value = normalized.x;
+     formY.value = normalized.y;
+     formW.value = normalized.w;
+     formH.value = normalized.h;
+     formCellCount.value = normalized.cells.length;
+
+     renderWorkers(data.workers || []);
+     renderChemicals(data.chemicals || []);
+     selectedBadge.textContent = `${data.number || "-"} / ${data.labName || data.regionId}`;
+
+     renderLayout(labSearch?.value || "");
+   }
+
+   function generateNextRegionId(type = "lab") {
+     const ids = spaces
+       .map((s) => s.id)
+       .filter((id) => new RegExp(`^${type}-\\d+$`).test(id))
+       .map((id) => Number(id.split("-")[1]));
+
+     const next = (ids.length ? Math.max(...ids) : 0) + 1;
+     return `${type}-${String(next).padStart(2, "0")}`;
+   }
+
+   async function selectRegion(regionId, updateUrl = false) {
+     selectedId = regionId;
+     currentData = await loadLabData(currentLayoutId, regionId);
+     fillEditor(currentData);
+
+     if (updateUrl) {
+       const next = new URL(window.location.href);
+       next.searchParams.set("layout", currentLayoutId);
+       next.searchParams.set("lab", regionId);
+       window.history.replaceState({}, "", next.toString());
+     }
+   }
+
+   async function saveCurrentLab() {
+     if (!currentLayoutId) {
+       alert("레이아웃을 먼저 선택하세요.");
+       return;
+     }
+
+     const regionId = formId.value.trim();
+     if (!regionId) {
+       alert("문서 ID가 없습니다. 새 구역은 먼저 '선택 셀로 새 구역 만들기'를 눌러 생성하세요.");
+       return;
+     }
+
+     const cells = sanitizeCells(Array.from(selection?.cells || []));
+     if (!cells.length) {
+       alert("선택된 셀이 없습니다.");
+       return;
+     }
+
+     const bounds = boundsFromCells(cells);
+
+     const payload = {
+       layoutId: currentLayoutId,
+       regionId,
+       type: formType.value,
+       number: formNumber.value.trim(),
+       labName: formLabName.value.trim(),
+       team: formTeam.value.trim(),
+       managerMain: formManagerMain.value.trim(),
+       managerSub: formManagerSub.value.trim(),
+       cells,
+       x: bounds.x,
+       y: bounds.y,
+       w: bounds.w,
+       h: bounds.h,
+       workers: readWorkerRowsFromDOM(),
+       chemicals: readChemicalRowsFromDOM(),
+       updatedAt: new Date().toISOString()
+     };
+
+     const docId = `${currentLayoutId}__${regionId}`;
+
+     try {
+       await setDoc(doc(db, "labs", docId), payload, { merge:true });
+
+       const idx = spaces.findIndex(s => s.id === regionId);
+       const shape = normalizeRegion({
+         id: regionId,
+         type: payload.type,
+         number: payload.number,
+         labName: payload.labName,
+         cells: payload.cells
+       });
+
+       if (idx >= 0) {
+         spaces[idx] = shape;
+       } else {
+         spaces.push(shape);
+       }
+
+       selectedId = regionId;
+       currentData = await loadLabData(currentLayoutId, regionId);
+       fillEditor(currentData);
+
+       alert("실험실 저장 완료");
+     } catch (e) {
+       console.error(e);
+       alert("실험실 저장 실패: " + e.message);
+     }
+   }
+
+   async function deleteCurrentLab() {
+     if (!currentLayoutId) return;
+     const regionId = formId.value.trim();
+     if (!regionId) return;
+
+     const docId = `${currentLayoutId}__${regionId}`;
+     if (!confirm(`${docId} 실험실을 삭제하시겠습니까?`)) return;
+
+     try {
+       await deleteDoc(doc(db, "labs", docId));
+       spaces = spaces.filter(s => s.id !== regionId);
+       renderLayout(labSearch?.value || "");
+       editorWrap.style.display = "none";
+       editorEmpty.style.display = "grid";
+       selectedBadge.textContent = "선택된 구역 없음";
+       selectedId = null;
+       currentData = null;
+       selection = null;
+       dragPreviewCells = new Set();
+       renderGrid();
+       alert("실험실 삭제 완료");
+     } catch (e) {
+       console.error(e);
+       alert("실험실 삭제 실패: " + e.message);
+     }
+   }
+
+   function parseExcelFile(file, onSuccess) {
+     if (!file) return;
+
+     if (typeof XLSX === "undefined") {
+       alert("엑셀 라이브러리가 아직 로드되지 않았습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.");
+       return;
+     }
+
+     const fileName = (file.name || "").toLowerCase();
+     const isCsv = fileName.endsWith(".csv");
+
+     const reader = new FileReader();
+
+     reader.onerror = (err) => {
+       console.error("FileReader error:", err);
+       alert("파일을 읽는 중 오류가 발생했습니다.");
+     };
+
+     reader.onload = (e) => {
+       try {
+         let workbook;
+
+         if (isCsv) {
+           const text = e.target.result;
+           workbook = XLSX.read(text, {
+             type: "string",
+             raw: false
+           });
+         } else {
+           const arrayBuffer = e.target.result;
+           const data = new Uint8Array(arrayBuffer);
+           workbook = XLSX.read(data, {
+             type: "array",
+             raw: false,
+             cellDates: true
+           });
+         }
+
+         if (!workbook || !Array.isArray(workbook.SheetNames) || workbook.SheetNames.length === 0) {
+           throw new Error("시트를 찾을 수 없습니다.");
+         }
+
+         const firstSheetName = workbook.SheetNames[0];
+         const worksheet = workbook.Sheets[firstSheetName];
+
+         if (!worksheet) {
+           throw new Error("첫 번째 시트를 읽을 수 없습니다.");
+         }
+
+         const rows = XLSX.utils.sheet_to_json(worksheet, {
+           defval: "",
+           blankrows: false
+         });
+
+         if (!Array.isArray(rows)) {
+           throw new Error("sheet_to_json 결과가 배열이 아닙니다.");
+         }
+
+         if (rows.length === 0) {
+           throw new Error("첫 번째 시트에 데이터가 없습니다. 헤더가 첫 줄에 있는지 확인해 주세요.");
+         }
+
+         onSuccess(rows);
+       } catch (err) {
+         console.error("엑셀 파싱 상세 오류:", err);
+
+         const msg = String(err?.message || "");
+         if (msg.includes("Encrypted") || msg.includes("EncryptionInfo") || msg.includes("ECMA-376")) {
+           alert(
+             "이 엑셀 파일은 보안 또는 암호화되어 있어 읽을 수 없습니다.\n\n" +
+             "해결 방법:\n" +
+             "1. 새 엑셀 파일에 값만 복사 후 저장\n" +
+             "2. CSV로 저장 후 업로드\n" +
+             "3. 복붙 입력 기능 사용"
+           );
+           return;
+         }
+
+         alert(`엑셀 파일을 읽는 중 오류가 발생했습니다.\n\n상세: ${err.message}`);
+       }
+     };
+
+     if (isCsv) {
+       reader.readAsText(file, "utf-8");
+     } else {
+       reader.readAsArrayBuffer(file);
+     }
+   }
+
+   function normalizeHeaderKey(key) {
+     return String(key || "").trim().replace(/\s+/g, "").toLowerCase();
+   }
+
+   function pickValue(row, aliases) {
+     const entries = Object.entries(row);
+     const aliasSet = new Set(aliases.map(normalizeHeaderKey));
+
+     for (const [key, value] of entries) {
+       if (aliasSet.has(normalizeHeaderKey(key))) {
+         return value ?? "";
+       }
+     }
+     return "";
+   }
+
+   function importWorkersFromRows(rows) {
+     const imported = rows.map((row, i) => ({
+       no: pickValue(row, ["no", "번호"]) || i + 1,
+       team: pickValue(row, ["team", "팀", "부서"]) || "",
+       title: pickValue(row, ["title", "직급", "직책"]) || "",
+       name: pickValue(row, ["name", "이름", "성명"]) || ""
+     }));
+
+     workerRowsData = imported.filter(r =>
+       String(r.team).trim() !== "" ||
+       String(r.title).trim() !== "" ||
+       String(r.name).trim() !== ""
+     );
+
+     if (!workerRowsData.length) {
+       alert(
+         "근무자 엑셀에서 읽을 데이터가 없습니다.\n\n" +
+         "첫 번째 시트 첫 줄 헤더를 아래처럼 맞춰 주세요:\n" +
+         "no | team | title | name\n또는\n번호 | 팀 | 직급 | 이름"
+       );
+       workerRowsData = [{ no:1, team:"", title:"", name:"" }];
+     }
+
+     renderWorkers(workerRowsData);
+   }
+
+   function importChemicalsFromRows(rows) {
+     const imported = rows.map((row, i) => ({
+       no: pickValue(row, ["no", "번호"]) || i + 1,
+       name: pickValue(row, ["name", "제품명", "물질명"]) || "",
+       msdsName: pickValue(row, ["msdsname", "msds파일명", "msds 파일명", "파일명"]) || "",
+       msdsUrl: pickValue(row, ["msdsurl", "msds링크", "msds 링크", "링크", "url"]) || ""
+     }));
+
+     chemicalRowsData = imported.filter(r =>
+       String(r.name).trim() !== "" ||
+       String(r.msdsName).trim() !== "" ||
+       String(r.msdsUrl).trim() !== ""
+     );
+
+     if (!chemicalRowsData.length) {
+       alert(
+         "화학물질 엑셀에서 읽을 데이터가 없습니다.\n\n" +
+         "첫 번째 시트 첫 줄 헤더를 아래처럼 맞춰 주세요:\n" +
+         "no | name | msdsName | msdsUrl\n또는\n번호 | 제품명 | MSDS파일명 | MSDS링크"
+       );
+       chemicalRowsData = [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
+     }
+
+     renderChemicals(chemicalRowsData);
+   }
+
+   function splitPastedLine(line) {
+     if (line.includes("\t")) {
+       return line.split("\t").map(v => v.trim());
+     }
+     return line.split(",").map(v => v.trim());
+   }
+
+   function parsePastedRows(text, expectedColumns = 4) {
+     const lines = String(text || "")
+       .split(/\r?\n/)
+       .map(line => line.trim())
+       .filter(Boolean);
+
+     const rows = [];
+     for (const line of lines) {
+       const cols = splitPastedLine(line);
+       if (cols.length >= expectedColumns) {
+         rows.push(cols.slice(0, expectedColumns));
+       }
+     }
+     return rows;
+   }
+
+   function applyWorkersPaste() {
+     const rows = parsePastedRows(workersPasteInput.value, 4);
+     if (!rows.length) {
+       alert("붙여넣은 근무자 데이터가 없습니다.");
+       return;
+     }
+
+     workerRowsData = rows.map((cols, i) => ({
+       no: cols[0] || i + 1,
+       team: cols[1] || "",
+       title: cols[2] || "",
+       name: cols[3] || ""
+     })).filter(r =>
+       String(r.team).trim() !== "" ||
+       String(r.title).trim() !== "" ||
+       String(r.name).trim() !== ""
+     );
+
+     if (!workerRowsData.length) {
+       alert("붙여넣은 근무자 데이터를 해석하지 못했습니다.");
+       return;
+     }
+
+     renderWorkers(workerRowsData);
+   }
+
+   function applyChemicalsPaste() {
+     const rows = parsePastedRows(chemicalsPasteInput.value, 4);
+     if (!rows.length) {
+       alert("붙여넣은 화학물질 데이터가 없습니다.");
+       return;
+     }
+
+     chemicalRowsData = rows.map((cols, i) => ({
+       no: cols[0] || i + 1,
+       name: cols[1] || "",
+       msdsName: cols[2] || "",
+       msdsUrl: cols[3] || ""
+     })).filter(r =>
+       String(r.name).trim() !== "" ||
+       String(r.msdsName).trim() !== "" ||
+       String(r.msdsUrl).trim() !== ""
+     );
+
+     if (!chemicalRowsData.length) {
+       alert("붙여넣은 화학물질 데이터를 해석하지 못했습니다.");
+       return;
+     }
+
+     renderChemicals(chemicalRowsData);
+   }
+
+   layoutSelector.addEventListener("change", () => {
+     currentLayoutId = layoutSelector.value;
+     loadCurrentLayoutIntoUI();
+   });
+
+   newLayoutBtn.addEventListener("click", createNewLayout);
+   saveLayoutBtn.addEventListener("click", saveCurrentLayout);
+   deleteLayoutBtn.addEventListener("click", deleteCurrentLayout);
+
+   newRegionBtn.addEventListener("click", () => {
+     if (!currentLayoutId) {
+       alert("레이아웃을 먼저 선택하세요.");
+       return;
+     }
+
+     const selectedCells = sanitizeCells(Array.from(selection?.cells || []));
+     if (!selectedCells.length) {
+       alert("먼저 셀을 드래그하거나 클릭해서 선택하세요.");
+       return;
+     }
+
+     const regionType = formType?.value || "lab";
+     const regionId = generateNextRegionId(regionType);
+
+     const data = {
+       ...makeDefaultLabData(currentLayoutId, regionId),
+       regionId,
+       type: regionType,
+       cells: [...selectedCells]
+     };
+
+     selectedId = regionId;
+     fillEditor(data);
+   });
+
+   clearSelectionBtn.addEventListener("click", () => {
+     selection = null;
+     selectedId = null;
+     currentData = null;
+     dragPreviewCells = new Set();
+     renderLayout(labSearch?.value || "");
+     resetEditorView();
+   });
+
+   addWorkerBtn.addEventListener("click", () => {
+     workerRowsData = readWorkerRowsFromDOM();
+     workerRowsData.push({
+       no: workerRowsData.length + 1,
+       team: "",
+       title: "",
+       name: ""
+     });
+     renderWorkers(workerRowsData);
+   });
+
+   addChemicalBtn.addEventListener("click", () => {
+     chemicalRowsData = readChemicalRowsFromDOM();
+     chemicalRowsData.push({
+       no: chemicalRowsData.length + 1,
+       name: "",
+       msdsName: "",
+       msdsUrl: ""
+     });
+     renderChemicals(chemicalRowsData);
+   });
+
+   importWorkersBtn.addEventListener("click", () => workersExcelInput.click());
+   importChemicalsBtn.addEventListener("click", () => chemicalsExcelInput.click());
+
+   workersExcelInput.addEventListener("change", (e) => {
+     const file = e.target.files?.[0];
+     parseExcelFile(file, importWorkersFromRows);
+     e.target.value = "";
+   });
+
+   chemicalsExcelInput.addEventListener("change", (e) => {
+     const file = e.target.files?.[0];
+     parseExcelFile(file, importChemicalsFromRows);
+     e.target.value = "";
+   });
+
+   toggleWorkersPasteBtn.addEventListener("click", () => {
+     workersPasteBox.hidden = !workersPasteBox.hidden;
+   });
+
+   toggleChemicalsPasteBtn.addEventListener("click", () => {
+     chemicalsPasteBox.hidden = !chemicalsPasteBox.hidden;
+   });
+
+   applyWorkersPasteBtn.addEventListener("click", applyWorkersPaste);
+   applyChemicalsPasteBtn.addEventListener("click", applyChemicalsPaste);
+
+   clearWorkersPasteBtn.addEventListener("click", () => {
+     workersPasteInput.value = "";
+   });
+
+   clearChemicalsPasteBtn.addEventListener("click", () => {
+     chemicalsPasteInput.value = "";
+   });
+
+   saveLabBtnEl.addEventListener("click", saveCurrentLab);
+   deleteLabBtn.addEventListener("click", deleteCurrentLab);
+
+   resetBtn.addEventListener("click", async () => {
+     if (!selectedId || !currentLayoutId) return;
+     fillEditor(await loadLabData(currentLayoutId, selectedId));
+   });
+
+   labSearch?.addEventListener("input", (e) => {
+     renderLayout(e.target.value);
+   });
+
+   await loadLayouts();
+   bindGridSelection();
+ </script>
+</body>
+</html>

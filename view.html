@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>실험실 안내</title>
+  <style>
+    :root {
+      --bg:#f3f4f6;
+      --panel:#ffffff;
+      --grid:#e5e7eb;
+      --lab:#f7dce3;
+      --office:#ffffff;
+      --corridor:#f8efc8;
+      --utility:#ececec;
+      --storage:#f5efe2;
+      --text:#111827;
+      --muted:#6b7280;
+      --blue:#2563eb;
+      --head:#eef2ff;
+    }
+
+    * { box-sizing:border-box; }
+
+    body {
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    .app {
+      max-width:1600px;
+      margin:0 auto;
+      padding:20px;
+    }
+
+    .topbar {
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:flex-start;
+      margin-bottom:16px;
+    }
+
+    h1 {
+      margin:0;
+      font-size:28px;
+    }
+
+    .sub {
+      margin-top:6px;
+      font-size:14px;
+      color:var(--muted);
+    }
+
+    .toolbar {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    select, input {
+      font-size:14px;
+      border:1px solid #cfd4dc;
+      border-radius:8px;
+      background:#fff;
+      padding:10px 12px;
+    }
+
+    input {
+      min-width:220px;
+    }
+
+    select {
+      min-width:260px;
+    }
+
+    .panel {
+      background:var(--panel);
+      border:1px solid #ddd;
+      border-radius:16px;
+      box-shadow:0 4px 18px rgba(0,0,0,.05);
+      overflow:hidden;
+      margin-bottom:16px;
+    }
+
+    .panel-header {
+      padding:14px 18px;
+      border-bottom:1px solid #ececec;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .panel-header h2 {
+      margin:0;
+      font-size:20px;
+    }
+
+    .content {
+      padding:16px;
+    }
+
+    .layout-scroll {
+      overflow:visible;
+    }
+
+    .layout-canvas {
+      position:relative;
+      width:100%;
+      aspect-ratio:30/13;
+      border:2px solid #444;
+      border-radius:8px;
+      overflow:hidden;
+      background:#fafafa;
+    }
+
+    .layout-grid {
+      position:absolute;
+      inset:0;
+      display:grid;
+      grid-template-columns:repeat(60,1fr);
+      grid-template-rows:repeat(26,1fr);
+      z-index:1;
+      pointer-events:none;
+    }
+
+    .grid-cell {
+      border-right:1px solid var(--grid);
+      border-bottom:1px solid var(--grid);
+    }
+
+    .region-group {
+      position:absolute;
+      z-index:2;
+      pointer-events:none;
+      transition:opacity .15s ease;
+    }
+
+    .region-group.layer-lab {
+      z-index:4;
+    }
+
+    .region-group.focused {
+      z-index:6;
+    }
+
+    .region-piece {
+      position:absolute;
+      border:none;
+      cursor:pointer;
+      pointer-events:auto;
+    }
+
+    .region-piece.lab { background:var(--lab); }
+    .region-piece.office { background:var(--office); }
+    .region-piece.corridor { background:var(--corridor); }
+    .region-piece.utility { background:var(--utility); }
+    .region-piece.storage { background:var(--storage); }
+
+    .region-outline {
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:6;
+    }
+
+    .region-outline svg {
+      width:100%;
+      height:100%;
+      overflow:visible;
+      display:block;
+    }
+
+    .region-outline path.lab-outline {
+      fill:none;
+      stroke:rgba(0,0,0,.72);
+      stroke-width:1.2;
+      vector-effect:non-scaling-stroke;
+      stroke-linecap:butt;
+      stroke-linejoin:miter;
+    }
+
+    .region-group.focused .region-outline path {
+      stroke:var(--blue);
+      stroke-width:2.4;
+    }
+
+    .label-layer {
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:7;
+    }
+
+    .region-number-badge {
+      position:absolute;
+      min-width:18px;
+      min-height:16px;
+      padding:1px 4px;
+      font-size:10px;
+      font-weight:700;
+      line-height:1.2;
+      color:#374151;
+      background:rgba(255,255,255,.92);
+      border-radius:4px;
+      box-shadow:0 1px 2px rgba(0,0,0,.08);
+      transform:translate(0, 0);
+      pointer-events:auto;
+      cursor:pointer;
+    }
+
+    .region-name-badge {
+      position:absolute;
+      max-width:90px;
+      padding:0;
+      font-size:9px;
+      line-height:1.15;
+      text-align:center;
+      font-weight:700;
+      background:transparent;
+      border-radius:0;
+      box-shadow:none;
+      transform:translate(-50%, -50%);
+      white-space:normal;
+      word-break:keep-all;
+      overflow-wrap:normal;
+      line-break:auto;
+      text-shadow:0 0 6px rgba(255,255,255,.95);
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+      color:#111827;
+      pointer-events:auto;
+      cursor:pointer;
+    }
+
+    .region-name-badge.lab { color:#8d4756; }
+    .region-name-badge.office,
+    .region-name-badge.corridor,
+    .region-name-badge.utility,
+    .region-name-badge.storage { color:#111827; }
+
+    .region-group.focused .region-number-badge {
+      box-shadow:
+        0 1px 2px rgba(0,0,0,.08),
+        0 0 0 3px rgba(37,99,235,.18);
+    }
+
+    .region-group.focused .region-name-badge {
+      text-shadow:
+        0 0 8px rgba(255,255,255,1),
+        0 0 3px rgba(37,99,235,.18);
+    }
+
+    .legend {
+      margin-top:12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      font-size:13px;
+      color:#555;
+    }
+
+    .legend-item {
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .legend-color {
+      width:18px;
+      height:18px;
+      border-radius:4px;
+      border:1px solid #777;
+    }
+
+    .detail-grid {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:16px;
+    }
+
+    .info-card {
+      border:1px solid #e5e7eb;
+      border-radius:12px;
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .info-card h3 {
+      margin:0;
+      padding:12px 14px;
+      background:#f8fafc;
+      border-bottom:1px solid #e5e7eb;
+      font-size:16px;
+    }
+
+    .info-body {
+      padding:14px;
+    }
+
+    .kv {
+      display:grid;
+      grid-template-columns:120px 1fr;
+      gap:8px 12px;
+      font-size:14px;
+    }
+
+    .kv div:nth-child(odd) {
+      font-weight:700;
+      color:#374151;
+    }
+
+    .table-wrap {
+      overflow:visible;
+    }
+
+    .table-wrap.scroll-y {
+      max-height:280px;
+      overflow:auto;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+      table-layout:fixed;
+    }
+
+    th, td {
+      border:1px solid #dbe0e7;
+      padding:9px 10px;
+      text-align:center;
+      vertical-align:top;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+      white-space:normal;
+    }
+
+    thead th {
+      background:var(--head);
+      position:sticky;
+      top:0;
+      z-index:1;
+    }
+
+    .empty {
+      padding:24px;
+      text-align:center;
+      color:var(--muted);
+      border:1px dashed #d1d5db;
+      border-radius:12px;
+      background:#fafafa;
+    }
+
+    .badge {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border:1px solid #dbeafe;
+      background:#eff6ff;
+      color:#1d4ed8;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .muted {
+      color:var(--muted);
+    }
+
+    .search-row {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .helper {
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .detail-flash {
+      animation: detailPulse 1.2s ease;
+    }
+
+    @keyframes detailPulse {
+      0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.00); }
+      25% { box-shadow: 0 0 0 6px rgba(37,99,235,0.18); }
+      100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.00); }
+    }
+
+ @media (max-width:900px) {
+ .app {
+   padding:12px;
+ }
+
+ .topbar {
+   flex-direction:column;
+ }
+
+ .panel-header {
+   padding:12px;
+ }
+
+ .content {
+   padding:12px;
+ }
+
+ .detail-grid {
+   grid-template-columns:1fr;
+   gap:12px;
+ }
+
+ .kv {
+   grid-template-columns:78px 1fr;
+   gap:6px 8px;
+   font-size:12px;
+ }
+
+ select, input {
+   width:100%;
+   min-width:0;
+   font-size:13px;
+   padding:9px 10px;
+ }
+
+ .toolbar {
+   width:100%;
+ }
+
+ .layout-scroll {
+   overflow:visible;
+ }
+
+ .layout-canvas {
+   width:100%;
+   aspect-ratio:30/13;
+   min-width:0;
+   min-height:0;
+   height:auto;
+ }
+
+ /* 모바일에서는 실험실 이름 숨김, 번호만 표시 */
+ .region-name-badge {
+   display:none;
+ }
+
+ .region-number-badge {
+   font-size:9px;
+   min-width:16px;
+   min-height:14px;
+   padding:1px 3px;
+ }
+
+ .legend {
+   gap:8px;
+   font-size:11px;
+ }
+
+ .legend-color {
+   width:14px;
+   height:14px;
+ }
+
+ .info-card h3 {
+   font-size:14px;
+   padding:10px 12px;
+ }
+
+ .info-body {
+   padding:10px;
+ }
+
+ .table-wrap {
+   overflow:visible;
+ }
+
+ .table-wrap.scroll-y {
+   max-height:220px;
+   overflow:auto;
+ }
+
+ table {
+   width:100%;
+   min-width:0;
+   font-size:11px;
+   table-layout:fixed;
+ }
+
+ th, td {
+   padding:6px 4px;
+   font-size:11px;
+   word-break:keep-all;
+   overflow-wrap:normal;
+   white-space:normal;
+ }
+
+ thead th {
+   white-space:normal;
+ }
+
+ /* 근무자 표 열 너비 */
+ #workersWrap table col.col-no {
+   width:9%;
+ }
+
+ #workersWrap table col.col-team {
+   width:40%;
+ }
+
+ #workersWrap table col.col-title {
+   width:28%;
+ }
+
+ #workersWrap table col.col-name {
+   width:23%;
+ }
+
+ /* 화학물질 표 열 너비 */
+ #chemicalsWrap table col.col-no {
+   width:9%;
+ }
+
+ #chemicalsWrap table col.col-product {
+   width:48%;
+ }
+
+ #chemicalsWrap table col.col-msdsname {
+   width:28%;
+ }
+
+ #chemicalsWrap table col.col-msdsurl {
+   width:15%;
+ }
+
+ /* 번호 열은 더 작고 좁게 */
+ #workersWrap th:nth-child(1),
+ #workersWrap td:nth-child(1),
+ #chemicalsWrap th:nth-child(1),
+ #chemicalsWrap td:nth-child(1) {
+   font-size:9px;
+   white-space:nowrap;
+   padding-left:2px;
+   padding-right:2px;
+ }
+
+ /* 팀 / 직급 / 이름 줄바꿈 방지 */
+ #workersWrap td:nth-child(2),
+ #workersWrap td:nth-child(3),
+ #workersWrap td:nth-child(4) {
+   white-space:nowrap;
+   word-break:keep-all;
+   overflow-wrap:normal;
+ }
+
+ /* 제품명 / 파일명 줄바꿈 방지 */
+ #chemicalsWrap td:nth-child(2),
+ #chemicalsWrap td:nth-child(3) {
+   white-space:nowrap;
+   word-break:keep-all;
+   overflow-wrap:normal;
+ }
+
+ /* 링크 칸은 너무 길면 줄여서 */
+ #chemicalsWrap td:nth-child(4) {
+   font-size:10px;
+   word-break:break-all;
+   overflow-wrap:anywhere;
+ }
+
+ .helper {
+   font-size:11px;
+ }
+
+ .sub {
+   font-size:12px;
+ }
+
+ #focusMeta {
+   font-size:12px;
+ }
+}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div>
+        <h1 id="pageTitle">실험실 안내</h1>
+        <div id="pageSub" class="sub">레이아웃 및 실험실 정보를 불러오는 중입니다.</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+        <div id="modeBadge" class="badge">게시용</div>
+        <div class="toolbar">
+          <label for="layoutSelectPublic" style="font-size:14px; font-weight:700;">레이아웃 선택</label>
+          <select id="layoutSelectPublic"></select>
+        </div>
+      </div>
+    </div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>레이아웃</h2>
+          <div id="layoutMeta" class="sub">-</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <div id="focusMeta" class="muted">전체 보기</div>
+          <div class="search-row">
+            <input id="labSearchInput" placeholder="실험실명 또는 번호 검색" />
+          </div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="layout-scroll">
+          <div id="layoutCanvas" class="layout-canvas">
+            <div id="layoutGrid" class="layout-grid"></div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="legend-color" style="background:#f7dce3"></span>실험실</div>
+          <div class="legend-item"><span class="legend-color" style="background:#ffffff"></span>사무/공용공간</div>
+          <div class="legend-item"><span class="legend-color" style="background:#f8efc8"></span>실험실 내 통로</div>
+          <div class="legend-item"><span class="legend-color" style="background:#ececec"></span>설비/유틸리티</div>
+          <div class="legend-item"><span class="legend-color" style="background:#f5efe2"></span>창고/보관공간</div>
+        </div>
+        <div class="helper" style="margin-top:10px;">실험실 번호를 눌러 상세 정보를 볼 수 있습니다.</div>
+      </div>
+    </section>
+
+    <section id="detailPanel" class="panel" style="display:none;">
+      <div class="panel-header">
+        <div>
+          <h2>상세 정보</h2>
+          <div id="detailSub" class="sub">-</div>
+        </div>
+        <div class="search-row">
+          <input id="chemicalSearchInput" placeholder="취급화학물질 검색" />
+        </div>
+      </div>
+      <div class="content">
+        <div id="detailGrid" class="detail-grid">
+          <div class="info-card">
+            <h3>기본 정보</h3>
+            <div class="info-body">
+              <div id="basicInfo" class="kv"></div>
+            </div>
+          </div>
+
+          <div class="info-card">
+            <h3>근무자</h3>
+            <div class="info-body">
+              <div id="workersWrap" class="table-wrap scroll-y"></div>
+            </div>
+          </div>
+
+          <div class="info-card" style="grid-column:1 / -1;">
+            <h3>취급 화학물질 / MSDS</h3>
+            <div class="info-body">
+              <div id="chemicalsWrap" class="table-wrap"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="emptyPanel" class="panel" style="display:none;">
+      <div class="content">
+        <div id="emptyMessage" class="empty">데이터를 찾을 수 없습니다.</div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+  authDomain: "lab-test-888d2.firebaseapp.com",
+  projectId: "lab-test-888d2",
+  storageBucket: "lab-test-888d2.firebasestorage.app",
+  messagingSenderId: "417323251483",
+  appId: "1:417323251483:web:2938bce7431260aff385be"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const GRID_COLS = 60;
+    const GRID_ROWS = 26;
+
+    const pageTitle = document.getElementById("pageTitle");
+    const pageSub = document.getElementById("pageSub");
+    const layoutMeta = document.getElementById("layoutMeta");
+    const focusMeta = document.getElementById("focusMeta");
+    const layoutCanvas = document.getElementById("layoutCanvas");
+    const layoutGrid = document.getElementById("layoutGrid");
+    const layoutSelectPublic = document.getElementById("layoutSelectPublic");
+    const labSearchInput = document.getElementById("labSearchInput");
+    const chemicalSearchInput = document.getElementById("chemicalSearchInput");
+
+    const detailPanel = document.getElementById("detailPanel");
+    const detailSub = document.getElementById("detailSub");
+    const basicInfo = document.getElementById("basicInfo");
+    const workersWrap = document.getElementById("workersWrap");
+    const chemicalsWrap = document.getElementById("chemicalsWrap");
+
+    const emptyPanel = document.getElementById("emptyPanel");
+    const emptyMessage = document.getElementById("emptyMessage");
+
+    const params = new URLSearchParams(window.location.search);
+    let initialLayoutId = params.get("layout");
+    let initialRegionId = params.get("lab");
+
+    let currentLayoutId = null;
+    let currentLayoutData = null;
+    let currentRegions = [];
+    let currentFocusedLabData = null;
+    let currentLabSearch = "";
+    let currentChemicalSearch = "";
+
+    function cellKey(x, y) {
+      return `${x}-${y}`;
+    }
+
+    function parseCell(key) {
+      const [x, y] = String(key).split("-").map(Number);
+      return { x, y };
+    }
+
+    function rectToCells(x, y, w, h) {
+      const cells = [];
+      for (let yy = y; yy < y + h; yy++) {
+        for (let xx = x; xx < x + w; xx++) {
+          cells.push(`${xx}-${yy}`);
+        }
+      }
+      return cells;
+    }
+
+    function sanitizeCells(cells = []) {
+      const unique = new Set();
+      for (const key of cells) {
+        const { x, y } = parseCell(key);
+        if (
+          Number.isInteger(x) &&
+          Number.isInteger(y) &&
+          x >= 1 && x <= GRID_COLS &&
+          y >= 1 && y <= GRID_ROWS
+        ) {
+          unique.add(cellKey(x, y));
+        }
+      }
+      return Array.from(unique);
+    }
+
+    function boundsFromCells(cells = []) {
+      if (!cells.length) return { x:1, y:1, w:1, h:1 };
+      const coords = cells.map(parseCell);
+      const xs = coords.map(c => c.x);
+      const ys = coords.map(c => c.y);
+      return {
+        x: Math.min(...xs),
+        y: Math.min(...ys),
+        w: Math.max(...xs) - Math.min(...xs) + 1,
+        h: Math.max(...ys) - Math.min(...ys) + 1
+      };
+    }
+
+    function getBestLabelPosition(cells) {
+      if (!cells.length) return { x: 1, y: 1 };
+
+      const coords = cells.map(parseCell);
+      const rows = new Map();
+
+      for (const c of coords) {
+        if (!rows.has(c.y)) rows.set(c.y, []);
+        rows.get(c.y).push(c.x);
+      }
+
+      const segments = [];
+
+      for (const [y, xs] of rows.entries()) {
+        const sorted = [...xs].sort((a, b) => a - b);
+        if (!sorted.length) continue;
+
+        let segStart = sorted[0];
+        let prev = sorted[0];
+
+        for (let i = 1; i <= sorted.length; i++) {
+          const cur = sorted[i];
+
+          if (cur === prev + 1) {
+            prev = cur;
+            continue;
+          }
+
+          segments.push({
+            y,
+            startX: segStart,
+            endX: prev,
+            length: prev - segStart + 1
+          });
+
+          segStart = cur;
+          prev = cur;
+        }
+      }
+
+      if (!segments.length) return coords[0];
+
+      const maxLength = Math.max(...segments.map(s => s.length));
+      const longestSegments = segments.filter(s => s.length === maxLength);
+
+      const ys = coords.map(c => c.y);
+      const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+      longestSegments.sort((a, b) => {
+        const da = Math.abs(a.y - centerY);
+        const db = Math.abs(b.y - centerY);
+        if (da !== db) return da - db;
+        return a.y - b.y;
+      });
+
+      const best = longestSegments[0];
+      return {
+        x: (best.startX + best.endX) / 2,
+        y: best.y
+      };
+    }
+
+    function normalizeRegion(region) {
+      const hasCells = Array.isArray(region?.cells) && region.cells.length > 0;
+      const cells = hasCells
+        ? sanitizeCells(region.cells)
+        : rectToCells(
+            Number(region?.x || 1),
+            Number(region?.y || 1),
+            Number(region?.w || 1),
+            Number(region?.h || 1)
+          );
+
+      const bounds = boundsFromCells(cells);
+      const topLeft = [...cells]
+        .map(parseCell)
+        .sort((a, b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
+      const bestLabel = getBestLabelPosition(cells);
+
+      return {
+        id: region?.id || "",
+        type: region?.type || "lab",
+        number: region?.number || "",
+        labName: region?.labName || "",
+        cells,
+        topLeftX: topLeft.x,
+        topLeftY: topLeft.y,
+        labelX: bestLabel.x,
+        labelY: bestLabel.y,
+        ...bounds
+      };
+    }
+
+    function renderGrid() {
+      layoutGrid.innerHTML = "";
+      for (let y = 1; y <= GRID_ROWS; y++) {
+        for (let x = 1; x <= GRID_COLS; x++) {
+          const cell = document.createElement("div");
+          cell.className = "grid-cell";
+          layoutGrid.appendChild(cell);
+        }
+      }
+    }
+
+    function buildOutlinePath(cells, bounds) {
+      const cellSet = new Set(cells);
+      const dirs = [
+        { dx: 0, dy: -1, side: "top" },
+        { dx: 1, dy: 0, side: "right" },
+        { dx: 0, dy: 1, side: "bottom" },
+        { dx: -1, dy: 0, side: "left" }
+      ];
+
+      const segments = [];
+
+      for (const key of cells) {
+        const { x, y } = parseCell(key);
+        for (const dir of dirs) {
+          const nx = x + dir.dx;
+          const ny = y + dir.dy;
+          if (!cellSet.has(cellKey(nx, ny))) {
+            const lx = x - bounds.x;
+            const ly = y - bounds.y;
+
+            if (dir.side === "top") {
+              segments.push(`M ${lx} ${ly} L ${lx + 1} ${ly}`);
+            } else if (dir.side === "right") {
+              segments.push(`M ${lx + 1} ${ly} L ${lx + 1} ${ly + 1}`);
+            } else if (dir.side === "bottom") {
+              segments.push(`M ${lx} ${ly + 1} L ${lx + 1} ${ly + 1}`);
+            } else if (dir.side === "left") {
+              segments.push(`M ${lx} ${ly} L ${lx} ${ly + 1}`);
+            }
+          }
+        }
+      }
+
+      return segments.join(" ");
+    }
+
+    function regionDisplayName(region) {
+      return `${region.number ? region.number + " / " : ""}${region.labName || region.id}`;
+    }
+
+    function flashDetailPanel() {
+      detailPanel.classList.remove("detail-flash");
+      void detailPanel.offsetWidth;
+      detailPanel.classList.add("detail-flash");
+    }
+
+    function scrollToDetailPanel() {
+      setTimeout(() => {
+        detailPanel.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+        flashDetailPanel();
+      }, 100);
+    }
+
+    async function openLab(regionId) {
+      if (!currentLayoutId || !regionId) return;
+
+      const labDocId = `${currentLayoutId}__${regionId}`;
+      const labSnap = await getDoc(doc(db, "labs", labDocId));
+
+      if (!labSnap.exists()) {
+        alert("해당 실험실 상세 정보를 찾을 수 없습니다.");
+        return;
+      }
+
+      currentFocusedLabData = labSnap.data();
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("layout", currentLayoutId);
+      nextUrl.searchParams.set("lab", regionId);
+      window.history.replaceState({}, "", nextUrl.toString());
+
+      renderFocusedState();
+      scrollToDetailPanel();
+    }
+
+    function renderRegionGroup(space, focusedRegionId = null, labSearch = "") {
+      const normalized = normalizeRegion(space);
+      const isFocused = focusedRegionId && focusedRegionId === normalized.id;
+      const searchText = labSearch.trim().toLowerCase();
+      const matchesSearch = !searchText || regionDisplayName(normalized).toLowerCase().includes(searchText);
+
+      const group = document.createElement("div");
+      group.className = `region-group${normalized.type === "lab" ? " layer-lab" : ""}${isFocused ? " focused" : ""}`;
+
+      if (focusedRegionId && !isFocused) {
+        group.style.opacity = "0.35";
+      }
+      if (searchText && !matchesSearch) {
+        group.style.opacity = focusedRegionId && isFocused ? "1" : "0.18";
+      }
+
+      group.style.left = `${((normalized.x - 1) / GRID_COLS) * 100}%`;
+      group.style.top = `${((normalized.y - 1) / GRID_ROWS) * 100}%`;
+      group.style.width = `${(normalized.w / GRID_COLS) * 100}%`;
+      group.style.height = `${(normalized.h / GRID_ROWS) * 100}%`;
+
+      const clickHandler = async (e) => {
+        e.stopPropagation();
+        if (normalized.type === "lab") {
+          await openLab(normalized.id);
+        }
+      };
+
+      normalized.cells.forEach((key) => {
+        const { x, y } = parseCell(key);
+        const localX = x - normalized.x;
+        const localY = y - normalized.y;
+
+        const piece = document.createElement("div");
+        piece.className = `region-piece ${normalized.type}`;
+        piece.style.left = `${(localX / normalized.w) * 100}%`;
+        piece.style.top = `${(localY / normalized.h) * 100}%`;
+        piece.style.width = `${(1 / normalized.w) * 100}%`;
+        piece.style.height = `${(1 / normalized.h) * 100}%`;
+
+        if (normalized.type === "lab") {
+          piece.addEventListener("click", clickHandler);
+        }
+
+        group.appendChild(piece);
+      });
+
+      if (normalized.type === "lab") {
+        const outline = document.createElement("div");
+        outline.className = "region-outline";
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", `0 0 ${normalized.w} ${normalized.h}`);
+        svg.setAttribute("preserveAspectRatio", "none");
+
+        const path = document.createElementNS(svgNS, "path");
+        path.setAttribute("class", "lab-outline");
+        path.setAttribute("d", buildOutlinePath(normalized.cells, normalized));
+
+        svg.appendChild(path);
+        outline.appendChild(svg);
+        group.appendChild(outline);
+      }
+
+      const labelLayer = document.createElement("div");
+      labelLayer.className = "label-layer";
+
+      if (normalized.number) {
+        const numberBadge = document.createElement("div");
+        numberBadge.className = "region-number-badge";
+        numberBadge.textContent = normalized.number;
+        numberBadge.style.left = `${((normalized.topLeftX - normalized.x) / normalized.w) * 100}%`;
+        numberBadge.style.top = `${((normalized.topLeftY - normalized.y) / normalized.h) * 100}%`;
+        if (normalized.type === "lab") numberBadge.addEventListener("click", clickHandler);
+        labelLayer.appendChild(numberBadge);
+      }
+
+      if (normalized.labName) {
+        const nameBadge = document.createElement("div");
+        nameBadge.className = `region-name-badge ${normalized.type}`;
+        nameBadge.textContent = normalized.labName;
+        nameBadge.style.left = `${((normalized.labelX - normalized.x + 0.5) / normalized.w) * 100}%`;
+        nameBadge.style.top = `${((normalized.labelY - normalized.y + 0.5) / normalized.h) * 100}%`;
+        if (normalized.type === "lab") nameBadge.addEventListener("click", clickHandler);
+        labelLayer.appendChild(nameBadge);
+      }
+
+      group.appendChild(labelLayer);
+      return group;
+    }
+
+    function renderLayout(spaces, focusedRegionId = null, labSearch = "") {
+      layoutCanvas.querySelectorAll(".region-group").forEach(el => el.remove());
+
+      const sortedSpaces = [...spaces].sort((a, b) => {
+        const aIsLab = a.type === "lab" ? 1 : 0;
+        const bIsLab = b.type === "lab" ? 1 : 0;
+        return aIsLab - bIsLab;
+      });
+
+      sortedSpaces.forEach((space) => {
+        layoutCanvas.appendChild(renderRegionGroup(space, focusedRegionId, labSearch));
+      });
+
+      renderGrid();
+    }
+
+    function renderBasicInfo(data) {
+      const items = [
+        ["번호", data.number || "-"],
+        ["실험실명", data.labName || "-"],
+        ["담당팀", data.team || "-"],
+        ["책임자(정)", data.managerMain || "-"],
+        ["책임자(부)", data.managerSub || "-"]
+      ];
+
+      basicInfo.innerHTML = items
+        .map(([k, v]) => `<div>${k}</div><div>${escapeHtml(String(v || "-"))}</div>`)
+        .join("");
+    }
+
+function renderWorkersTable(workers = []) {
+ if (!workers.length) {
+   workersWrap.innerHTML = `<div class="empty">등록된 근무자 정보가 없습니다.</div>`;
+   return;
+ }
+
+ workersWrap.innerHTML = `
+   <table>
+     <colgroup>
+       <col class="col-no">
+       <col class="col-team">
+       <col class="col-title">
+       <col class="col-name">
+     </colgroup>
+     <thead>
+       <tr>
+         <th>번호</th>
+         <th>팀</th>
+         <th>직급</th>
+         <th>이름</th>
+       </tr>
+     </thead>
+     <tbody>
+       ${workers.map(w => `
+         <tr>
+           <td>${escapeHtml(String(w.no ?? ""))}</td>
+           <td>${escapeHtml(String(w.team ?? ""))}</td>
+           <td>${escapeHtml(String(w.title ?? ""))}</td>
+           <td>${escapeHtml(String(w.name ?? ""))}</td>
+         </tr>
+       `).join("")}
+     </tbody>
+   </table>
+ `;
+}
+
+    function renderChemicalsTable(chemicals = [], searchText = "") {
+ const q = searchText.trim().toLowerCase();
+ const filtered = !q
+   ? chemicals
+   : chemicals.filter(c =>
+       String(c.name ?? "").toLowerCase().includes(q) ||
+       String(c.msdsName ?? "").toLowerCase().includes(q) ||
+       String(c.msdsUrl ?? "").toLowerCase().includes(q)
+     );
+
+ if (!filtered.length) {
+   chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+   return;
+ }
+
+ chemicalsWrap.innerHTML = `
+   <table>
+     <colgroup>
+       <col class="col-no">
+       <col class="col-product">
+       <col class="col-msdsname">
+       <col class="col-msdsurl">
+     </colgroup>
+     <thead>
+       <tr>
+         <th>번호</th>
+         <th>제품명</th>
+         <th>MSDS 파일명</th>
+         <th>MSDS 링크</th>
+       </tr>
+     </thead>
+     <tbody>
+       ${filtered.map(c => `
+         <tr>
+           <td>${escapeHtml(String(c.no ?? ""))}</td>
+           <td>${escapeHtml(String(c.name ?? ""))}</td>
+           <td>${escapeHtml(String(c.msdsName ?? ""))}</td>
+           <td>${renderLinkCell(c.msdsUrl)}</td>
+         </tr>
+       `).join("")}
+     </tbody>
+   </table>
+ `;
+}
+
+    function renderLinkCell(url) {
+      const text = String(url || "").trim();
+      if (!text) return "-";
+      const safe = escapeHtml(text);
+      return `<a href="${safe}" target="_blank" rel="noopener noreferrer">열기</a>`;
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    async function populateLayoutDropdown(selectedLayoutId = "") {
+      try {
+        const snap = await getDocs(collection(db, "layouts"));
+        const layouts = [];
+
+        snap.forEach((d) => {
+          const data = d.data();
+          layouts.push({
+            id: d.id,
+            name: data.name || d.id
+          });
+        });
+
+        layouts.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+        layoutSelectPublic.innerHTML = layouts.map(layout => `
+          <option value="${layout.id}" ${layout.id === selectedLayoutId ? "selected" : ""}>
+            ${escapeHtml(layout.name)}
+          </option>
+        `).join("");
+
+        if (!layouts.length) {
+          layoutSelectPublic.innerHTML = `<option value="">레이아웃 없음</option>`;
+        }
+
+        return layouts;
+      } catch (err) {
+        console.error("레이아웃 드롭박스 로드 실패:", err);
+        layoutSelectPublic.innerHTML = `<option value="">불러오기 실패</option>`;
+        return [];
+      }
+    }
+
+    function updateUrl(layoutId, labId = null) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("layout", layoutId);
+      if (labId) {
+        nextUrl.searchParams.set("lab", labId);
+      } else {
+        nextUrl.searchParams.delete("lab");
+      }
+      window.history.replaceState({}, "", nextUrl.toString());
+    }
+
+    function renderFocusedState() {
+      if (!currentLayoutData) return;
+
+      const layoutName = currentLayoutData.name || currentLayoutId;
+      const layoutDescription = currentLayoutData.description || "";
+
+      pageTitle.textContent = layoutName;
+      pageSub.textContent = layoutDescription || "게시용 레이아웃 안내";
+      layoutMeta.textContent = `${currentLayoutId}${layoutDescription ? " · " + layoutDescription : ""}`;
+
+      const focusedRegionId = currentFocusedLabData?.regionId || null;
+
+      renderLayout(currentRegions, focusedRegionId, currentLabSearch);
+
+      if (currentFocusedLabData) {
+        focusMeta.textContent = `${currentFocusedLabData.number || "-"} / ${currentFocusedLabData.labName || currentFocusedLabData.regionId}`;
+        detailSub.textContent = `${layoutName} · 실험실 상세 보기`;
+        renderBasicInfo(currentFocusedLabData);
+        renderWorkersTable(currentFocusedLabData.workers || []);
+        renderChemicalsTable(currentFocusedLabData.chemicals || [], currentChemicalSearch);
+        detailPanel.style.display = "block";
+      } else {
+        focusMeta.textContent = "전체 보기";
+        detailPanel.style.display = "none";
+      }
+    }
+
+    async function loadLayoutAndMaybeLab(layoutIdToLoad, labIdToLoad = null) {
+      const layoutSnap = await getDoc(doc(db, "layouts", layoutIdToLoad));
+      if (!layoutSnap.exists()) {
+        emptyPanel.style.display = "block";
+        emptyMessage.textContent = `레이아웃 "${layoutIdToLoad}" 를 찾을 수 없습니다.`;
+        pageSub.textContent = "레이아웃 정보를 불러오지 못했습니다.";
+        return;
+      }
+
+      emptyPanel.style.display = "none";
+
+      currentLayoutId = layoutIdToLoad;
+      currentLayoutData = layoutSnap.data();
+      currentRegions = Array.isArray(currentLayoutData.regions)
+        ? currentLayoutData.regions.map(normalizeRegion)
+        : [];
+
+      currentFocusedLabData = null;
+      currentChemicalSearch = "";
+      chemicalSearchInput.value = "";
+
+      if (labIdToLoad) {
+        const labDocId = `${layoutIdToLoad}__${labIdToLoad}`;
+        const labSnap = await getDoc(doc(db, "labs", labDocId));
+        if (labSnap.exists()) {
+          currentFocusedLabData = labSnap.data();
+        }
+      }
+
+      renderFocusedState();
+    }
+
+    layoutSelectPublic.addEventListener("change", async () => {
+      const nextLayoutId = layoutSelectPublic.value;
+      if (!nextLayoutId) return;
+
+      initialRegionId = null;
+      updateUrl(nextLayoutId, null);
+      await loadLayoutAndMaybeLab(nextLayoutId, null);
+    });
+
+    labSearchInput.addEventListener("input", () => {
+      currentLabSearch = labSearchInput.value || "";
+      renderFocusedState();
+    });
+
+    chemicalSearchInput.addEventListener("input", () => {
+      currentChemicalSearch = chemicalSearchInput.value || "";
+      if (currentFocusedLabData) {
+        renderChemicalsTable(currentFocusedLabData.chemicals || [], currentChemicalSearch);
+      }
+    });
+
+    async function main() {
+      const layouts = await populateLayoutDropdown(initialLayoutId || "");
+
+      let effectiveLayoutId = initialLayoutId;
+
+      if (!effectiveLayoutId && layouts.length > 0) {
+        effectiveLayoutId = layouts[0].id;
+        updateUrl(effectiveLayoutId, null);
+        layoutSelectPublic.value = effectiveLayoutId;
+      }
+
+      if (!effectiveLayoutId) {
+        emptyPanel.style.display = "block";
+        emptyMessage.textContent = "레이아웃이 없습니다.";
+        pageSub.textContent = "Firestore layouts 컬렉션을 확인해 주세요.";
+        return;
+      }
+
+      await loadLayoutAndMaybeLab(effectiveLayoutId, initialRegionId || null);
+    }
+
+    main().catch((err) => {
+      console.error(err);
+      emptyPanel.style.display = "block";
+      emptyMessage.textContent = "페이지를 불러오는 중 오류가 발생했습니다.";
+      pageSub.textContent = err?.message || "알 수 없는 오류";
+    });
+  </script>
+</body>
+</html>
