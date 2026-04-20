@@ -376,7 +376,6 @@
      100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.00); }
    }
 
-   /* 내부 레이아웃 */
    .interior-wrap {
      display:grid;
      grid-template-columns: minmax(0, 1fr) 360px;
@@ -429,19 +428,8 @@
      stroke-width:3 !important;
    }
 
-   .link-box {
-     margin-top:10px;
-     display:grid;
-     gap:8px;
-   }
-
-   .link-item {
-     padding:10px 12px;
-     border:1px solid #dbeafe;
-     background:#eff6ff;
-     border-radius:10px;
-     font-size:12px;
-     word-break:break-all;
+   .docs-bottom {
+     margin-top:16px;
    }
 
    @media (max-width: 1000px) {
@@ -524,12 +512,90 @@
      }
 
      table {
+       width:100%;
+       min-width:0;
        font-size:11px;
+       table-layout:fixed;
      }
 
      th, td {
        padding:6px 4px;
        font-size:11px;
+       word-break:keep-all;
+       overflow-wrap:normal;
+       white-space:normal;
+     }
+
+     thead th {
+       white-space:normal;
+     }
+
+     /* 근무자 표 열 너비 */
+     #workersWrap table col.col-no { width:12%; }
+     #workersWrap table col.col-team { width:34%; }
+     #workersWrap table col.col-title { width:24%; }
+     #workersWrap table col.col-name { width:30%; }
+
+     /* 화학물질 표 열 너비 */
+     #chemicalsWrap table col.col-no { width:10%; }
+     #chemicalsWrap table col.col-product { width:42%; }
+     #chemicalsWrap table col.col-msdsname { width:28%; }
+     #chemicalsWrap table col.col-msdsurl { width:20%; }
+
+     /* 문서 표 열 너비 */
+     #equipmentDocs table col.col-doc-no { width:10%; }
+     #equipmentDocs table col.col-doc-name { width:32%; }
+     #equipmentDocs table col.col-doc-standard { width:29%; }
+     #equipmentDocs table col.col-doc-risk { width:29%; }
+
+     /* 번호 열 좁게 */
+     #workersWrap th:nth-child(1),
+     #workersWrap td:nth-child(1),
+     #chemicalsWrap th:nth-child(1),
+     #chemicalsWrap td:nth-child(1),
+     #equipmentDocs th:nth-child(1),
+     #equipmentDocs td:nth-child(1) {
+       font-size:9px;
+       white-space:nowrap;
+       padding-left:2px;
+       padding-right:2px;
+     }
+
+     /* 근무자 줄바꿈 최소화 */
+     #workersWrap td:nth-child(2),
+     #workersWrap td:nth-child(3),
+     #workersWrap td:nth-child(4) {
+       white-space:nowrap;
+       word-break:keep-all;
+       overflow-wrap:normal;
+     }
+
+     /* 화학물질 제품명/파일명 */
+     #chemicalsWrap td:nth-child(2),
+     #chemicalsWrap td:nth-child(3) {
+       white-space:nowrap;
+       word-break:keep-all;
+       overflow-wrap:normal;
+     }
+
+     #chemicalsWrap td:nth-child(4) {
+       font-size:10px;
+       word-break:break-all;
+       overflow-wrap:anywhere;
+     }
+
+     /* 작업표준/위험성평가 표 */
+     #equipmentDocs td:nth-child(2) {
+       white-space:nowrap;
+       word-break:keep-all;
+       overflow-wrap:normal;
+     }
+
+     #equipmentDocs td:nth-child(3),
+     #equipmentDocs td:nth-child(4) {
+       font-size:10px;
+       word-break:break-all;
+       overflow-wrap:anywhere;
      }
 
      .interior-canvas-box {
@@ -608,12 +674,6 @@
            <h3>기본 정보</h3>
            <div class="info-body">
              <div id="basicInfo" class="kv"></div>
-             <div class="link-box">
-               <div class="link-item">
-                 <b>실험실 링크</b><br>
-                 <span id="labLinkText">-</span>
-               </div>
-             </div>
            </div>
          </div>
 
@@ -666,22 +726,15 @@
                    <div id="equipmentSpec" class="kv"></div>
                  </div>
                </div>
-
-               <div class="info-card" style="margin-top:12px;">
-                 <h3 style="font-size:14px;">작업표준 / 위험성평가</h3>
-                 <div class="info-body">
-                   <div id="equipmentDocs" class="table-wrap"></div>
-                 </div>
-               </div>
-
-               <div class="link-box">
-                 <div class="link-item">
-                   <b>설비 링크</b><br>
-                   <span id="equipmentLinkText">-</span>
-                 </div>
-               </div>
              </div>
            </div>
+         </div>
+       </div>
+
+       <div class="info-card docs-bottom">
+         <h3>작업표준 / 위험성평가</h3>
+         <div class="info-body">
+           <div id="equipmentDocs" class="table-wrap"></div>
          </div>
        </div>
      </div>
@@ -737,7 +790,6 @@
    const basicInfo = document.getElementById("basicInfo");
    const workersWrap = document.getElementById("workersWrap");
    const chemicalsWrap = document.getElementById("chemicalsWrap");
-   const labLinkText = document.getElementById("labLinkText");
 
    const interiorPanel = document.getElementById("interiorPanel");
    const interiorSub = document.getElementById("interiorSub");
@@ -752,7 +804,6 @@
    const equipmentInfo = document.getElementById("equipmentInfo");
    const equipmentSpec = document.getElementById("equipmentSpec");
    const equipmentDocs = document.getElementById("equipmentDocs");
-   const equipmentLinkText = document.getElementById("equipmentLinkText");
 
    const emptyPanel = document.getElementById("emptyPanel");
    const emptyMessage = document.getElementById("emptyMessage");
@@ -972,22 +1023,6 @@
      panel.classList.add("detail-flash");
    }
 
-   function getLabUrl(layoutId, regionId) {
-     const url = new URL(window.location.href);
-     url.searchParams.set("layout", layoutId);
-     url.searchParams.set("lab", regionId);
-     url.searchParams.delete("equipment");
-     return url.toString();
-   }
-
-   function getEquipmentUrl(layoutId, regionId, objectId) {
-     const url = new URL(window.location.href);
-     url.searchParams.set("layout", layoutId);
-     url.searchParams.set("lab", regionId);
-     url.searchParams.set("equipment", objectId);
-     return url.toString();
-   }
-
    async function openLab(regionId) {
      if (!currentLayoutId || !regionId) return;
 
@@ -1156,6 +1191,12 @@
 
      workersWrap.innerHTML = `
        <table>
+         <colgroup>
+           <col class="col-no">
+           <col class="col-team">
+           <col class="col-title">
+           <col class="col-name">
+         </colgroup>
          <thead>
            <tr>
              <th>번호</th>
@@ -1195,6 +1236,12 @@
 
      chemicalsWrap.innerHTML = `
        <table>
+         <colgroup>
+           <col class="col-no">
+           <col class="col-product">
+           <col class="col-msdsname">
+           <col class="col-msdsurl">
+         </colgroup>
          <thead>
            <tr>
              <th>번호</th>
@@ -1407,7 +1454,7 @@
        equipmentEmpty.style.display = "block";
        equipmentDetailWrap.style.display = "none";
        equipmentFocusMeta.textContent = "설비 미선택";
-       equipmentLinkText.textContent = "-";
+       equipmentDocs.innerHTML = `<div class="empty">설비를 선택하세요.</div>`;
        return;
      }
 
@@ -1416,13 +1463,12 @@
      equipmentFocusMeta.textContent = obj.label || obj.id;
 
      const infoItems = [
-       ["표시명", obj.label || "-"],
        ["설비명", obj.meta?.equipmentName || "-"],
        ["담당자(정)", obj.meta?.managerMain || "-"],
        ["담당자(부)", obj.meta?.managerSub || "-"],
        ["팀", obj.meta?.team || "-"],
-       ["안전인증검사", obj.meta?.safetyInspection || "-"],
-       ["자율안전확인고", obj.meta?.selfSafetyCheck || "-"],
+       ["안전인증검사 대상", obj.meta?.safetyInspection || "-"],
+       ["자율안전확인고 대상", obj.meta?.selfSafetyCheck || "-"],
        ["비고", obj.meta?.note || "-"]
      ];
 
@@ -1450,13 +1496,18 @@
      } else {
        equipmentDocs.innerHTML = `
          <table>
+           <colgroup>
+             <col class="col-doc-no">
+             <col class="col-doc-name">
+             <col class="col-doc-standard">
+             <col class="col-doc-risk">
+           </colgroup>
            <thead>
              <tr>
                <th>번호</th>
                <th>명칭</th>
                <th>작업표준 파일</th>
                <th>위험성평가 파일</th>
-               <th>자동 관리번호</th>
              </tr>
            </thead>
            <tbody>
@@ -1466,18 +1517,12 @@
                  <td>${escapeHtml(d.name || "")}</td>
                  <td>${renderDataFileCell(d.standardFileName, d.standardFileData)}</td>
                  <td>${renderDataFileCell(d.riskFileName, d.riskFileData)}</td>
-                 <td style="text-align:left;">
-                   <div><b>작업표준:</b> ${escapeHtml(d.standardCode || "-")}</div>
-                   <div><b>위험성평가:</b> ${escapeHtml(d.riskCode || "-")}</div>
-                 </td>
                </tr>
              `).join("")}
            </tbody>
          </table>
        `;
      }
-
-     equipmentLinkText.textContent = getEquipmentUrl(currentLayoutId, currentFocusedLabData.regionId, obj.id);
    }
 
    function renderDataFileCell(fileName, dataUrl) {
@@ -1548,7 +1593,6 @@
        renderBasicInfo(currentFocusedLabData);
        renderWorkersTable(currentFocusedLabData.workers || []);
        renderChemicalsTable(currentFocusedLabData.chemicals || [], currentChemicalSearch);
-       labLinkText.textContent = getLabUrl(currentLayoutId, currentFocusedLabData.regionId);
 
        labDetailPanel.style.display = "block";
 
@@ -1593,9 +1637,7 @@
        if (labSnap.exists()) {
          currentFocusedLabData = labSnap.data();
          currentInteriorDoc = interiorSnap.exists() ? interiorSnap.data() : { objects: [] };
-         if (equipmentIdToLoad) {
-           currentSelectedEquipmentId = equipmentIdToLoad;
-         }
+         if (equipmentIdToLoad) currentSelectedEquipmentId = equipmentIdToLoad;
        }
      }
 
