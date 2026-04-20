@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>실험실 게시 화면</title>
+ <style>
+   :root {
+     --bg:#f3f4f6;
+     --panel:#ffffff;
+     --grid:#e5e7eb;
+     --lab:#f7dce3;
+     --office:#ffffff;
+     --corridor:#f8efc8;
+     --utility:#ececec;
+     --storage:#f5efe2;
+     --text:#111827;
+     --muted:#6b7280;
+     --border:#d1d5db;
+     --blue:#2563eb;
+     --head:#eef2ff;
+   }
+
+   * { box-sizing:border-box; }
+
+   body {
+     margin:0;
+     font-family:Arial, sans-serif;
+     background:var(--bg);
+     color:var(--text);
+   }
+
+   .app {
+     max-width:1700px;
+     margin:0 auto;
+     padding:20px;
+   }
+
+   .topbar {
+     display:flex;
+     justify-content:space-between;
+     gap:16px;
+     align-items:flex-start;
+     margin-bottom:16px;
+   }
+
+   h1 {
+     margin:0;
+     font-size:28px;
+   }
+
+   .sub {
+     margin-top:6px;
+     font-size:14px;
+     color:var(--muted);
+   }
+
+   .toolbar {
+     display:flex;
+     gap:8px;
+     flex-wrap:wrap;
+     align-items:center;
+   }
+
+   select, input {
+     font-size:14px;
+     border:1px solid #cfd4dc;
+     border-radius:8px;
+     background:#fff;
+     padding:10px 12px;
+   }
+
+   input {
+     min-width:220px;
+   }
+
+   select {
+     min-width:260px;
+   }
+
+   .panel {
+     background:var(--panel);
+     border:1px solid #ddd;
+     border-radius:16px;
+     box-shadow:0 4px 18px rgba(0,0,0,.05);
+     overflow:hidden;
+     margin-bottom:16px;
+   }
+
+   .panel-header {
+     padding:14px 18px;
+     border-bottom:1px solid #ececec;
+     display:flex;
+     justify-content:space-between;
+     align-items:center;
+     gap:12px;
+     flex-wrap:wrap;
+   }
+
+   .panel-header h2 {
+     margin:0;
+     font-size:20px;
+   }
+
+   .content {
+     padding:16px;
+   }
+
+   .layout-canvas {
+     position:relative;
+     width:100%;
+     aspect-ratio:30/13;
+     border:2px solid #444;
+     border-radius:8px;
+     overflow:hidden;
+     background:#fafafa;
+   }
+
+   .layout-grid {
+     position:absolute;
+     inset:0;
+     display:grid;
+     grid-template-columns:repeat(60,1fr);
+     grid-template-rows:repeat(26,1fr);
+     z-index:1;
+     pointer-events:none;
+   }
+
+   .grid-cell {
+     border-right:1px solid var(--grid);
+     border-bottom:1px solid var(--grid);
+   }
+
+   .region-group {
+     position:absolute;
+     z-index:2;
+     pointer-events:none;
+     transition:opacity .15s ease;
+   }
+
+   .region-group.layer-lab {
+     z-index:4;
+   }
+
+   .region-group.focused {
+     z-index:6;
+   }
+
+   .region-piece {
+     position:absolute;
+     border:none;
+     cursor:pointer;
+     pointer-events:auto;
+   }
+
+   .region-piece.lab { background:var(--lab); }
+   .region-piece.office { background:var(--office); }
+   .region-piece.corridor { background:var(--corridor); }
+   .region-piece.utility { background:var(--utility); }
+   .region-piece.storage { background:var(--storage); }
+
+   .region-outline {
+     position:absolute;
+     inset:0;
+     pointer-events:none;
+     z-index:6;
+   }
+
+   .region-outline svg {
+     width:100%;
+     height:100%;
+     overflow:visible;
+     display:block;
+   }
+
+   .region-outline path.lab-outline {
+     fill:none;
+     stroke:rgba(0,0,0,.72);
+     stroke-width:1.2;
+     vector-effect:non-scaling-stroke;
+     stroke-linecap:butt;
+     stroke-linejoin:miter;
+   }
+
+   .region-group.focused .region-outline path {
+     stroke:var(--blue);
+     stroke-width:2.4;
+   }
+
+   .label-layer {
+     position:absolute;
+     inset:0;
+     pointer-events:none;
+     z-index:7;
+   }
+
+   .region-number-badge {
+     position:absolute;
+     min-width:18px;
+     min-height:16px;
+     padding:1px 4px;
+     font-size:10px;
+     font-weight:700;
+     line-height:1.2;
+     color:#374151;
+     background:rgba(255,255,255,.92);
+     border-radius:4px;
+     box-shadow:0 1px 2px rgba(0,0,0,.08);
+     pointer-events:auto;
+     cursor:pointer;
+   }
+
+   .region-name-badge {
+     position:absolute;
+     max-width:90px;
+     padding:0;
+     font-size:9px;
+     line-height:1.15;
+     text-align:center;
+     font-weight:700;
+     background:transparent;
+     border-radius:0;
+     box-shadow:none;
+     transform:translate(-50%, -50%);
+     white-space:normal;
+     word-break:keep-all;
+     overflow-wrap:normal;
+     text-shadow:0 0 6px rgba(255,255,255,.95);
+     display:-webkit-box;
+     -webkit-line-clamp:2;
+     -webkit-box-orient:vertical;
+     overflow:hidden;
+     color:#111827;
+     pointer-events:auto;
+     cursor:pointer;
+   }
+
+   .region-name-badge.lab { color:#8d4756; }
+   .region-name-badge.office,
+   .region-name-badge.corridor,
+   .region-name-badge.utility,
+   .region-name-badge.storage { color:#111827; }
+
+   .legend {
+     margin-top:12px;
+     display:flex;
+     flex-wrap:wrap;
+     gap:12px;
+     font-size:13px;
+     color:#555;
+   }
+
+   .legend-item {
+     display:flex;
+     align-items:center;
+     gap:8px;
+   }
+
+   .legend-color {
+     width:18px;
+     height:18px;
+     border-radius:4px;
+     border:1px solid #777;
+   }
+
+   .detail-grid {
+     display:grid;
+     grid-template-columns:repeat(2, minmax(0, 1fr));
+     gap:16px;
+   }
+
+   .info-card {
+     border:1px solid #e5e7eb;
+     border-radius:12px;
+     overflow:hidden;
+     background:#fff;
+   }
+
+   .info-card h3 {
+     margin:0;
+     padding:12px 14px;
+     background:#f8fafc;
+     border-bottom:1px solid #e5e7eb;
+     font-size:16px;
+   }
+
+   .info-body {
+     padding:14px;
+   }
+
+   .kv {
+     display:grid;
+     grid-template-columns:120px 1fr;
+     gap:8px 12px;
+     font-size:14px;
+   }
+
+   .kv div:nth-child(odd) {
+     font-weight:700;
+     color:#374151;
+   }
+
+   .table-wrap {
+     overflow:auto;
+   }
+
+   table {
+     width:100%;
+     border-collapse:collapse;
+     font-size:13px;
+     table-layout:fixed;
+   }
+
+   th, td {
+     border:1px solid #dbe0e7;
+     padding:8px 8px;
+     text-align:center;
+     vertical-align:top;
+     word-break:break-word;
+     overflow-wrap:anywhere;
+     white-space:normal;
+   }
+
+   thead th {
+     background:var(--head);
+     position:sticky;
+     top:0;
+     z-index:1;
+   }
+
+   .empty {
+     padding:24px;
+     text-align:center;
+     color:var(--muted);
+     border:1px dashed #d1d5db;
+     border-radius:12px;
+     background:#fafafa;
+   }
+
+   .badge {
+     display:inline-flex;
+     align-items:center;
+     gap:6px;
+     padding:6px 10px;
+     border:1px solid #dbeafe;
+     background:#eff6ff;
+     color:#1d4ed8;
+     border-radius:999px;
+     font-size:12px;
+     font-weight:700;
+   }
+
+   .muted {
+     color:var(--muted);
+   }
+
+   .search-row {
+     display:flex;
+     gap:8px;
+     flex-wrap:wrap;
+     align-items:center;
+   }
+
+   .helper {
+     font-size:12px;
+     color:var(--muted);
+   }
+
+   .detail-flash {
+     animation: detailPulse 1.2s ease;
+   }
+
+   @keyframes detailPulse {
+     0% { box-shadow: 0 0 0 0 rgba(37,99,235,0.00); }
+     25% { box-shadow: 0 0 0 6px rgba(37,99,235,0.18); }
+     100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.00); }
+   }
+
+   /* 내부 레이아웃 */
+   .interior-wrap {
+     display:grid;
+     grid-template-columns: minmax(0, 1fr) 360px;
+     gap:16px;
+     align-items:start;
+   }
+
+   .interior-canvas-box {
+     width:100%;
+     aspect-ratio:16 / 10;
+     border:1px solid #cfd4dc;
+     border-radius:12px;
+     background:#fff;
+     overflow:hidden;
+     position:relative;
+   }
+
+   .interior-svg {
+     width:100%;
+     height:100%;
+     display:block;
+     background:
+       linear-gradient(to right, rgba(0,0,0,.04) 1px, transparent 1px),
+       linear-gradient(to bottom, rgba(0,0,0,.04) 1px, transparent 1px);
+     background-size:40px 40px;
+     background-color:#fcfcfc;
+   }
+
+   .equip-card {
+     border:1px solid #e5e7eb;
+     border-radius:12px;
+     overflow:hidden;
+     background:#fff;
+   }
+
+   .equip-card h3 {
+     margin:0;
+     padding:12px 14px;
+     background:#f8fafc;
+     border-bottom:1px solid #e5e7eb;
+     font-size:16px;
+   }
+
+   .equip-object {
+     cursor:pointer;
+   }
+
+   .equip-object.selected .equip-outline {
+     stroke:#2563eb !important;
+     stroke-width:3 !important;
+   }
+
+   .link-box {
+     margin-top:10px;
+     display:grid;
+     gap:8px;
+   }
+
+   .link-item {
+     padding:10px 12px;
+     border:1px solid #dbeafe;
+     background:#eff6ff;
+     border-radius:10px;
+     font-size:12px;
+     word-break:break-all;
+   }
+
+   @media (max-width: 1000px) {
+     .topbar {
+       flex-direction:column;
+     }
+
+     .detail-grid {
+       grid-template-columns:1fr;
+     }
+
+     .interior-wrap {
+       grid-template-columns:1fr;
+     }
+   }
+
+   @media (max-width: 900px) {
+     .app {
+       padding:12px;
+     }
+
+     .panel-header {
+       padding:12px;
+     }
+
+     .content {
+       padding:12px;
+     }
+
+     .kv {
+       grid-template-columns:84px 1fr;
+       gap:6px 8px;
+       font-size:12px;
+     }
+
+     select, input {
+       width:100%;
+       min-width:0;
+       font-size:13px;
+       padding:9px 10px;
+     }
+
+     .toolbar {
+       width:100%;
+     }
+
+     .layout-canvas {
+       aspect-ratio:30/13;
+     }
+
+     .region-name-badge {
+       display:none;
+     }
+
+     .region-number-badge {
+       font-size:9px;
+       min-width:16px;
+       min-height:14px;
+       padding:1px 3px;
+     }
+
+     .legend {
+       gap:8px;
+       font-size:11px;
+     }
+
+     .legend-color {
+       width:14px;
+       height:14px;
+     }
+
+     .info-card h3,
+     .equip-card h3 {
+       font-size:14px;
+       padding:10px 12px;
+     }
+
+     .info-body {
+       padding:10px;
+     }
+
+     table {
+       font-size:11px;
+     }
+
+     th, td {
+       padding:6px 4px;
+       font-size:11px;
+     }
+
+     .interior-canvas-box {
+       aspect-ratio: 1 / 1;
+     }
+
+     .interior-svg text {
+       font-size:10px !important;
+     }
+
+     .helper, .sub, #focusMeta {
+       font-size:12px;
+     }
+   }
+ </style>
+</head>
+<body>
+ <div class="app">
+   <div class="topbar">
+     <div>
+       <h1 id="pageTitle">실험실 안내</h1>
+       <div id="pageSub" class="sub">레이아웃 및 실험실 정보를 불러오는 중입니다.</div>
+     </div>
+
+     <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+       <div class="badge">게시용</div>
+       <div class="toolbar">
+         <label for="layoutSelectPublic" style="font-size:14px; font-weight:700;">레이아웃 선택</label>
+         <select id="layoutSelectPublic"></select>
+       </div>
+     </div>
+   </div>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>실험실 레이아웃</h2>
+         <div id="layoutMeta" class="sub">-</div>
+       </div>
+       <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+         <div id="focusMeta" class="muted">전체 보기</div>
+         <div class="search-row">
+           <input id="labSearchInput" placeholder="실험실명 또는 번호 검색" />
+         </div>
+       </div>
+     </div>
+     <div class="content">
+       <div id="layoutCanvas" class="layout-canvas">
+         <div id="layoutGrid" class="layout-grid"></div>
+       </div>
+
+       <div class="legend">
+         <div class="legend-item"><span class="legend-color" style="background:#f7dce3"></span>실험실</div>
+         <div class="legend-item"><span class="legend-color" style="background:#ffffff"></span>사무/공용공간</div>
+         <div class="legend-item"><span class="legend-color" style="background:#f8efc8"></span>실험실 내 통로</div>
+         <div class="legend-item"><span class="legend-color" style="background:#ececec"></span>설비/유틸리티</div>
+         <div class="legend-item"><span class="legend-color" style="background:#f5efe2"></span>창고/보관공간</div>
+       </div>
+       <div class="helper" style="margin-top:10px;">실험실을 클릭하면 실험실 정보와 내부 레이아웃을 볼 수 있습니다.</div>
+     </div>
+   </section>
+
+   <section id="labDetailPanel" class="panel" style="display:none;">
+     <div class="panel-header">
+       <div>
+         <h2>실험실 정보</h2>
+         <div id="detailSub" class="sub">-</div>
+       </div>
+       <div class="search-row">
+         <input id="chemicalSearchInput" placeholder="취급화학물질 검색" />
+       </div>
+     </div>
+     <div class="content">
+       <div class="detail-grid">
+         <div class="info-card">
+           <h3>기본 정보</h3>
+           <div class="info-body">
+             <div id="basicInfo" class="kv"></div>
+             <div class="link-box">
+               <div class="link-item">
+                 <b>실험실 링크</b><br>
+                 <span id="labLinkText">-</span>
+               </div>
+             </div>
+           </div>
+         </div>
+
+         <div class="info-card">
+           <h3>근무자</h3>
+           <div class="info-body">
+             <div id="workersWrap" class="table-wrap"></div>
+           </div>
+         </div>
+
+         <div class="info-card" style="grid-column:1 / -1;">
+           <h3>취급 화학물질 / MSDS</h3>
+           <div class="info-body">
+             <div id="chemicalsWrap" class="table-wrap"></div>
+           </div>
+         </div>
+       </div>
+     </div>
+   </section>
+
+   <section id="interiorPanel" class="panel" style="display:none;">
+     <div class="panel-header">
+       <div>
+         <h2>실험실 내부 레이아웃</h2>
+         <div id="interiorSub" class="sub">-</div>
+       </div>
+       <div id="equipmentFocusMeta" class="muted">설비 미선택</div>
+     </div>
+     <div class="content">
+       <div class="interior-wrap">
+         <div class="interior-canvas-box">
+           <svg id="interiorSvg" class="interior-svg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+             <g id="interiorLabBase"></g>
+             <g id="interiorLabOutline"></g>
+             <g id="interiorObjectLayer"></g>
+           </svg>
+         </div>
+
+         <div class="equip-card">
+           <h3>설비 상세 정보</h3>
+           <div class="info-body">
+             <div id="equipmentEmpty" class="empty">설비를 선택하세요.</div>
+
+             <div id="equipmentDetailWrap" style="display:none;">
+               <div id="equipmentInfo" class="kv"></div>
+
+               <div class="info-card" style="margin-top:12px;">
+                 <h3 style="font-size:14px;">Spec</h3>
+                 <div class="info-body">
+                   <div id="equipmentSpec" class="kv"></div>
+                 </div>
+               </div>
+
+               <div class="info-card" style="margin-top:12px;">
+                 <h3 style="font-size:14px;">작업표준 / 위험성평가</h3>
+                 <div class="info-body">
+                   <div id="equipmentDocs" class="table-wrap"></div>
+                 </div>
+               </div>
+
+               <div class="link-box">
+                 <div class="link-item">
+                   <b>설비 링크</b><br>
+                   <span id="equipmentLinkText">-</span>
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+   </section>
+
+   <section id="emptyPanel" class="panel" style="display:none;">
+     <div class="content">
+       <div id="emptyMessage" class="empty">데이터를 찾을 수 없습니다.</div>
+     </div>
+   </section>
+ </div>
+
+ <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+   import {
+     getFirestore,
+     doc,
+     getDoc,
+     collection,
+     getDocs
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+   const firebaseConfig = {
+  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+  authDomain: "lab-test-888d2.firebaseapp.com",
+  projectId: "lab-test-888d2",
+  storageBucket: "lab-test-888d2.firebasestorage.app",
+  messagingSenderId: "417323251483",
+  appId: "1:417323251483:web:2938bce7431260aff385be"
+   };
+
+   const app = initializeApp(firebaseConfig);
+   const db = getFirestore(app);
+
+   const GRID_COLS = 60;
+   const GRID_ROWS = 26;
+   const INTERIOR_VIEW_W = 1000;
+   const INTERIOR_VIEW_H = 700;
+   const INTERIOR_PADDING = 40;
+
+   const pageTitle = document.getElementById("pageTitle");
+   const pageSub = document.getElementById("pageSub");
+   const layoutMeta = document.getElementById("layoutMeta");
+   const focusMeta = document.getElementById("focusMeta");
+   const layoutCanvas = document.getElementById("layoutCanvas");
+   const layoutGrid = document.getElementById("layoutGrid");
+   const layoutSelectPublic = document.getElementById("layoutSelectPublic");
+   const labSearchInput = document.getElementById("labSearchInput");
+   const chemicalSearchInput = document.getElementById("chemicalSearchInput");
+
+   const labDetailPanel = document.getElementById("labDetailPanel");
+   const detailSub = document.getElementById("detailSub");
+   const basicInfo = document.getElementById("basicInfo");
+   const workersWrap = document.getElementById("workersWrap");
+   const chemicalsWrap = document.getElementById("chemicalsWrap");
+   const labLinkText = document.getElementById("labLinkText");
+
+   const interiorPanel = document.getElementById("interiorPanel");
+   const interiorSub = document.getElementById("interiorSub");
+   const equipmentFocusMeta = document.getElementById("equipmentFocusMeta");
+   const interiorSvg = document.getElementById("interiorSvg");
+   const interiorLabBase = document.getElementById("interiorLabBase");
+   const interiorLabOutline = document.getElementById("interiorLabOutline");
+   const interiorObjectLayer = document.getElementById("interiorObjectLayer");
+
+   const equipmentEmpty = document.getElementById("equipmentEmpty");
+   const equipmentDetailWrap = document.getElementById("equipmentDetailWrap");
+   const equipmentInfo = document.getElementById("equipmentInfo");
+   const equipmentSpec = document.getElementById("equipmentSpec");
+   const equipmentDocs = document.getElementById("equipmentDocs");
+   const equipmentLinkText = document.getElementById("equipmentLinkText");
+
+   const emptyPanel = document.getElementById("emptyPanel");
+   const emptyMessage = document.getElementById("emptyMessage");
+
+   const params = new URLSearchParams(window.location.search);
+   let initialLayoutId = params.get("layout");
+   let initialRegionId = params.get("lab");
+   let initialObjectId = params.get("equipment");
+
+   let currentLayoutId = null;
+   let currentLayoutData = null;
+   let currentRegions = [];
+   let currentFocusedLabData = null;
+   let currentLabSearch = "";
+   let currentChemicalSearch = "";
+   let currentInteriorDoc = null;
+   let currentSelectedEquipmentId = null;
+   let currentInteriorLabShape = null;
+
+   function cellKey(x, y) {
+     return `${x}-${y}`;
+   }
+
+   function parseCell(key) {
+     const [x, y] = String(key).split("-").map(Number);
+     return { x, y };
+   }
+
+   function rectToCells(x, y, w, h) {
+     const cells = [];
+     for (let yy = y; yy < y + h; yy++) {
+       for (let xx = x; xx < x + w; xx++) {
+         cells.push(`${xx}-${yy}`);
+       }
+     }
+     return cells;
+   }
+
+   function sanitizeCells(cells = []) {
+     const unique = new Set();
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       if (
+         Number.isInteger(x) &&
+         Number.isInteger(y) &&
+         x >= 1 && x <= GRID_COLS &&
+         y >= 1 && y <= GRID_ROWS
+       ) {
+         unique.add(cellKey(x, y));
+       }
+     }
+     return Array.from(unique);
+   }
+
+   function boundsFromCells(cells = []) {
+     if (!cells.length) return { x:1, y:1, w:1, h:1 };
+     const coords = cells.map(parseCell);
+     const xs = coords.map(c => c.x);
+     const ys = coords.map(c => c.y);
+     return {
+       x: Math.min(...xs),
+       y: Math.min(...ys),
+       w: Math.max(...xs) - Math.min(...xs) + 1,
+       h: Math.max(...ys) - Math.min(...ys) + 1
+     };
+   }
+
+   function getBestLabelPosition(cells) {
+     if (!cells.length) return { x:1, y:1 };
+
+     const coords = cells.map(parseCell);
+     const rows = new Map();
+
+     for (const c of coords) {
+       if (!rows.has(c.y)) rows.set(c.y, []);
+       rows.get(c.y).push(c.x);
+     }
+
+     const segments = [];
+
+     for (const [y, xs] of rows.entries()) {
+       const sorted = [...xs].sort((a,b) => a-b);
+       if (!sorted.length) continue;
+
+       let segStart = sorted[0];
+       let prev = sorted[0];
+
+       for (let i=1; i<=sorted.length; i++) {
+         const cur = sorted[i];
+         if (cur === prev + 1) {
+           prev = cur;
+           continue;
+         }
+
+         segments.push({
+           y,
+           startX: segStart,
+           endX: prev,
+           length: prev - segStart + 1
+         });
+
+         segStart = cur;
+         prev = cur;
+       }
+     }
+
+     if (!segments.length) return coords[0];
+
+     const maxLength = Math.max(...segments.map(s => s.length));
+     const longest = segments.filter(s => s.length === maxLength);
+
+     const ys = coords.map(c => c.y);
+     const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+     longest.sort((a,b) => {
+       const da = Math.abs(a.y - centerY);
+       const db = Math.abs(b.y - centerY);
+       if (da !== db) return da - db;
+       return a.y - b.y;
+     });
+
+     const best = longest[0];
+     return {
+       x: (best.startX + best.endX) / 2,
+       y: best.y
+     };
+   }
+
+   function normalizeRegion(region) {
+     const hasCells = Array.isArray(region?.cells) && region.cells.length > 0;
+     const cells = hasCells
+       ? sanitizeCells(region.cells)
+       : rectToCells(
+           Number(region?.x || 1),
+           Number(region?.y || 1),
+           Number(region?.w || 1),
+           Number(region?.h || 1)
+         );
+
+     const bounds = boundsFromCells(cells);
+     const topLeft = [...cells]
+       .map(parseCell)
+       .sort((a,b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
+     const bestLabel = getBestLabelPosition(cells);
+
+     return {
+       id: region?.id || "",
+       type: region?.type || "lab",
+       number: region?.number || "",
+       labName: region?.labName || "",
+       cells,
+       topLeftX: topLeft.x,
+       topLeftY: topLeft.y,
+       labelX: bestLabel.x,
+       labelY: bestLabel.y,
+       ...bounds
+     };
+   }
+
+   function escapeHtml(str) {
+     return String(str || "")
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#39;");
+   }
+
+   function renderGrid() {
+     layoutGrid.innerHTML = "";
+     for (let y = 1; y <= GRID_ROWS; y++) {
+       for (let x = 1; x <= GRID_COLS; x++) {
+         const cell = document.createElement("div");
+         cell.className = "grid-cell";
+         layoutGrid.appendChild(cell);
+       }
+     }
+   }
+
+   function buildOutlinePath(cells, bounds) {
+     const cellSet = new Set(cells);
+     const dirs = [
+       { dx: 0, dy: -1, side: "top" },
+       { dx: 1, dy: 0, side: "right" },
+       { dx: 0, dy: 1, side: "bottom" },
+       { dx: -1, dy: 0, side: "left" }
+     ];
+     const segments = [];
+
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       for (const dir of dirs) {
+         const nx = x + dir.dx;
+         const ny = y + dir.dy;
+         if (!cellSet.has(cellKey(nx, ny))) {
+           const lx = x - bounds.x;
+           const ly = y - bounds.y;
+
+           if (dir.side === "top") segments.push(`M ${lx} ${ly} L ${lx + 1} ${ly}`);
+           else if (dir.side === "right") segments.push(`M ${lx + 1} ${ly} L ${lx + 1} ${ly + 1}`);
+           else if (dir.side === "bottom") segments.push(`M ${lx} ${ly + 1} L ${lx + 1} ${ly + 1}`);
+           else if (dir.side === "left") segments.push(`M ${lx} ${ly} L ${lx} ${ly + 1}`);
+         }
+       }
+     }
+
+     return segments.join(" ");
+   }
+
+   function regionDisplayName(region) {
+     return `${region.number ? region.number + " / " : ""}${region.labName || region.id}`;
+   }
+
+   function flashPanel(panel) {
+     panel.classList.remove("detail-flash");
+     void panel.offsetWidth;
+     panel.classList.add("detail-flash");
+   }
+
+   function getLabUrl(layoutId, regionId) {
+     const url = new URL(window.location.href);
+     url.searchParams.set("layout", layoutId);
+     url.searchParams.set("lab", regionId);
+     url.searchParams.delete("equipment");
+     return url.toString();
+   }
+
+   function getEquipmentUrl(layoutId, regionId, objectId) {
+     const url = new URL(window.location.href);
+     url.searchParams.set("layout", layoutId);
+     url.searchParams.set("lab", regionId);
+     url.searchParams.set("equipment", objectId);
+     return url.toString();
+   }
+
+   async function openLab(regionId) {
+     if (!currentLayoutId || !regionId) return;
+
+     const labDocId = `${currentLayoutId}__${regionId}`;
+     const labSnap = await getDoc(doc(db, "labs", labDocId));
+     const interiorSnap = await getDoc(doc(db, "labInteriorLayouts", labDocId));
+
+     if (!labSnap.exists()) {
+       alert("해당 실험실 상세 정보를 찾을 수 없습니다.");
+       return;
+     }
+
+     currentFocusedLabData = labSnap.data();
+     currentInteriorDoc = interiorSnap.exists() ? interiorSnap.data() : { objects: [] };
+     currentSelectedEquipmentId = null;
+
+     const nextUrl = new URL(window.location.href);
+     nextUrl.searchParams.set("layout", currentLayoutId);
+     nextUrl.searchParams.set("lab", regionId);
+     nextUrl.searchParams.delete("equipment");
+     window.history.replaceState({}, "", nextUrl.toString());
+
+     renderFocusedState();
+     labDetailPanel.style.display = "block";
+     interiorPanel.style.display = "block";
+     labDetailPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+     flashPanel(labDetailPanel);
+   }
+
+   function selectEquipment(objectId, skipScroll = false) {
+     currentSelectedEquipmentId = objectId || null;
+
+     const nextUrl = new URL(window.location.href);
+     nextUrl.searchParams.set("layout", currentLayoutId);
+     nextUrl.searchParams.set("lab", currentFocusedLabData.regionId);
+     if (objectId) nextUrl.searchParams.set("equipment", objectId);
+     else nextUrl.searchParams.delete("equipment");
+     window.history.replaceState({}, "", nextUrl.toString());
+
+     renderInteriorDetail();
+
+     if (objectId && !skipScroll) {
+       interiorPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+       flashPanel(interiorPanel);
+     }
+   }
+
+   function renderRegionGroup(space, focusedRegionId = null, labSearch = "") {
+     const normalized = normalizeRegion(space);
+     const isFocused = focusedRegionId && focusedRegionId === normalized.id;
+     const searchText = labSearch.trim().toLowerCase();
+     const matchesSearch = !searchText || regionDisplayName(normalized).toLowerCase().includes(searchText);
+
+     const group = document.createElement("div");
+     group.className = `region-group${normalized.type === "lab" ? " layer-lab" : ""}${isFocused ? " focused" : ""}`;
+
+     if (focusedRegionId && !isFocused) group.style.opacity = "0.35";
+     if (searchText && !matchesSearch) group.style.opacity = focusedRegionId && isFocused ? "1" : "0.18";
+
+     group.style.left = `${((normalized.x - 1) / GRID_COLS) * 100}%`;
+     group.style.top = `${((normalized.y - 1) / GRID_ROWS) * 100}%`;
+     group.style.width = `${(normalized.w / GRID_COLS) * 100}%`;
+     group.style.height = `${(normalized.h / GRID_ROWS) * 100}%`;
+
+     const clickHandler = async (e) => {
+       e.stopPropagation();
+       if (normalized.type === "lab") await openLab(normalized.id);
+     };
+
+     normalized.cells.forEach((key) => {
+       const { x, y } = parseCell(key);
+       const localX = x - normalized.x;
+       const localY = y - normalized.y;
+
+       const piece = document.createElement("div");
+       piece.className = `region-piece ${normalized.type}`;
+       piece.style.left = `${(localX / normalized.w) * 100}%`;
+       piece.style.top = `${(localY / normalized.h) * 100}%`;
+       piece.style.width = `${(1 / normalized.w) * 100}%`;
+       piece.style.height = `${(1 / normalized.h) * 100}%`;
+
+       if (normalized.type === "lab") piece.addEventListener("click", clickHandler);
+       group.appendChild(piece);
+     });
+
+     if (normalized.type === "lab") {
+       const outline = document.createElement("div");
+       outline.className = "region-outline";
+
+       const svgNS = "http://www.w3.org/2000/svg";
+       const svg = document.createElementNS(svgNS, "svg");
+       svg.setAttribute("viewBox", `0 0 ${normalized.w} ${normalized.h}`);
+       svg.setAttribute("preserveAspectRatio", "none");
+
+       const path = document.createElementNS(svgNS, "path");
+       path.setAttribute("class", "lab-outline");
+       path.setAttribute("d", buildOutlinePath(normalized.cells, normalized));
+
+       svg.appendChild(path);
+       outline.appendChild(svg);
+       group.appendChild(outline);
+     }
+
+     const labelLayer = document.createElement("div");
+     labelLayer.className = "label-layer";
+
+     if (normalized.number) {
+       const numberBadge = document.createElement("div");
+       numberBadge.className = "region-number-badge";
+       numberBadge.textContent = normalized.number;
+       numberBadge.style.left = `${((normalized.topLeftX - normalized.x) / normalized.w) * 100}%`;
+       numberBadge.style.top = `${((normalized.topLeftY - normalized.y) / normalized.h) * 100}%`;
+       if (normalized.type === "lab") numberBadge.addEventListener("click", clickHandler);
+       labelLayer.appendChild(numberBadge);
+     }
+
+     if (normalized.labName) {
+       const nameBadge = document.createElement("div");
+       nameBadge.className = `region-name-badge ${normalized.type}`;
+       nameBadge.textContent = normalized.labName;
+       nameBadge.style.left = `${((normalized.labelX - normalized.x + 0.5) / normalized.w) * 100}%`;
+       nameBadge.style.top = `${((normalized.labelY - normalized.y + 0.5) / normalized.h) * 100}%`;
+       if (normalized.type === "lab") nameBadge.addEventListener("click", clickHandler);
+       labelLayer.appendChild(nameBadge);
+     }
+
+     group.appendChild(labelLayer);
+     return group;
+   }
+
+   function renderLayout(spaces, focusedRegionId = null, labSearch = "") {
+     layoutCanvas.querySelectorAll(".region-group").forEach(el => el.remove());
+
+     const sortedSpaces = [...spaces].sort((a,b) => {
+       const aIsLab = a.type === "lab" ? 1 : 0;
+       const bIsLab = b.type === "lab" ? 1 : 0;
+       return aIsLab - bIsLab;
+     });
+
+     sortedSpaces.forEach((space) => {
+       layoutCanvas.appendChild(renderRegionGroup(space, focusedRegionId, labSearch));
+     });
+
+     renderGrid();
+   }
+
+   function renderBasicInfo(data) {
+     const items = [
+       ["번호", data.number || "-"],
+       ["실험실명", data.labName || "-"],
+       ["담당팀", data.team || "-"],
+       ["책임자(정)", data.managerMain || "-"],
+       ["책임자(부)", data.managerSub || "-"]
+     ];
+
+     basicInfo.innerHTML = items
+       .map(([k,v]) => `<div>${k}</div><div>${escapeHtml(v)}</div>`)
+       .join("");
+   }
+
+   function renderWorkersTable(workers = []) {
+     if (!workers.length) {
+       workersWrap.innerHTML = `<div class="empty">등록된 근무자 정보가 없습니다.</div>`;
+       return;
+     }
+
+     workersWrap.innerHTML = `
+       <table>
+         <thead>
+           <tr>
+             <th>번호</th>
+             <th>팀</th>
+             <th>직급</th>
+             <th>이름</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${workers.map(w => `
+             <tr>
+               <td>${escapeHtml(String(w.no ?? ""))}</td>
+               <td>${escapeHtml(String(w.team ?? ""))}</td>
+               <td>${escapeHtml(String(w.title ?? ""))}</td>
+               <td>${escapeHtml(String(w.name ?? ""))}</td>
+             </tr>
+           `).join("")}
+         </tbody>
+       </table>
+     `;
+   }
+
+   function renderChemicalsTable(chemicals = [], searchText = "") {
+     const q = searchText.trim().toLowerCase();
+     const filtered = !q
+       ? chemicals
+       : chemicals.filter(c =>
+           String(c.name ?? "").toLowerCase().includes(q) ||
+           String(c.msdsName ?? "").toLowerCase().includes(q) ||
+           String(c.msdsUrl ?? "").toLowerCase().includes(q)
+         );
+
+     if (!filtered.length) {
+       chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+       return;
+     }
+
+     chemicalsWrap.innerHTML = `
+       <table>
+         <thead>
+           <tr>
+             <th>번호</th>
+             <th>제품명</th>
+             <th>MSDS 파일명</th>
+             <th>MSDS 링크</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${filtered.map(c => `
+             <tr>
+               <td>${escapeHtml(String(c.no ?? ""))}</td>
+               <td>${escapeHtml(String(c.name ?? ""))}</td>
+               <td>${escapeHtml(String(c.msdsName ?? ""))}</td>
+               <td>${renderLinkCell(c.msdsUrl)}</td>
+             </tr>
+           `).join("")}
+         </tbody>
+       </table>
+     `;
+   }
+
+   function renderLinkCell(url) {
+     const text = String(url || "").trim();
+     if (!text) return "-";
+     return `<a href="${escapeHtml(text)}" target="_blank" rel="noopener noreferrer">열기</a>`;
+   }
+
+   function getInteriorRegion() {
+     if (!currentFocusedLabData || !currentLayoutData) return null;
+     return (currentLayoutData.regions || []).find(r => r.id === currentFocusedLabData.regionId) || null;
+   }
+
+   function buildInteriorLabShape(region) {
+     const cells = sanitizeCells(region.cells || []);
+     const bounds = boundsFromCells(cells);
+     const scale = Math.min(
+       (INTERIOR_VIEW_W - INTERIOR_PADDING * 2) / bounds.w,
+       (INTERIOR_VIEW_H - INTERIOR_PADDING * 2) / bounds.h
+     );
+
+     return {
+       cells: cells.map(parseCell),
+       bounds,
+       scale,
+       originX: (INTERIOR_VIEW_W - bounds.w * scale) / 2,
+       originY: (INTERIOR_VIEW_H - bounds.h * scale) / 2
+     };
+   }
+
+   function interiorCellToRect(cell) {
+     if (!currentInteriorLabShape) return null;
+     return {
+       x: currentInteriorLabShape.originX + (cell.x - currentInteriorLabShape.bounds.x) * currentInteriorLabShape.scale,
+       y: currentInteriorLabShape.originY + (cell.y - currentInteriorLabShape.bounds.y) * currentInteriorLabShape.scale,
+       w: currentInteriorLabShape.scale,
+       h: currentInteriorLabShape.scale
+     };
+   }
+
+   function clearSvgNode(node) {
+     while (node.firstChild) node.firstChild.remove();
+   }
+
+   function renderInteriorLayout() {
+     clearSvgNode(interiorLabBase);
+     clearSvgNode(interiorLabOutline);
+     clearSvgNode(interiorObjectLayer);
+
+     const region = getInteriorRegion();
+     if (!region) return;
+
+     currentInteriorLabShape = buildInteriorLabShape(region);
+     const svgNS = "http://www.w3.org/2000/svg";
+     const cellSet = new Set(currentInteriorLabShape.cells.map(c => `${c.x}-${c.y}`));
+
+     currentInteriorLabShape.cells.forEach((cell) => {
+       const rectInfo = interiorCellToRect(cell);
+       const rect = document.createElementNS(svgNS, "rect");
+       rect.setAttribute("x", rectInfo.x);
+       rect.setAttribute("y", rectInfo.y);
+       rect.setAttribute("width", rectInfo.w);
+       rect.setAttribute("height", rectInfo.h);
+       rect.setAttribute("fill", "#f8e6ea");
+       rect.setAttribute("stroke", "#e9d3d8");
+       rect.setAttribute("stroke-width", "1");
+       interiorLabBase.appendChild(rect);
+     });
+
+     const lines = [];
+     const dirs = [
+       { dx:0, dy:-1, side:"top" },
+       { dx:1, dy:0, side:"right" },
+       { dx:0, dy:1, side:"bottom" },
+       { dx:-1, dy:0, side:"left" }
+     ];
+
+     for (const cell of currentInteriorLabShape.cells) {
+       for (const dir of dirs) {
+         const nx = cell.x + dir.dx;
+         const ny = cell.y + dir.dy;
+         if (!cellSet.has(`${nx}-${ny}`)) {
+           const rect = interiorCellToRect(cell);
+           if (dir.side === "top") lines.push(`M ${rect.x} ${rect.y} L ${rect.x + rect.w} ${rect.y}`);
+           else if (dir.side === "right") lines.push(`M ${rect.x + rect.w} ${rect.y} L ${rect.x + rect.w} ${rect.y + rect.h}`);
+           else if (dir.side === "bottom") lines.push(`M ${rect.x} ${rect.y + rect.h} L ${rect.x + rect.w} ${rect.y + rect.h}`);
+           else if (dir.side === "left") lines.push(`M ${rect.x} ${rect.y} L ${rect.x} ${rect.y + rect.h}`);
+         }
+       }
+     }
+
+     const path = document.createElementNS(svgNS, "path");
+     path.setAttribute("d", lines.join(" "));
+     path.setAttribute("fill", "none");
+     path.setAttribute("stroke", "rgba(0,0,0,.72)");
+     path.setAttribute("stroke-width", "2");
+     interiorLabOutline.appendChild(path);
+
+     const objects = Array.isArray(currentInteriorDoc?.objects) ? currentInteriorDoc.objects : [];
+     objects.forEach((obj) => {
+       const group = document.createElementNS(svgNS, "g");
+       group.classList.add("equip-object");
+       if (obj.id === currentSelectedEquipmentId) group.classList.add("selected");
+
+       const cx = obj.x + obj.w / 2;
+       const cy = obj.y + obj.h / 2;
+       group.setAttribute("transform", `rotate(${obj.rotation || 0} ${cx} ${cy})`);
+
+       if (obj.type === "rect") {
+         const rect = document.createElementNS(svgNS, "rect");
+         rect.setAttribute("x", obj.x);
+         rect.setAttribute("y", obj.y);
+         rect.setAttribute("width", obj.w);
+         rect.setAttribute("height", obj.h);
+         rect.setAttribute("rx", "6");
+         rect.setAttribute("fill", obj.fill || "#fff");
+         rect.setAttribute("stroke", obj.stroke || "#64748b");
+         rect.setAttribute("stroke-width", "2");
+         rect.setAttribute("class", "equip-outline");
+         group.appendChild(rect);
+       }
+
+       if (obj.type === "circle") {
+         const ellipse = document.createElementNS(svgNS, "ellipse");
+         ellipse.setAttribute("cx", obj.x + obj.w / 2);
+         ellipse.setAttribute("cy", obj.y + obj.h / 2);
+         ellipse.setAttribute("rx", obj.w / 2);
+         ellipse.setAttribute("ry", obj.h / 2);
+         ellipse.setAttribute("fill", obj.fill || "#fff");
+         ellipse.setAttribute("stroke", obj.stroke || "#64748b");
+         ellipse.setAttribute("stroke-width", "2");
+         ellipse.setAttribute("class", "equip-outline");
+         group.appendChild(ellipse);
+       }
+
+       if (obj.type === "text") {
+         const bg = document.createElementNS(svgNS, "rect");
+         bg.setAttribute("x", obj.x);
+         bg.setAttribute("y", obj.y);
+         bg.setAttribute("width", obj.w);
+         bg.setAttribute("height", obj.h);
+         bg.setAttribute("fill", "rgba(255,255,255,.92)");
+         bg.setAttribute("stroke", obj.stroke || "#64748b");
+         bg.setAttribute("stroke-width", "1.5");
+         bg.setAttribute("rx", "4");
+         bg.setAttribute("class", "equip-outline");
+         group.appendChild(bg);
+       }
+
+       const text = document.createElementNS(svgNS, "text");
+       text.setAttribute("x", obj.x + obj.w / 2);
+       text.setAttribute("y", obj.y + obj.h / 2);
+       text.setAttribute("font-size", getInteriorAutoFontSize(obj));
+       text.setAttribute("font-weight", "700");
+       text.setAttribute("fill", "#111827");
+       text.setAttribute("text-anchor", "middle");
+       text.setAttribute("dominant-baseline", "middle");
+
+       const linesText = String(obj.label || "").split("\n").slice(0, 2);
+       linesText.forEach((line, idx) => {
+         const tspan = document.createElementNS(svgNS, "tspan");
+         tspan.setAttribute("x", obj.x + obj.w / 2);
+         tspan.setAttribute("dy", idx === 0 ? (linesText.length > 1 ? "-0.35em" : "0") : "1.2em");
+         tspan.textContent = line;
+         text.appendChild(tspan);
+       });
+       group.appendChild(text);
+
+       group.addEventListener("click", () => selectEquipment(obj.id));
+       interiorObjectLayer.appendChild(group);
+     });
+   }
+
+   function getInteriorAutoFontSize(obj) {
+     const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
+     const lines = String(obj.label || "").split("\n").slice(0, 2);
+     const longest = Math.max(1, ...lines.map(v => v.length || 1));
+     const maxByWidth = (obj.w * 0.78) / (longest * 0.62);
+     const maxByHeight = (obj.h * 0.55) / Math.max(1, lines.length);
+     return Math.max(8, Math.min(base, maxByWidth, maxByHeight));
+   }
+
+   function renderInteriorDetail() {
+     renderInteriorLayout();
+
+     const objects = Array.isArray(currentInteriorDoc?.objects) ? currentInteriorDoc.objects : [];
+     const obj = objects.find(o => o.id === currentSelectedEquipmentId);
+
+     if (!obj) {
+       equipmentEmpty.style.display = "block";
+       equipmentDetailWrap.style.display = "none";
+       equipmentFocusMeta.textContent = "설비 미선택";
+       equipmentLinkText.textContent = "-";
+       return;
+     }
+
+     equipmentEmpty.style.display = "none";
+     equipmentDetailWrap.style.display = "block";
+     equipmentFocusMeta.textContent = obj.label || obj.id;
+
+     const infoItems = [
+       ["표시명", obj.label || "-"],
+       ["설비명", obj.meta?.equipmentName || "-"],
+       ["담당자(정)", obj.meta?.managerMain || "-"],
+       ["담당자(부)", obj.meta?.managerSub || "-"],
+       ["팀", obj.meta?.team || "-"],
+       ["안전인증검사 대상", obj.meta?.safetyInspection || "-"],
+       ["자율안전확인고 대상", obj.meta?.selfSafetyCheck || "-"],
+       ["비고", obj.meta?.note || "-"]
+     ];
+
+     equipmentInfo.innerHTML = infoItems
+       .map(([k,v]) => `<div>${escapeHtml(k)}</div><div>${escapeHtml(v)}</div>`)
+       .join("");
+
+     const spec = obj.meta?.spec || {};
+     const specItems = [
+       ["제원", spec.dimension || "-"],
+       ["허용압력", spec.pressure || "-"],
+       ["사용온도", spec.temperature || "-"],
+       ["전력", spec.power || "-"],
+       ["용량", spec.capacity || "-"],
+       ["무게", spec.weight || "-"]
+     ];
+
+     equipmentSpec.innerHTML = specItems
+       .map(([k,v]) => `<div>${escapeHtml(k)}</div><div>${escapeHtml(v)}</div>`)
+       .join("");
+
+     const docs = Array.isArray(obj.meta?.documents) ? obj.meta.documents : [];
+     if (!docs.length) {
+       equipmentDocs.innerHTML = `<div class="empty">등록된 자료가 없습니다.</div>`;
+     } else {
+       equipmentDocs.innerHTML = `
+         <table>
+           <thead>
+             <tr>
+               <th>번호</th>
+               <th>명칭</th>
+               <th>작업표준 파일</th>
+               <th>위험성평가 파일</th>
+               <th>자동 관리번호</th>
+             </tr>
+           </thead>
+           <tbody>
+             ${docs.map((d, idx) => `
+               <tr>
+                 <td>${idx + 1}</td>
+                 <td>${escapeHtml(d.name || "")}</td>
+                 <td>${renderDataFileCell(d.standardFileName, d.standardFileData)}</td>
+                 <td>${renderDataFileCell(d.riskFileName, d.riskFileData)}</td>
+                 <td style="text-align:left;">
+                   <div><b>작업표준:</b> ${escapeHtml(d.standardCode || "-")}</div>
+                   <div><b>위험성평가:</b> ${escapeHtml(d.riskCode || "-")}</div>
+                 </td>
+               </tr>
+             `).join("")}
+           </tbody>
+         </table>
+       `;
+     }
+
+     equipmentLinkText.textContent = getEquipmentUrl(currentLayoutId, currentFocusedLabData.regionId, obj.id);
+   }
+
+   function renderDataFileCell(fileName, dataUrl) {
+     if (!fileName) return "파일 없음";
+     if (!dataUrl) return escapeHtml(fileName);
+     return `<a href="${escapeHtml(dataUrl)}" download="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>`;
+   }
+
+   async function populateLayoutDropdown(selectedLayoutId = "") {
+     try {
+       const snap = await getDocs(collection(db, "layouts"));
+       const layouts = [];
+
+       snap.forEach((d) => {
+         const data = d.data();
+         layouts.push({ id: d.id, name: data.name || d.id });
+       });
+
+       layouts.sort((a,b) => a.name.localeCompare(b.name, "ko"));
+
+       layoutSelectPublic.innerHTML = layouts.map(layout => `
+         <option value="${layout.id}" ${layout.id === selectedLayoutId ? "selected" : ""}>
+           ${escapeHtml(layout.name)}
+         </option>
+       `).join("");
+
+       if (!layouts.length) {
+         layoutSelectPublic.innerHTML = `<option value="">레이아웃 없음</option>`;
+       }
+
+       return layouts;
+     } catch (err) {
+       console.error("레이아웃 드롭박스 로드 실패:", err);
+       layoutSelectPublic.innerHTML = `<option value="">불러오기 실패</option>`;
+       return [];
+     }
+   }
+
+   function updateUrl(layoutId, labId = null, equipmentId = null) {
+     const nextUrl = new URL(window.location.href);
+     nextUrl.searchParams.set("layout", layoutId);
+
+     if (labId) nextUrl.searchParams.set("lab", labId);
+     else nextUrl.searchParams.delete("lab");
+
+     if (equipmentId) nextUrl.searchParams.set("equipment", equipmentId);
+     else nextUrl.searchParams.delete("equipment");
+
+     window.history.replaceState({}, "", nextUrl.toString());
+   }
+
+   function renderFocusedState() {
+     if (!currentLayoutData) return;
+
+     const layoutName = currentLayoutData.name || currentLayoutId;
+     const layoutDescription = currentLayoutData.description || "";
+
+     pageTitle.textContent = layoutName;
+     pageSub.textContent = layoutDescription || "게시용 레이아웃 안내";
+     layoutMeta.textContent = `${currentLayoutId}${layoutDescription ? " · " + layoutDescription : ""}`;
+
+     const focusedRegionId = currentFocusedLabData?.regionId || null;
+     renderLayout(currentRegions, focusedRegionId, currentLabSearch);
+
+     if (currentFocusedLabData) {
+       focusMeta.textContent = `${currentFocusedLabData.number || "-"} / ${currentFocusedLabData.labName || currentFocusedLabData.regionId}`;
+       detailSub.textContent = `${layoutName} · 실험실 상세 보기`;
+       renderBasicInfo(currentFocusedLabData);
+       renderWorkersTable(currentFocusedLabData.workers || []);
+       renderChemicalsTable(currentFocusedLabData.chemicals || [], currentChemicalSearch);
+       labLinkText.textContent = getLabUrl(currentLayoutId, currentFocusedLabData.regionId);
+
+       labDetailPanel.style.display = "block";
+
+       interiorSub.textContent = `${currentFocusedLabData.labName || currentFocusedLabData.regionId} 내부 설비 배치`;
+       interiorPanel.style.display = "block";
+       renderInteriorDetail();
+     } else {
+       focusMeta.textContent = "전체 보기";
+       labDetailPanel.style.display = "none";
+       interiorPanel.style.display = "none";
+     }
+   }
+
+   async function loadLayoutAndMaybeLab(layoutIdToLoad, labIdToLoad = null, equipmentIdToLoad = null) {
+     const layoutSnap = await getDoc(doc(db, "layouts", layoutIdToLoad));
+     if (!layoutSnap.exists()) {
+       emptyPanel.style.display = "block";
+       emptyMessage.textContent = `레이아웃 "${layoutIdToLoad}" 를 찾을 수 없습니다.`;
+       pageSub.textContent = "레이아웃 정보를 불러오지 못했습니다.";
+       return;
+     }
+
+     emptyPanel.style.display = "none";
+
+     currentLayoutId = layoutIdToLoad;
+     currentLayoutData = layoutSnap.data();
+     currentRegions = Array.isArray(currentLayoutData.regions)
+       ? currentLayoutData.regions.map(normalizeRegion)
+       : [];
+
+     currentFocusedLabData = null;
+     currentInteriorDoc = null;
+     currentSelectedEquipmentId = null;
+     currentChemicalSearch = "";
+     chemicalSearchInput.value = "";
+
+     if (labIdToLoad) {
+       const labDocId = `${layoutIdToLoad}__${labIdToLoad}`;
+       const labSnap = await getDoc(doc(db, "labs", labDocId));
+       const interiorSnap = await getDoc(doc(db, "labInteriorLayouts", labDocId));
+
+       if (labSnap.exists()) {
+         currentFocusedLabData = labSnap.data();
+         currentInteriorDoc = interiorSnap.exists() ? interiorSnap.data() : { objects: [] };
+         if (equipmentIdToLoad) {
+           currentSelectedEquipmentId = equipmentIdToLoad;
+         }
+       }
+     }
+
+     renderFocusedState();
+   }
+
+   layoutSelectPublic.addEventListener("change", async () => {
+     const nextLayoutId = layoutSelectPublic.value;
+     if (!nextLayoutId) return;
+
+     initialRegionId = null;
+     initialObjectId = null;
+     updateUrl(nextLayoutId, null, null);
+     await loadLayoutAndMaybeLab(nextLayoutId, null, null);
+   });
+
+   labSearchInput.addEventListener("input", () => {
+     currentLabSearch = labSearchInput.value || "";
+     renderFocusedState();
+   });
+
+   chemicalSearchInput.addEventListener("input", () => {
+     currentChemicalSearch = chemicalSearchInput.value || "";
+     if (currentFocusedLabData) {
+       renderChemicalsTable(currentFocusedLabData.chemicals || [], currentChemicalSearch);
+     }
+   });
+
+   async function main() {
+     const layouts = await populateLayoutDropdown(initialLayoutId || "");
+     let effectiveLayoutId = initialLayoutId;
+
+     if (!effectiveLayoutId && layouts.length > 0) {
+       effectiveLayoutId = layouts[0].id;
+       updateUrl(effectiveLayoutId, null, null);
+       layoutSelectPublic.value = effectiveLayoutId;
+     }
+
+     if (!effectiveLayoutId) {
+       emptyPanel.style.display = "block";
+       emptyMessage.textContent = "레이아웃이 없습니다.";
+       pageSub.textContent = "Firestore layouts 컬렉션을 확인해 주세요.";
+       return;
+     }
+
+     await loadLayoutAndMaybeLab(
+       effectiveLayoutId,
+       initialRegionId || null,
+       initialObjectId || null
+     );
+   }
+
+   main().catch((err) => {
+     console.error(err);
+     emptyPanel.style.display = "block";
+     emptyMessage.textContent = "페이지를 불러오는 중 오류가 발생했습니다.";
+     pageSub.textContent = err?.message || "알 수 없는 오류";
+   });
+ </script>
+</body>
+</html>

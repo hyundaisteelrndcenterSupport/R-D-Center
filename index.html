@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ <title>실험실 내부 레이아웃 관리자</title>
+ <style>
+   :root {
+     --bg:#f3f4f6;
+     --panel:#ffffff;
+     --muted:#6b7280;
+     --text:#111827;
+     --blue:#2563eb;
+     --success:#16a34a;
+     --danger:#dc2626;
+   }
+
+   * { box-sizing:border-box; }
+
+   body {
+     margin:0;
+     font-family:Arial, sans-serif;
+     background:var(--bg);
+     color:var(--text);
+   }
+
+   .app {
+     max-width:1850px;
+     margin:0 auto;
+     padding:18px;
+   }
+
+   .topbar {
+     display:flex;
+     justify-content:space-between;
+     align-items:flex-start;
+     gap:16px;
+     margin-bottom:16px;
+   }
+
+   h1 {
+     margin:0;
+     font-size:28px;
+   }
+
+   .sub {
+     margin-top:6px;
+     color:var(--muted);
+     font-size:14px;
+   }
+
+   .toolbar {
+     display:flex;
+     flex-wrap:wrap;
+     gap:8px;
+     align-items:center;
+   }
+
+   input, select, button, textarea {
+     font-size:14px;
+     border:1px solid #cfd4dc;
+     border-radius:8px;
+     background:#fff;
+     padding:10px 12px;
+   }
+
+   textarea {
+     width:100%;
+     min-height:90px;
+     resize:vertical;
+     font-family:inherit;
+   }
+
+   button {
+     cursor:pointer;
+     font-weight:700;
+   }
+
+   .primary {
+     background:var(--blue);
+     color:#fff;
+     border-color:var(--blue);
+   }
+
+   .success {
+     background:var(--success);
+     color:#fff;
+     border-color:var(--success);
+   }
+
+   .danger {
+     background:var(--danger);
+     color:#fff;
+     border-color:var(--danger);
+   }
+
+   .ghost {
+     background:#fff;
+     color:#111827;
+   }
+
+   .panel {
+     background:var(--panel);
+     border:1px solid #ddd;
+     border-radius:16px;
+     box-shadow:0 4px 18px rgba(0,0,0,.05);
+     overflow:hidden;
+     margin-bottom:16px;
+   }
+
+   .panel-header {
+     padding:14px 18px;
+     border-bottom:1px solid #ececec;
+     display:flex;
+     justify-content:space-between;
+     align-items:center;
+     gap:12px;
+     flex-wrap:wrap;
+   }
+
+   .panel-header h2 {
+     margin:0;
+     font-size:20px;
+   }
+
+   .panel-body {
+     padding:16px;
+   }
+
+   .layout-main {
+     display:grid;
+     grid-template-columns:1fr 320px;
+     gap:16px;
+     align-items:start;
+     margin-bottom:16px;
+   }
+
+   .sidebar-vertical {
+     display:flex;
+     flex-direction:column;
+     gap:16px;
+   }
+
+   .scroll-area {
+     max-height:300px;
+     overflow-y:auto;
+   }
+
+   .full-width {
+     width:100%;
+   }
+
+   .editor-wrap {
+     border:1px solid #dbe0e7;
+     border-radius:14px;
+     overflow:hidden;
+     background:#fff;
+   }
+
+   .editor-toolbar {
+     border-bottom:1px solid #e5e7eb;
+     padding:10px 12px;
+     display:flex;
+     flex-wrap:wrap;
+     gap:8px;
+     align-items:center;
+     background:#fafafa;
+   }
+
+   .canvas-wrap {
+     padding:12px;
+     background:#f8fafc;
+   }
+
+   .canvas-box {
+     width:100%;
+     aspect-ratio:16 / 10;
+     border:1px solid #cfd4dc;
+     border-radius:12px;
+     background:#fff;
+     overflow:hidden;
+     position:relative;
+   }
+
+   svg {
+     width:100%;
+     height:100%;
+     display:block;
+     user-select:none;
+     touch-action:none;
+     background:
+       linear-gradient(to right, rgba(0,0,0,.04) 1px, transparent 1px),
+       linear-gradient(to bottom, rgba(0,0,0,.04) 1px, transparent 1px);
+     background-size:40px 40px;
+     background-color:#fcfcfc;
+   }
+
+   .form-grid {
+     display:grid;
+     gap:10px;
+   }
+
+   .form-row {
+     display:grid;
+     grid-template-columns:108px 1fr;
+     gap:10px;
+     align-items:center;
+   }
+
+   .form-row label {
+     font-weight:700;
+     color:#374151;
+     font-size:12.5px;
+   }
+
+   .small-grid {
+     display:grid;
+     grid-template-columns:repeat(2, 1fr);
+     gap:8px;
+   }
+
+   .muted {
+     color:var(--muted);
+   }
+
+   .empty {
+     padding:20px;
+     text-align:center;
+     color:var(--muted);
+     border:1px dashed #d1d5db;
+     border-radius:12px;
+     background:#fafafa;
+   }
+
+   .hint-box {
+     padding:10px 12px;
+     border-radius:10px;
+     background:#f8fafc;
+     border:1px solid #e5e7eb;
+     color:#475569;
+     font-size:12px;
+   }
+
+   .stat-row {
+     display:flex;
+     flex-wrap:wrap;
+     gap:10px;
+     font-size:13px;
+     color:#475569;
+   }
+
+   .badge {
+     display:inline-flex;
+     align-items:center;
+     padding:6px 10px;
+     border-radius:999px;
+     background:#eff6ff;
+     color:#1d4ed8;
+     border:1px solid #dbeafe;
+     font-size:12px;
+     font-weight:700;
+   }
+
+   .object-list {
+     display:grid;
+     gap:8px;
+   }
+
+   .object-item {
+     border:1px solid #e5e7eb;
+     border-radius:10px;
+     padding:10px;
+     cursor:pointer;
+     background:#fff;
+   }
+
+   .object-item.active {
+     border-color:#93c5fd;
+     background:#eff6ff;
+   }
+
+   .object-title {
+     font-weight:700;
+     margin-bottom:4px;
+     font-size:13px;
+   }
+
+   .hr {
+     height:1px;
+     background:#e5e7eb;
+     margin:6px 0;
+   }
+
+   .section-title {
+     margin:4px 0 0;
+     font-size:13px;
+     font-weight:700;
+     color:#334155;
+   }
+
+   .mini-card {
+     padding:10px;
+     border:1px solid #e5e7eb;
+     border-radius:10px;
+     background:#fafafa;
+   }
+
+   .compact-input {
+     font-size:12.5px;
+     padding:9px 10px;
+   }
+
+   .file-line {
+     font-size:12px;
+     color:#64748b;
+     margin-top:4px;
+     word-break:break-all;
+   }
+
+   .panel.compact .panel-body input,
+   .panel.compact .panel-body select,
+   .panel.compact .panel-body textarea,
+   .panel.compact .panel-body button {
+     font-size:12.5px;
+   }
+
+   .panel.compact .sub {
+     font-size:12.5px;
+   }
+
+   table {
+     width:100%;
+     border-collapse:collapse;
+     font-size:12px;
+     table-layout:fixed;
+   }
+
+   th, td {
+     border:1px solid #dbe0e7;
+     padding:6px;
+     text-align:center;
+     vertical-align:top;
+     word-break:break-word;
+   }
+
+   thead th {
+     background:#eef2ff;
+   }
+
+   @media (max-width: 1100px) {
+     .layout-main {
+       grid-template-columns:1fr;
+     }
+   }
+
+   @media (max-width: 900px) {
+     .topbar {
+       flex-direction:column;
+     }
+
+     .form-row {
+       grid-template-columns:1fr;
+     }
+
+     .small-grid {
+       grid-template-columns:1fr;
+     }
+   }
+ </style>
+</head>
+<body>
+ <div class="app">
+   <div class="topbar">
+     <div>
+       <h1>실험실 내부 레이아웃 관리자</h1>
+       <div class="sub">기존 실험실 구역 위에 설비 도형을 배치하고 설비별 정보를 관리합니다.</div>
+     </div>
+
+     <div class="toolbar">
+       <select id="layoutSelect"></select>
+       <select id="labSelect"></select>
+       <button id="loadBtn" class="primary" type="button">불러오기</button>
+       <button id="saveBtn" class="success" type="button">저장</button>
+     </div>
+   </div>
+
+   <section class="panel">
+     <div class="panel-header">
+       <div>
+         <h2>내부 배치 편집</h2>
+         <div id="currentMeta" class="sub">레이아웃과 실험실을 선택하세요.</div>
+       </div>
+       <div class="stat-row">
+         <span id="shapeBadge" class="badge">실험실 미선택</span>
+         <span id="objectCount" class="badge">객체 0개</span>
+       </div>
+     </div>
+
+     <div class="panel-body">
+       <div class="layout-main">
+         <div class="editor-wrap">
+           <div class="editor-toolbar">
+             <button id="addRectBtn" type="button">사각형 추가</button>
+             <button id="addCircleBtn" type="button">원 추가</button>
+             <button id="addTextBtn" type="button">텍스트 추가</button>
+             <button id="deleteObjectBtn" type="button" class="danger">선택 객체 삭제</button>
+             <button id="clearSelectionBtn" type="button" class="ghost">선택 해제</button>
+           </div>
+
+           <div class="canvas-wrap">
+             <div class="canvas-box">
+               <svg id="editorSvg" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet">
+                 <defs>
+                   <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+                     <feGaussianBlur stdDeviation="10" result="blur"></feGaussianBlur>
+                     <feMerge>
+                       <feMergeNode in="blur"></feMergeNode>
+                       <feMergeNode in="SourceGraphic"></feMergeNode>
+                     </feMerge>
+                   </filter>
+                 </defs>
+
+                 <g id="labBaseLayer"></g>
+                 <g id="labOutlineLayer"></g>
+                 <g id="objectLayer"></g>
+                 <g id="selectionLayer"></g>
+               </svg>
+             </div>
+           </div>
+         </div>
+
+         <div class="sidebar-vertical">
+           <section class="panel compact" style="margin-bottom:0;">
+             <div class="panel-header">
+               <h2>실험실 정보</h2>
+             </div>
+             <div class="panel-body">
+               <div class="hint-box">
+                 왼쪽 도면은 기존 레이아웃 앱에서 지정된 실험실 셀 범위를 기반으로 표시됩니다.
+               </div>
+
+               <div class="form-grid" style="margin-top:12px;">
+                 <div class="form-row">
+                   <label>레이아웃</label>
+                   <input id="labLayoutInfo" readonly />
+                 </div>
+                 <div class="form-row">
+                   <label>실험실 번호</label>
+                   <input id="labNumberInfo" readonly />
+                 </div>
+                 <div class="form-row">
+                   <label>실험실명</label>
+                   <input id="labNameInfo" readonly />
+                 </div>
+                 <div class="form-row">
+                   <label>담당팀</label>
+                   <input id="labTeamInfo" readonly />
+                 </div>
+               </div>
+             </div>
+           </section>
+
+           <section class="panel compact" style="margin-bottom:0;">
+             <div class="panel-header">
+               <h2>객체 목록</h2>
+             </div>
+             <div class="panel-body scroll-area">
+               <div id="objectList" class="object-list"></div>
+             </div>
+           </section>
+         </div>
+       </div>
+
+       <section class="panel compact full-width" style="margin-bottom:0;">
+         <div class="panel-header">
+           <h2>선택 객체 속성</h2>
+         </div>
+         <div class="panel-body">
+           <div id="objectEmpty" class="empty">객체를 선택하세요.</div>
+
+           <div id="objectFormWrap" style="display:none;">
+             <div class="form-grid">
+               <div class="form-row">
+                 <label>객체 ID</label>
+                 <input id="objId" readonly />
+               </div>
+               <div class="form-row">
+                 <label>타입</label>
+                 <input id="objType" readonly />
+               </div>
+               <div class="form-row">
+                 <label>표시명</label>
+                 <input id="objLabel" />
+               </div>
+
+               <div class="small-grid">
+                 <input id="objX" type="number" placeholder="x" />
+                 <input id="objY" type="number" placeholder="y" />
+                 <input id="objW" type="number" placeholder="w" />
+                 <input id="objH" type="number" placeholder="h" />
+               </div>
+
+               <div class="small-grid">
+                 <input id="objRotation" type="number" placeholder="회전각" />
+                 <input id="objFontSize" type="number" placeholder="폰트크기" />
+               </div>
+
+               <div class="small-grid">
+                 <input id="objFill" type="color" value="#ffffff" />
+                 <input id="objStroke" type="color" value="#64748b" />
+               </div>
+
+               <div class="hr"></div>
+
+               <div class="form-row">
+                 <label>설비명</label>
+                 <input id="metaEquipmentName" />
+               </div>
+               <div class="form-row">
+                 <label>담당자(정)</label>
+                 <input id="metaManagerMain" />
+               </div>
+               <div class="form-row">
+                 <label>담당자(부)</label>
+                 <input id="metaManagerSub" />
+               </div>
+               <div class="form-row">
+                 <label>팀</label>
+                 <input id="metaTeam" />
+               </div>
+
+               <div class="section-title">Spec</div>
+               <div class="mini-card">
+                 <div class="form-grid">
+                   <div class="form-row">
+                     <label>제원</label>
+                     <input id="metaSpecDimension" />
+                   </div>
+                   <div class="form-row">
+                     <label>허용압력</label>
+                     <input id="metaSpecPressure" />
+                   </div>
+                   <div class="form-row">
+                     <label>사용온도</label>
+                     <input id="metaSpecTemperature" />
+                   </div>
+                   <div class="form-row">
+                     <label>전력</label>
+                     <input id="metaSpecPower" />
+                   </div>
+                   <div class="form-row">
+                     <label>용량</label>
+                     <input id="metaSpecCapacity" />
+                   </div>
+                   <div class="form-row">
+                     <label>무게</label>
+                     <input id="metaSpecWeight" />
+                   </div>
+                 </div>
+               </div>
+
+               <div class="form-row">
+                 <label>안전인증검사 대상</label>
+                 <select id="metaSafetyInspection">
+                   <option value="해당없음">해당없음</option>
+                   <option value="해당">해당</option>
+                 </select>
+               </div>
+
+               <div class="form-row">
+                 <label>자율안전확인고 대상</label>
+                 <select id="metaSelfSafetyCheck">
+                   <option value="해당없음">해당없음</option>
+                   <option value="해당">해당</option>
+                 </select>
+               </div>
+
+               <div class="form-row">
+                 <label>비고</label>
+                 <textarea id="metaNote"></textarea>
+               </div>
+
+               <div class="section-title">작업표준 / 위험성평가</div>
+               <div class="mini-card">
+                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                   <div class="muted" style="font-size:12px;">선택한 설비에 귀속되는 자료입니다.</div>
+                   <button id="addObjectDocBtn" type="button">자료 추가</button>
+                 </div>
+
+                 <div id="objectDocTableWrap" style="overflow:auto;"></div>
+               </div>
+
+               <button id="applyObjectBtn" type="button" class="primary">속성 반영</button>
+             </div>
+           </div>
+         </div>
+       </section>
+     </div>
+   </section>
+ </div>
+
+ <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+   import {
+     getFirestore,
+     collection,
+     getDocs,
+     doc,
+     getDoc,
+     setDoc
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+   const firebaseConfig = {
+  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+  authDomain: "lab-test-888d2.firebaseapp.com",
+  projectId: "lab-test-888d2",
+  storageBucket: "lab-test-888d2.firebasestorage.app",
+  messagingSenderId: "417323251483",
+  appId: "1:417323251483:web:2938bce7431260aff385be"
+   };
+
+   const app = initializeApp(firebaseConfig);
+   const db = getFirestore(app);
+
+   const layoutSelect = document.getElementById("layoutSelect");
+   const labSelect = document.getElementById("labSelect");
+   const loadBtn = document.getElementById("loadBtn");
+   const saveBtn = document.getElementById("saveBtn");
+
+   const currentMeta = document.getElementById("currentMeta");
+   const shapeBadge = document.getElementById("shapeBadge");
+   const objectCount = document.getElementById("objectCount");
+
+   const labLayoutInfo = document.getElementById("labLayoutInfo");
+   const labNumberInfo = document.getElementById("labNumberInfo");
+   const labNameInfo = document.getElementById("labNameInfo");
+   const labTeamInfo = document.getElementById("labTeamInfo");
+
+   const addRectBtn = document.getElementById("addRectBtn");
+   const addCircleBtn = document.getElementById("addCircleBtn");
+   const addTextBtn = document.getElementById("addTextBtn");
+   const deleteObjectBtn = document.getElementById("deleteObjectBtn");
+   const clearSelectionBtn = document.getElementById("clearSelectionBtn");
+
+   const editorSvg = document.getElementById("editorSvg");
+   const labBaseLayer = document.getElementById("labBaseLayer");
+   const labOutlineLayer = document.getElementById("labOutlineLayer");
+   const objectLayer = document.getElementById("objectLayer");
+   const selectionLayer = document.getElementById("selectionLayer");
+
+   const objectEmpty = document.getElementById("objectEmpty");
+   const objectFormWrap = document.getElementById("objectFormWrap");
+   const objectList = document.getElementById("objectList");
+
+   const objId = document.getElementById("objId");
+   const objType = document.getElementById("objType");
+   const objLabel = document.getElementById("objLabel");
+   const objX = document.getElementById("objX");
+   const objY = document.getElementById("objY");
+   const objW = document.getElementById("objW");
+   const objH = document.getElementById("objH");
+   const objRotation = document.getElementById("objRotation");
+   const objFontSize = document.getElementById("objFontSize");
+   const objFill = document.getElementById("objFill");
+   const objStroke = document.getElementById("objStroke");
+
+   const metaEquipmentName = document.getElementById("metaEquipmentName");
+   const metaManagerMain = document.getElementById("metaManagerMain");
+   const metaManagerSub = document.getElementById("metaManagerSub");
+   const metaTeam = document.getElementById("metaTeam");
+   const metaSpecDimension = document.getElementById("metaSpecDimension");
+   const metaSpecPressure = document.getElementById("metaSpecPressure");
+   const metaSpecTemperature = document.getElementById("metaSpecTemperature");
+   const metaSpecPower = document.getElementById("metaSpecPower");
+   const metaSpecCapacity = document.getElementById("metaSpecCapacity");
+   const metaSpecWeight = document.getElementById("metaSpecWeight");
+   const metaSafetyInspection = document.getElementById("metaSafetyInspection");
+   const metaSelfSafetyCheck = document.getElementById("metaSelfSafetyCheck");
+   const metaNote = document.getElementById("metaNote");
+   const applyObjectBtn = document.getElementById("applyObjectBtn");
+
+   const addObjectDocBtn = document.getElementById("addObjectDocBtn");
+   const objectDocTableWrap = document.getElementById("objectDocTableWrap");
+
+   const VIEW_W = 1000;
+   const VIEW_H = 700;
+   const PADDING = 40;
+
+   let layoutsMap = {};
+   let currentLayoutId = null;
+   let currentLabId = null;
+   let currentLabData = null;
+   let currentLayoutData = null;
+   let interiorDoc = null;
+   let objects = [];
+   let selectedObjectId = null;
+   let dragState = null;
+   let labShape = null;
+
+   function parseCell(key) {
+     const [x, y] = String(key).split("-").map(Number);
+     return { x, y };
+   }
+
+   function sanitizeCells(cells = []) {
+     const set = new Set();
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       if (Number.isInteger(x) && Number.isInteger(y)) set.add(`${x}-${y}`);
+     }
+     return Array.from(set);
+   }
+
+   function rectToCells(x, y, w, h) {
+     const cells = [];
+     for (let yy = y; yy < y + h; yy++) {
+       for (let xx = x; xx < x + w; xx++) {
+         cells.push(`${xx}-${yy}`);
+       }
+     }
+     return cells;
+   }
+
+   function boundsFromCells(cells = []) {
+     if (!cells.length) return { x:1, y:1, w:1, h:1 };
+     const coords = cells.map(parseCell);
+     const xs = coords.map(c => c.x);
+     const ys = coords.map(c => c.y);
+     return {
+       x: Math.min(...xs),
+       y: Math.min(...ys),
+       w: Math.max(...xs) - Math.min(...xs) + 1,
+       h: Math.max(...ys) - Math.min(...ys) + 1
+     };
+   }
+
+   function normalizeRegion(region) {
+     const hasCells = Array.isArray(region?.cells) && region.cells.length > 0;
+     const cells = hasCells
+       ? sanitizeCells(region.cells)
+       : rectToCells(
+           Number(region?.x || 1),
+           Number(region?.y || 1),
+           Number(region?.w || 1),
+           Number(region?.h || 1)
+         );
+
+     return {
+       id: region?.id || "",
+       type: region?.type || "lab",
+       number: region?.number || "",
+       labName: region?.labName || "",
+       cells,
+       ...boundsFromCells(cells)
+     };
+   }
+
+   function getInteriorDocId(layoutId, labId) {
+     return `${layoutId}__${labId}`;
+   }
+
+   function uid(prefix = "obj") {
+     return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+   }
+
+   function clearNode(node) {
+     while (node.firstChild) node.firstChild.remove();
+   }
+
+   function getSelectedObject() {
+     return objects.find(o => o.id === selectedObjectId) || null;
+   }
+
+   function normalizeColor(color) {
+     if (!color) return "#ffffff";
+     if (color.startsWith("#")) return color;
+     return "#ffffff";
+   }
+
+   function escapeHtml(str) {
+     return String(str || "")
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#39;");
+   }
+
+   function escapeHtmlAttr(str) {
+     return String(str || "")
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#39;");
+   }
+
+   function getFileBaseName(filename = "") {
+     const lastDot = filename.lastIndexOf(".");
+     if (lastDot <= 0) return filename;
+     return filename.slice(0, lastDot);
+   }
+
+   function createDefaultDoc() {
+     return {
+       id: uid("doc"),
+       name: "",
+       standardCode: "",
+       standardFileName: "",
+       standardFileData: "",
+       riskCode: "",
+       riskFileName: "",
+       riskFileData: ""
+     };
+   }
+
+   function createDefaultObject(type) {
+     const base = {
+       id: uid(),
+       type,
+       x: 120,
+       y: 100,
+       w: 140,
+       h: 100,
+       rotation: 0,
+       fontSize: type === "text" ? 18 : 20,
+       label: type === "text" ? "텍스트" : "설비명",
+       fill: "#ffffff",
+       stroke: "#64748b",
+       meta: {
+         equipmentName: "",
+         managerMain: "",
+         managerSub: "",
+         team: "",
+         spec: {
+           dimension: "",
+           pressure: "",
+           temperature: "",
+           power: "",
+           capacity: "",
+           weight: ""
+         },
+         safetyInspection: "해당없음",
+         selfSafetyCheck: "해당없음",
+         note: "",
+         documents: []
+       }
+     };
+
+     if (type === "circle") {
+       base.w = 120;
+       base.h = 120;
+     }
+
+     if (type === "text") {
+       base.w = 180;
+       base.h = 50;
+     }
+
+     return base;
+   }
+
+   async function loadLayouts() {
+     const snap = await getDocs(collection(db, "layouts"));
+     layoutsMap = {};
+
+     snap.forEach((d) => {
+       const data = d.data();
+       layoutsMap[d.id] = {
+         ...data,
+         regions: Array.isArray(data.regions) ? data.regions.map(normalizeRegion) : []
+       };
+     });
+
+     populateLayoutSelect();
+   }
+
+   function populateLayoutSelect() {
+     layoutSelect.innerHTML = "";
+     const ids = Object.keys(layoutsMap);
+
+     if (!ids.length) {
+       layoutSelect.innerHTML = `<option value="">레이아웃 없음</option>`;
+       return;
+     }
+
+     ids.forEach((id) => {
+       const opt = document.createElement("option");
+       opt.value = id;
+       opt.textContent = layoutsMap[id].name || id;
+       layoutSelect.appendChild(opt);
+     });
+
+     currentLayoutId = ids[0];
+     layoutSelect.value = currentLayoutId;
+     populateLabSelect();
+   }
+
+   function populateLabSelect() {
+     labSelect.innerHTML = "";
+     const layout = layoutsMap[currentLayoutId];
+
+     if (!layout) {
+       labSelect.innerHTML = `<option value="">실험실 없음</option>`;
+       return;
+     }
+
+     const labs = (layout.regions || []).filter(r => r.type === "lab");
+
+     if (!labs.length) {
+       labSelect.innerHTML = `<option value="">실험실 없음</option>`;
+       return;
+     }
+
+     labs.forEach((lab) => {
+       const opt = document.createElement("option");
+       opt.value = lab.id;
+       opt.textContent = `${lab.number ? lab.number + " / " : ""}${lab.labName || lab.id}`;
+       labSelect.appendChild(opt);
+     });
+
+     currentLabId = labs[0].id;
+     labSelect.value = currentLabId;
+   }
+
+   async function loadSelectedLab() {
+     currentLayoutId = layoutSelect.value;
+     currentLabId = labSelect.value;
+     if (!currentLayoutId || !currentLabId) return;
+
+     currentLayoutData = layoutsMap[currentLayoutId] || null;
+     const labRegion = currentLayoutData?.regions?.find(r => r.id === currentLabId);
+     if (!labRegion) return;
+
+     const labDataSnap = await getDoc(doc(db, "labs", `${currentLayoutId}__${currentLabId}`));
+     const interiorSnap = await getDoc(doc(db, "labInteriorLayouts", getInteriorDocId(currentLayoutId, currentLabId)));
+
+     currentLabData = labDataSnap.exists()
+       ? labDataSnap.data()
+       : {
+           layoutId: currentLayoutId,
+           regionId: currentLabId,
+           number: labRegion.number || "",
+           labName: labRegion.labName || "",
+           team: ""
+         };
+
+     interiorDoc = interiorSnap.exists()
+       ? interiorSnap.data()
+       : {
+           layoutId: currentLayoutId,
+           labId: currentLabId,
+           objects: []
+         };
+
+     objects = Array.isArray(interiorDoc.objects) ? structuredClone(interiorDoc.objects) : [];
+     objects.forEach((obj) => {
+       obj.rotation = obj.rotation || 0;
+       obj.fontSize = obj.fontSize || (obj.type === "text" ? 18 : 20);
+       if (!obj.meta) obj.meta = {};
+       if (!obj.meta.spec) {
+         obj.meta.spec = {
+           dimension: "",
+           pressure: "",
+           temperature: "",
+           power: "",
+           capacity: "",
+           weight: ""
+         };
+       }
+       if (!Array.isArray(obj.meta.documents)) obj.meta.documents = [];
+     });
+
+     selectedObjectId = null;
+     labShape = buildLabShape(labRegion);
+
+     fillLabInfo();
+     renderAll();
+   }
+
+   function buildLabShape(region) {
+     const cells = sanitizeCells(region.cells || []);
+     const bounds = boundsFromCells(cells);
+     const scale = Math.min(
+       (VIEW_W - PADDING * 2) / bounds.w,
+       (VIEW_H - PADDING * 2) / bounds.h
+     );
+
+     return {
+       cells: cells.map(parseCell),
+       bounds,
+       scale,
+       originX: (VIEW_W - bounds.w * scale) / 2,
+       originY: (VIEW_H - bounds.h * scale) / 2
+     };
+   }
+
+   function cellToRect(cell) {
+     if (!labShape) return null;
+     return {
+       x: labShape.originX + (cell.x - labShape.bounds.x) * labShape.scale,
+       y: labShape.originY + (cell.y - labShape.bounds.y) * labShape.scale,
+       w: labShape.scale,
+       h: labShape.scale
+     };
+   }
+
+   function fillLabInfo() {
+     const layoutName = currentLayoutData?.name || currentLayoutId || "";
+     labLayoutInfo.value = layoutName;
+     labNumberInfo.value = currentLabData?.number || "";
+     labNameInfo.value = currentLabData?.labName || "";
+     labTeamInfo.value = currentLabData?.team || "";
+
+     currentMeta.textContent = `${layoutName} · ${currentLabData?.number || "-"} / ${currentLabData?.labName || currentLabId}`;
+     shapeBadge.textContent = `${currentLabData?.labName || currentLabId} 내부 편집`;
+     objectCount.textContent = `객체 ${objects.length}개`;
+   }
+
+   function getObjectCenter(obj) {
+     return { cx: obj.x + obj.w / 2, cy: obj.y + obj.h / 2 };
+   }
+
+   function rotatePoint(px, py, cx, cy, deg) {
+     const rad = deg * Math.PI / 180;
+     const cos = Math.cos(rad);
+     const sin = Math.sin(rad);
+     const dx = px - cx;
+     const dy = py - cy;
+     return {
+       x: cx + dx * cos - dy * sin,
+       y: cy + dx * sin + dy * cos
+     };
+   }
+
+   function getRotatedCorner(obj, corner) {
+     const { cx, cy } = getObjectCenter(obj);
+     let px = obj.x;
+     let py = obj.y;
+
+     if (corner === "ne") {
+       px = obj.x + obj.w;
+       py = obj.y;
+     } else if (corner === "sw") {
+       px = obj.x;
+       py = obj.y + obj.h;
+     } else if (corner === "se") {
+       px = obj.x + obj.w;
+       py = obj.y + obj.h;
+     }
+
+     return rotatePoint(px, py, cx, cy, obj.rotation || 0);
+   }
+
+   function getRotationHandlePoint(obj) {
+     const { cx, cy } = getObjectCenter(obj);
+     return rotatePoint(obj.x + obj.w / 2, obj.y - 28, cx, cy, obj.rotation || 0);
+   }
+
+   function clampObjectInsideCanvas(obj) {
+     obj.w = Math.max(20, Math.min(VIEW_W, obj.w));
+     obj.h = Math.max(20, Math.min(VIEW_H, obj.h));
+     obj.x = Math.max(0, Math.min(VIEW_W - obj.w, obj.x));
+     obj.y = Math.max(0, Math.min(VIEW_H - obj.h, obj.y));
+     if (!Number.isFinite(obj.rotation)) obj.rotation = 0;
+     if (!Number.isFinite(obj.fontSize)) obj.fontSize = obj.type === "text" ? 18 : 20;
+   }
+
+   function getAutoFontSize(obj) {
+     const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
+     const lines = String(obj.label || "").split("\n").slice(0, 2);
+     const longest = Math.max(1, ...lines.map(v => v.length || 1));
+     const maxByWidth = (obj.w * 0.78) / (longest * 0.62);
+     const maxByHeight = (obj.h * 0.55) / Math.max(1, lines.length);
+     return Math.max(8, Math.min(base, maxByWidth, maxByHeight));
+   }
+
+   function renderAll() {
+     fillLabInfo();
+     renderLabShape();
+     renderObjects();
+     renderSelection();
+     renderObjectList();
+     renderObjectForm();
+     objectCount.textContent = `객체 ${objects.length}개`;
+   }
+
+   function renderLabShape() {
+     clearNode(labBaseLayer);
+     clearNode(labOutlineLayer);
+     if (!labShape) return;
+
+     const svgNS = "http://www.w3.org/2000/svg";
+     const cellSet = new Set(labShape.cells.map(c => `${c.x}-${c.y}`));
+
+     labShape.cells.forEach((cell) => {
+       const rectInfo = cellToRect(cell);
+       const rect = document.createElementNS(svgNS, "rect");
+       rect.setAttribute("x", rectInfo.x);
+       rect.setAttribute("y", rectInfo.y);
+       rect.setAttribute("width", rectInfo.w);
+       rect.setAttribute("height", rectInfo.h);
+       rect.setAttribute("fill", "#f8e6ea");
+       rect.setAttribute("stroke", "#e9d3d8");
+       rect.setAttribute("stroke-width", "1");
+       labBaseLayer.appendChild(rect);
+     });
+
+     const lines = [];
+     const dirs = [
+       { dx: 0, dy: -1, side: "top" },
+       { dx: 1, dy: 0, side: "right" },
+       { dx: 0, dy: 1, side: "bottom" },
+       { dx: -1, dy: 0, side: "left" }
+     ];
+
+     for (const cell of labShape.cells) {
+       for (const dir of dirs) {
+         const nx = cell.x + dir.dx;
+         const ny = cell.y + dir.dy;
+         if (!cellSet.has(`${nx}-${ny}`)) {
+           const rect = cellToRect(cell);
+           if (dir.side === "top") lines.push(`M ${rect.x} ${rect.y} L ${rect.x + rect.w} ${rect.y}`);
+           else if (dir.side === "right") lines.push(`M ${rect.x + rect.w} ${rect.y} L ${rect.x + rect.w} ${rect.y + rect.h}`);
+           else if (dir.side === "bottom") lines.push(`M ${rect.x} ${rect.y + rect.h} L ${rect.x + rect.w} ${rect.y + rect.h}`);
+           else if (dir.side === "left") lines.push(`M ${rect.x} ${rect.y} L ${rect.x} ${rect.y + rect.h}`);
+         }
+       }
+     }
+
+     const path = document.createElementNS(svgNS, "path");
+     path.setAttribute("d", lines.join(" "));
+     path.setAttribute("fill", "none");
+     path.setAttribute("stroke", "rgba(0,0,0,.72)");
+     path.setAttribute("stroke-width", "2");
+     labOutlineLayer.appendChild(path);
+
+     const titleW = Math.min(360, labShape.bounds.w * labShape.scale);
+
+     const titleBox = document.createElementNS(svgNS, "rect");
+     titleBox.setAttribute("x", labShape.originX);
+     titleBox.setAttribute("y", labShape.originY - 32);
+     titleBox.setAttribute("width", titleW);
+     titleBox.setAttribute("height", 28);
+     titleBox.setAttribute("fill", "#fff");
+     titleBox.setAttribute("stroke", "#111827");
+     titleBox.setAttribute("stroke-width", "1.5");
+     labOutlineLayer.appendChild(titleBox);
+
+     const numBox = document.createElementNS(svgNS, "rect");
+     numBox.setAttribute("x", labShape.originX);
+     numBox.setAttribute("y", labShape.originY - 32);
+     numBox.setAttribute("width", 42);
+     numBox.setAttribute("height", 28);
+     numBox.setAttribute("fill", "#fff");
+     numBox.setAttribute("stroke", "#111827");
+     numBox.setAttribute("stroke-width", "1.5");
+     labOutlineLayer.appendChild(numBox);
+
+     const numText = document.createElementNS(svgNS, "text");
+     numText.setAttribute("x", labShape.originX + 21);
+     numText.setAttribute("y", labShape.originY - 13);
+     numText.setAttribute("font-size", "14");
+     numText.setAttribute("font-weight", "700");
+     numText.setAttribute("text-anchor", "middle");
+     numText.textContent = currentLabData?.number || "-";
+     labOutlineLayer.appendChild(numText);
+
+     const titleText = document.createElementNS(svgNS, "text");
+     titleText.setAttribute("x", labShape.originX + 42 + ((titleW - 42) / 2));
+     titleText.setAttribute("y", labShape.originY - 13);
+     titleText.setAttribute("font-size", "14");
+     titleText.setAttribute("font-weight", "700");
+     titleText.setAttribute("text-anchor", "middle");
+     titleText.textContent = currentLabData?.labName || currentLabId;
+     labOutlineLayer.appendChild(titleText);
+   }
+
+   function renderObjects() {
+     clearNode(objectLayer);
+     const svgNS = "http://www.w3.org/2000/svg";
+
+     objects.forEach((obj) => {
+       const group = document.createElementNS(svgNS, "g");
+       const { cx, cy } = getObjectCenter(obj);
+       group.setAttribute("transform", `rotate(${obj.rotation || 0} ${cx} ${cy})`);
+       group.style.cursor = "move";
+
+       const selectObject = (e) => {
+         e.stopPropagation();
+         selectedObjectId = obj.id;
+         renderAll();
+       };
+
+       const startDrag = (e) => {
+         e.stopPropagation();
+         selectedObjectId = obj.id;
+         const pt = getSvgPoint(e);
+         dragState = {
+           mode: "move",
+           id: obj.id,
+           startX: pt.x,
+           startY: pt.y,
+           objStartX: obj.x,
+           objStartY: obj.y,
+           objStartW: obj.w,
+           objStartH: obj.h,
+           objStartRotation: obj.rotation || 0
+         };
+         renderAll();
+       };
+
+       const startResize = (corner) => (e) => {
+         e.stopPropagation();
+         selectedObjectId = obj.id;
+         const pt = getSvgPoint(e);
+         dragState = {
+           mode: "resize",
+           corner,
+           id: obj.id,
+           startX: pt.x,
+           startY: pt.y,
+           objStartX: obj.x,
+           objStartY: obj.y,
+           objStartW: obj.w,
+           objStartH: obj.h,
+           objStartRotation: obj.rotation || 0
+         };
+         renderAll();
+       };
+
+       const startRotate = (e) => {
+         e.stopPropagation();
+         selectedObjectId = obj.id;
+         const pt = getSvgPoint(e);
+         const center = getObjectCenter(obj);
+         dragState = {
+           mode: "rotate",
+           id: obj.id,
+           centerX: center.cx,
+           centerY: center.cy,
+           objStartRotation: obj.rotation || 0,
+           startAngle: Math.atan2(pt.y - center.cy, pt.x - center.cx)
+         };
+         renderAll();
+       };
+
+       if (obj.type === "rect") {
+         const rect = document.createElementNS(svgNS, "rect");
+         rect.setAttribute("x", obj.x);
+         rect.setAttribute("y", obj.y);
+         rect.setAttribute("width", obj.w);
+         rect.setAttribute("height", obj.h);
+         rect.setAttribute("rx", "6");
+         rect.setAttribute("fill", obj.fill || "#fff");
+         rect.setAttribute("stroke", obj.stroke || "#64748b");
+         rect.setAttribute("stroke-width", "2");
+         group.appendChild(rect);
+       }
+
+       if (obj.type === "circle") {
+         const ellipse = document.createElementNS(svgNS, "ellipse");
+         ellipse.setAttribute("cx", obj.x + obj.w / 2);
+         ellipse.setAttribute("cy", obj.y + obj.h / 2);
+         ellipse.setAttribute("rx", obj.w / 2);
+         ellipse.setAttribute("ry", obj.h / 2);
+         ellipse.setAttribute("fill", obj.fill || "#fff");
+         ellipse.setAttribute("stroke", obj.stroke || "#64748b");
+         ellipse.setAttribute("stroke-width", "2");
+         group.appendChild(ellipse);
+       }
+
+       if (obj.type === "text") {
+         const bg = document.createElementNS(svgNS, "rect");
+         bg.setAttribute("x", obj.x);
+         bg.setAttribute("y", obj.y);
+         bg.setAttribute("width", obj.w);
+         bg.setAttribute("height", obj.h);
+         bg.setAttribute("fill", "rgba(255,255,255,.92)");
+         bg.setAttribute("stroke", obj.stroke || "#64748b");
+         bg.setAttribute("stroke-width", "1.5");
+         bg.setAttribute("rx", "4");
+         group.appendChild(bg);
+       }
+
+       const text = document.createElementNS(svgNS, "text");
+       text.setAttribute("x", obj.x + obj.w / 2);
+       text.setAttribute("y", obj.y + obj.h / 2);
+       text.setAttribute("font-size", getAutoFontSize(obj));
+       text.setAttribute("font-weight", "700");
+       text.setAttribute("fill", "#111827");
+       text.setAttribute("text-anchor", "middle");
+       text.setAttribute("dominant-baseline", "middle");
+
+       const labelLines = String(obj.label || "").split("\n").slice(0, 2);
+       labelLines.forEach((line, idx) => {
+         const tspan = document.createElementNS(svgNS, "tspan");
+         tspan.setAttribute("x", obj.x + obj.w / 2);
+         tspan.setAttribute("dy", idx === 0 ? (labelLines.length > 1 ? "-0.35em" : "0") : "1.2em");
+         tspan.textContent = line;
+         text.appendChild(tspan);
+       });
+
+       group.appendChild(text);
+       group.addEventListener("click", selectObject);
+       group.addEventListener("pointerdown", startDrag);
+       objectLayer.appendChild(group);
+
+       if (obj.id === selectedObjectId) {
+         const outline = document.createElementNS(svgNS, "rect");
+         outline.setAttribute("x", obj.x - 4);
+         outline.setAttribute("y", obj.y - 4);
+         outline.setAttribute("width", obj.w + 8);
+         outline.setAttribute("height", obj.h + 8);
+         outline.setAttribute("fill", "none");
+         outline.setAttribute("stroke", "#2563eb");
+         outline.setAttribute("stroke-dasharray", "8 4");
+         outline.setAttribute("stroke-width", "2");
+         outline.setAttribute("transform", `rotate(${obj.rotation || 0} ${cx} ${cy})`);
+         objectLayer.appendChild(outline);
+
+         const handles = [
+           { corner: "nw", cursor: "nwse-resize" },
+           { corner: "ne", cursor: "nesw-resize" },
+           { corner: "sw", cursor: "nesw-resize" },
+           { corner: "se", cursor: "nwse-resize" }
+         ];
+
+         handles.forEach(({ corner, cursor }) => {
+           const p = getRotatedCorner(obj, corner);
+           const handle = document.createElementNS(svgNS, "rect");
+           handle.setAttribute("x", p.x - 7);
+           handle.setAttribute("y", p.y - 7);
+           handle.setAttribute("width", 14);
+           handle.setAttribute("height", 14);
+           handle.setAttribute("fill", "#2563eb");
+           handle.setAttribute("stroke", "#ffffff");
+           handle.setAttribute("stroke-width", "2");
+           handle.setAttribute("rx", "3");
+           handle.style.cursor = cursor;
+           handle.addEventListener("pointerdown", startResize(corner));
+           objectLayer.appendChild(handle);
+         });
+
+         const rotatePointPos = getRotationHandlePoint(obj);
+         const rotatedTopCenter = rotatePoint(obj.x + obj.w / 2, obj.y, cx, cy, obj.rotation || 0);
+
+         const rotateLine = document.createElementNS(svgNS, "line");
+         rotateLine.setAttribute("x1", rotatedTopCenter.x);
+         rotateLine.setAttribute("y1", rotatedTopCenter.y);
+         rotateLine.setAttribute("x2", rotatePointPos.x);
+         rotateLine.setAttribute("y2", rotatePointPos.y);
+         rotateLine.setAttribute("stroke", "#2563eb");
+         rotateLine.setAttribute("stroke-width", "2");
+         objectLayer.appendChild(rotateLine);
+
+         const rotateHandle = document.createElementNS(svgNS, "circle");
+         rotateHandle.setAttribute("cx", rotatePointPos.x);
+         rotateHandle.setAttribute("cy", rotatePointPos.y);
+         rotateHandle.setAttribute("r", "8");
+         rotateHandle.setAttribute("fill", "#f59e0b");
+         rotateHandle.setAttribute("stroke", "#ffffff");
+         rotateHandle.setAttribute("stroke-width", "2");
+         rotateHandle.style.cursor = "grab";
+         rotateHandle.addEventListener("pointerdown", startRotate);
+         objectLayer.appendChild(rotateHandle);
+       }
+     });
+   }
+
+   function renderSelection() {
+     clearNode(selectionLayer);
+   }
+
+   function renderObjectList() {
+     objectList.innerHTML = "";
+     if (!objects.length) {
+       objectList.innerHTML = `<div class="empty">객체가 없습니다.</div>`;
+       return;
+     }
+
+     objects.forEach((obj) => {
+       const div = document.createElement("div");
+       div.className = `object-item${obj.id === selectedObjectId ? " active" : ""}`;
+       div.innerHTML = `
+         <div class="object-title">${escapeHtml(obj.label || obj.id)}</div>
+         <div class="muted">${obj.type} · x:${Math.round(obj.x)}, y:${Math.round(obj.y)}, r:${Math.round(obj.rotation || 0)}°</div>
+       `;
+       div.addEventListener("click", () => {
+         selectedObjectId = obj.id;
+         renderAll();
+       });
+       objectList.appendChild(div);
+     });
+   }
+
+   function renderObjectDocumentsTable() {
+     const obj = getSelectedObject();
+
+     if (!obj) {
+       objectDocTableWrap.innerHTML = `<div class="empty">객체를 선택하세요.</div>`;
+       return;
+     }
+
+     if (!obj.meta) obj.meta = {};
+     if (!Array.isArray(obj.meta.documents)) obj.meta.documents = [];
+
+     const docs = obj.meta.documents;
+
+     if (!docs.length) {
+       objectDocTableWrap.innerHTML = `
+         <div class="empty" style="padding:14px;">
+           등록된 자료가 없습니다.
+         </div>
+       `;
+       return;
+     }
+
+     objectDocTableWrap.innerHTML = `
+       <table>
+         <colgroup>
+           <col style="width:8%">
+           <col style="width:24%">
+           <col style="width:24%">
+           <col style="width:24%">
+           <col style="width:20%">
+           <col style="width:10%">
+         </colgroup>
+         <thead>
+           <tr>
+             <th>번호</th>
+             <th>명칭</th>
+             <th>작업표준 파일</th>
+             <th>위험성평가 파일</th>
+             <th>자동 관리번호</th>
+             <th>삭제</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${docs.map((docItem, idx) => `
+             <tr>
+               <td>${idx + 1}</td>
+               <td>
+                 <input class="compact-input" data-obj-doc-field="name" data-doc-id="${docItem.id}" value="${escapeHtmlAttr(docItem.name || "")}" />
+               </td>
+               <td>
+                 <div style="display:grid; gap:4px;">
+                   <input type="file" data-obj-doc-file="standard" data-doc-id="${docItem.id}" />
+                   <div class="file-line">${escapeHtml(docItem.standardFileName || "파일 없음")}</div>
+                 </div>
+               </td>
+               <td>
+                 <div style="display:grid; gap:4px;">
+                   <input type="file" data-obj-doc-file="risk" data-doc-id="${docItem.id}" />
+                   <div class="file-line">${escapeHtml(docItem.riskFileName || "파일 없음")}</div>
+                 </div>
+               </td>
+               <td style="text-align:left;">
+                 <div style="display:grid; gap:4px;">
+                   <div><b>작업표준:</b> ${escapeHtml(docItem.standardCode || "-")}</div>
+                   <div><b>위험성평가:</b> ${escapeHtml(docItem.riskCode || "-")}</div>
+                 </div>
+               </td>
+               <td>
+                 <button type="button" class="danger compact-input" data-obj-doc-delete="${docItem.id}">삭제</button>
+               </td>
+             </tr>
+           `).join("")}
+         </tbody>
+       </table>
+     `;
+
+     objectDocTableWrap.querySelectorAll("[data-obj-doc-field]").forEach((input) => {
+       input.addEventListener("input", (e) => {
+         const field = e.target.dataset.objDocField;
+         const docId = e.target.dataset.docId;
+         const target = docs.find(v => v.id === docId);
+         if (target) target[field] = e.target.value;
+       });
+     });
+
+     objectDocTableWrap.querySelectorAll("[data-obj-doc-delete]").forEach((btn) => {
+       btn.addEventListener("click", () => {
+         const docId = btn.dataset.objDocDelete;
+         obj.meta.documents = obj.meta.documents.filter(v => v.id !== docId);
+         renderObjectDocumentsTable();
+       });
+     });
+
+     objectDocTableWrap.querySelectorAll("[data-obj-doc-file]").forEach((input) => {
+       input.addEventListener("change", async (e) => {
+         const docId = e.target.dataset.docId;
+         const kind = e.target.dataset.objDocFile;
+         const file = e.target.files?.[0];
+         if (!file) return;
+
+         const dataUrl = await readFileAsDataURL(file);
+         const target = docs.find(v => v.id === docId);
+         if (!target) return;
+
+         const baseName = getFileBaseName(file.name);
+
+         if (kind === "standard") {
+           target.standardFileName = file.name;
+           target.standardFileData = dataUrl;
+           target.standardCode = baseName;
+         } else {
+           target.riskFileName = file.name;
+           target.riskFileData = dataUrl;
+           target.riskCode = baseName;
+         }
+
+         renderObjectDocumentsTable();
+       });
+     });
+   }
+
+   function renderObjectForm() {
+     const obj = getSelectedObject();
+     if (!obj) {
+       objectEmpty.style.display = "block";
+       objectFormWrap.style.display = "none";
+       objectDocTableWrap.innerHTML = `<div class="empty">객체를 선택하세요.</div>`;
+       return;
+     }
+
+     objectEmpty.style.display = "none";
+     objectFormWrap.style.display = "block";
+
+     objId.value = obj.id;
+     objType.value = obj.type;
+     objLabel.value = obj.label || "";
+     objX.value = Math.round(obj.x);
+     objY.value = Math.round(obj.y);
+     objW.value = Math.round(obj.w);
+     objH.value = Math.round(obj.h);
+     objRotation.value = Math.round(obj.rotation || 0);
+     objFontSize.value = Math.round(obj.fontSize || (obj.type === "text" ? 18 : 20));
+     objFill.value = normalizeColor(obj.fill || "#ffffff");
+     objStroke.value = normalizeColor(obj.stroke || "#64748b");
+
+     metaEquipmentName.value = obj.meta?.equipmentName || "";
+     metaManagerMain.value = obj.meta?.managerMain || "";
+     metaManagerSub.value = obj.meta?.managerSub || "";
+     metaTeam.value = obj.meta?.team || "";
+     metaSpecDimension.value = obj.meta?.spec?.dimension || "";
+     metaSpecPressure.value = obj.meta?.spec?.pressure || "";
+     metaSpecTemperature.value = obj.meta?.spec?.temperature || "";
+     metaSpecPower.value = obj.meta?.spec?.power || "";
+     metaSpecCapacity.value = obj.meta?.spec?.capacity || "";
+     metaSpecWeight.value = obj.meta?.spec?.weight || "";
+     metaSafetyInspection.value = obj.meta?.safetyInspection || "해당없음";
+     metaSelfSafetyCheck.value = obj.meta?.selfSafetyCheck || "해당없음";
+     metaNote.value = obj.meta?.note || "";
+
+     renderObjectDocumentsTable();
+   }
+
+   function getSvgPoint(evt) {
+     const pt = editorSvg.createSVGPoint();
+     pt.x = evt.clientX;
+     pt.y = evt.clientY;
+     const transformed = pt.matrixTransform(editorSvg.getScreenCTM().inverse());
+     return { x: transformed.x, y: transformed.y };
+   }
+
+   function addObject(type) {
+     const obj = createDefaultObject(type);
+     objects.push(obj);
+     selectedObjectId = obj.id;
+     renderAll();
+   }
+
+   function readFileAsDataURL(file) {
+     return new Promise((resolve, reject) => {
+       const reader = new FileReader();
+       reader.onload = () => resolve(reader.result);
+       reader.onerror = reject;
+       reader.readAsDataURL(file);
+     });
+   }
+
+   async function saveInteriorLayout() {
+     if (!currentLayoutId || !currentLabId) {
+       alert("먼저 레이아웃과 실험실을 선택하세요.");
+       return;
+     }
+
+     const payload = {
+       layoutId: currentLayoutId,
+       labId: currentLabId,
+       objects,
+       updatedAt: new Date().toISOString()
+     };
+
+     await setDoc(
+       doc(db, "labInteriorLayouts", getInteriorDocId(currentLayoutId, currentLabId)),
+       payload,
+       { merge: true }
+     );
+
+     alert("내부 레이아웃 저장 완료");
+   }
+
+   function applyObjectForm() {
+     const obj = getSelectedObject();
+     if (!obj) return;
+
+     obj.label = objLabel.value.trim();
+     obj.x = Number(objX.value || 0);
+     obj.y = Number(objY.value || 0);
+     obj.w = Number(objW.value || 50);
+     obj.h = Number(objH.value || 50);
+     obj.rotation = Number(objRotation.value || 0);
+     obj.fontSize = Number(objFontSize.value || (obj.type === "text" ? 18 : 20));
+     obj.fill = objFill.value;
+     obj.stroke = objStroke.value;
+
+     if (obj.type === "circle") {
+       const size = Math.max(obj.w, obj.h);
+       obj.w = size;
+       obj.h = size;
+     }
+
+     if (!obj.meta) obj.meta = {};
+     if (!Array.isArray(obj.meta.documents)) obj.meta.documents = [];
+
+     obj.meta.equipmentName = metaEquipmentName.value.trim();
+     obj.meta.managerMain = metaManagerMain.value.trim();
+     obj.meta.managerSub = metaManagerSub.value.trim();
+     obj.meta.team = metaTeam.value.trim();
+     obj.meta.spec = {
+       dimension: metaSpecDimension.value.trim(),
+       pressure: metaSpecPressure.value.trim(),
+       temperature: metaSpecTemperature.value.trim(),
+       power: metaSpecPower.value.trim(),
+       capacity: metaSpecCapacity.value.trim(),
+       weight: metaSpecWeight.value.trim()
+     };
+     obj.meta.safetyInspection = metaSafetyInspection.value;
+     obj.meta.selfSafetyCheck = metaSelfSafetyCheck.value;
+     obj.meta.note = metaNote.value.trim();
+
+     clampObjectInsideCanvas(obj);
+     renderAll();
+   }
+
+   function deleteSelectedObject() {
+     if (!selectedObjectId) return;
+     objects = objects.filter(o => o.id !== selectedObjectId);
+     selectedObjectId = null;
+     renderAll();
+   }
+
+   addObjectDocBtn.addEventListener("click", () => {
+     const obj = getSelectedObject();
+     if (!obj) {
+       alert("먼저 객체를 선택하세요.");
+       return;
+     }
+
+     if (!obj.meta) obj.meta = {};
+     if (!Array.isArray(obj.meta.documents)) obj.meta.documents = [];
+
+     obj.meta.documents.push(createDefaultDoc());
+     renderObjectDocumentsTable();
+   });
+
+   layoutSelect.addEventListener("change", () => {
+     currentLayoutId = layoutSelect.value;
+     populateLabSelect();
+   });
+
+   loadBtn.addEventListener("click", loadSelectedLab);
+   saveBtn.addEventListener("click", saveInteriorLayout);
+
+   addRectBtn.addEventListener("click", () => addObject("rect"));
+   addCircleBtn.addEventListener("click", () => addObject("circle"));
+   addTextBtn.addEventListener("click", () => addObject("text"));
+
+   deleteObjectBtn.addEventListener("click", deleteSelectedObject);
+   clearSelectionBtn.addEventListener("click", () => {
+     selectedObjectId = null;
+     renderAll();
+   });
+
+   applyObjectBtn.addEventListener("click", applyObjectForm);
+
+   editorSvg.addEventListener("pointermove", (e) => {
+     if (!dragState) return;
+     const obj = objects.find(o => o.id === dragState.id);
+     if (!obj) return;
+
+     const pt = getSvgPoint(e);
+
+     if (dragState.mode === "move") {
+       const dx = pt.x - dragState.startX;
+       const dy = pt.y - dragState.startY;
+       obj.x = dragState.objStartX + dx;
+       obj.y = dragState.objStartY + dy;
+     } else if (dragState.mode === "resize") {
+       const dx = pt.x - dragState.startX;
+       const dy = pt.y - dragState.startY;
+
+       let newX = dragState.objStartX;
+       let newY = dragState.objStartY;
+       let newW = dragState.objStartW;
+       let newH = dragState.objStartH;
+
+       if (dragState.corner === "se") {
+         newW = dragState.objStartW + dx;
+         newH = dragState.objStartH + dy;
+       } else if (dragState.corner === "sw") {
+         newX = dragState.objStartX + dx;
+         newW = dragState.objStartW - dx;
+         newH = dragState.objStartH + dy;
+       } else if (dragState.corner === "ne") {
+         newY = dragState.objStartY + dy;
+         newW = dragState.objStartW + dx;
+         newH = dragState.objStartH - dy;
+       } else if (dragState.corner === "nw") {
+         newX = dragState.objStartX + dx;
+         newY = dragState.objStartY + dy;
+         newW = dragState.objStartW - dx;
+         newH = dragState.objStartH - dy;
+       }
+
+       if (obj.type === "circle") {
+         const size = Math.max(20, Math.max(newW, newH));
+         if (dragState.corner === "se") {
+           newW = size;
+           newH = size;
+         } else if (dragState.corner === "sw") {
+           newW = size;
+           newH = size;
+           newX = dragState.objStartX + (dragState.objStartW - size);
+         } else if (dragState.corner === "ne") {
+           newW = size;
+           newH = size;
+           newY = dragState.objStartY + (dragState.objStartH - size);
+         } else if (dragState.corner === "nw") {
+           newW = size;
+           newH = size;
+           newX = dragState.objStartX + (dragState.objStartW - size);
+           newY = dragState.objStartY + (dragState.objStartH - size);
+         }
+       }
+
+       obj.x = newX;
+       obj.y = newY;
+       obj.w = Math.max(20, newW);
+       obj.h = Math.max(20, newH);
+     } else if (dragState.mode === "rotate") {
+       const angle = Math.atan2(pt.y - dragState.centerY, pt.x - dragState.centerX);
+       const delta = angle - dragState.startAngle;
+       obj.rotation = dragState.objStartRotation + (delta * 180 / Math.PI);
+     }
+
+     clampObjectInsideCanvas(obj);
+     renderAll();
+   });
+
+   window.addEventListener("pointerup", () => {
+     dragState = null;
+   });
+
+   editorSvg.addEventListener("click", (e) => {
+     if (e.target === editorSvg) {
+       selectedObjectId = null;
+       renderAll();
+     }
+   });
+
+   await loadLayouts();
+   await loadSelectedLab();
+ </script>
+</body>
+</html>
