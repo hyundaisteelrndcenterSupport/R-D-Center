@@ -685,7 +685,7 @@
      <div class="panel-header">
        <div>
          <h2>취급 화학물질 / MSDS</h2>
-         <div class="sub">행 추가/삭제 가능, 엑셀 업로드/복붙 가능</div>
+         <div class="sub">MSDS 파일명 열을 제거하고 링크만 관리합니다. 행 추가/삭제 가능, 엑셀 업로드/복붙 가능</div>
        </div>
      </div>
      <div class="editor-wrap">
@@ -695,7 +695,6 @@
              <tr>
                <th>번호</th>
                <th>제품명</th>
-               <th>MSDS 파일명</th>
                <th>MSDS 링크</th>
                <th>관리</th>
              </tr>
@@ -710,14 +709,14 @@
          <input id="chemicalsExcelInput" class="hidden-file" type="file" accept=".xlsx,.xls,.csv" />
        </div>
        <div id="chemicalsPasteBox" class="paste-box" hidden>
-         <div class="import-hint">탭 또는 쉼표로 구분된 4열: 번호 / 제품명 / MSDS파일명 / MSDS링크</div>
-         <textarea id="chemicalsPasteInput" placeholder="예시&#10;1 황산 황산_MSDS.pdf https://example.com&#10;2 아세톤 아세톤_MSDS.pdf https://example.com"></textarea>
+         <div class="import-hint">탭 또는 쉼표로 구분된 3열: 번호 / 제품명 / MSDS링크</div>
+         <textarea id="chemicalsPasteInput" placeholder="예시&#10;1 황산 https://example.com/sulfuric-acid-msds.pdf&#10;2 아세톤 https://example.com/acetone-msds.pdf"></textarea>
          <div class="paste-actions">
            <button id="applyChemicalsPasteBtn" type="button" class="primary mini-btn">화학물질 붙여넣기 반영</button>
            <button id="clearChemicalsPasteBtn" type="button" class="mini-btn">입력창 비우기</button>
          </div>
        </div>
-       <div class="import-hint">화학물질 헤더 예시: no, name, msdsName, msdsUrl 또는 번호, 제품명, MSDS파일명, MSDS링크</div>
+       <div class="import-hint">화학물질 헤더 예시: no, name, msdsUrl 또는 번호, 제품명, MSDS링크</div>
      </div>
    </section>
  </div>
@@ -1014,6 +1013,14 @@
      };
    }
 
+   function normalizeChemicalRows(rows = []) {
+     return rows.map((row, i) => ({
+       no: row.no ?? i + 1,
+       name: row.name ?? "",
+       msdsUrl: row.msdsUrl ?? row.url ?? ""
+     }));
+   }
+
    function makeDefaultLabData(layoutId, regionId) {
      return {
        id: `${layoutId}__${regionId}`,
@@ -1028,7 +1035,7 @@
        cells: [],
        ...getDefaultLabelStyle(),
        workers: [{ no:1, team:"", title:"", name:"" }],
-       chemicals: [{ no:1, name:"", msdsName:"", msdsUrl:"" }]
+       chemicals: [{ no:1, name:"", msdsUrl:"" }]
      };
    }
 
@@ -1242,7 +1249,8 @@
            id: snap.id,
            ...data,
            ...normalized,
-           cells: normalized.cells
+           cells: normalized.cells,
+           chemicals: normalizeChemicalRows(data.chemicals || [])
          };
        }
      } catch (e) {
@@ -1624,8 +1632,12 @@
 
    function renderChemicals(rows = []) {
      chemicalRowsData = rows.length
-       ? rows.map(r => ({ ...r }))
-       : [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
+       ? rows.map(r => ({
+           no: r.no ?? "",
+           name: r.name ?? "",
+           msdsUrl: r.msdsUrl ?? ""
+         }))
+       : [{ no:1, name:"", msdsUrl:"" }];
 
      chemicalsBody.innerHTML = "";
      chemicalRowsData.forEach((row, i) => {
@@ -1633,7 +1645,6 @@
        tr.innerHTML = `
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="no" value="${row.no ?? ""}"></td>
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="name" value="${row.name ?? ""}"></td>
-         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsName" value="${row.msdsName ?? ""}"></td>
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsUrl" value="${row.msdsUrl ?? ""}" placeholder="MSDS 링크 입력"></td>
          <td><div class="row-tools"><button type="button" class="mini-btn danger chemical-delete-btn" data-index="${i}">삭제</button></div></td>
        `;
@@ -1662,7 +1673,11 @@
    }
 
    function readChemicalRowsFromDOM() {
-     return collectRows("chemical", ["no", "name", "msdsName", "msdsUrl"]);
+     return collectRows("chemical", ["no", "name", "msdsUrl"]).map((row, i) => ({
+       no: row.no || i + 1,
+       name: row.name || "",
+       msdsUrl: row.msdsUrl || ""
+     }));
    }
 
    function bindWorkerDeleteButtons() {
@@ -1995,13 +2010,11 @@
      const imported = rows.map((row, i) => ({
        no: pickValue(row, ["no", "번호"]) || i + 1,
        name: pickValue(row, ["name", "제품명", "물질명"]) || "",
-       msdsName: pickValue(row, ["msdsname", "msds파일명", "msds 파일명", "파일명"]) || "",
        msdsUrl: pickValue(row, ["msdsurl", "msds링크", "msds 링크", "링크", "url"]) || ""
      }));
 
      chemicalRowsData = imported.filter(r =>
        String(r.name).trim() !== "" ||
-       String(r.msdsName).trim() !== "" ||
        String(r.msdsUrl).trim() !== ""
      );
 
@@ -2009,9 +2022,9 @@
        alert(
          "화학물질 엑셀에서 읽을 데이터가 없습니다.\n\n" +
          "첫 번째 시트 첫 줄 헤더를 아래처럼 맞춰 주세요:\n" +
-         "no | name | msdsName | msdsUrl\n또는\n번호 | 제품명 | MSDS파일명 | MSDS링크"
+         "no | name | msdsUrl\n또는\n번호 | 제품명 | MSDS링크"
        );
-       chemicalRowsData = [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
+       chemicalRowsData = [{ no:1, name:"", msdsUrl:"" }];
      }
 
      renderChemicals(chemicalRowsData);
@@ -2024,7 +2037,7 @@
      return line.split(",").map(v => v.trim());
    }
 
-   function parsePastedRows(text, expectedColumns = 4) {
+   function parsePastedRows(text, expectedColumns = 3) {
      const lines = String(text || "")
        .split(/\r?\n/)
        .map(line => line.trim())
@@ -2067,7 +2080,7 @@
    }
 
    function applyChemicalsPaste() {
-     const rows = parsePastedRows(chemicalsPasteInput.value, 4);
+     const rows = parsePastedRows(chemicalsPasteInput.value, 3);
      if (!rows.length) {
        alert("붙여넣은 화학물질 데이터가 없습니다.");
        return;
@@ -2076,11 +2089,9 @@
      chemicalRowsData = rows.map((cols, i) => ({
        no: cols[0] || i + 1,
        name: cols[1] || "",
-       msdsName: cols[2] || "",
-       msdsUrl: cols[3] || ""
+       msdsUrl: cols[2] || ""
      })).filter(r =>
        String(r.name).trim() !== "" ||
-       String(r.msdsName).trim() !== "" ||
        String(r.msdsUrl).trim() !== ""
      );
 
@@ -2171,7 +2182,6 @@
      chemicalRowsData.push({
        no: chemicalRowsData.length + 1,
        name: "",
-       msdsName: "",
        msdsUrl: ""
      });
      renderChemicals(chemicalRowsData);
