@@ -81,6 +81,11 @@
      font-family:inherit;
    }
 
+   .compact-textarea {
+     min-height:54px;
+     resize:vertical;
+   }
+
    button {
      cursor:pointer;
      font-weight:700;
@@ -258,15 +263,12 @@
      pointer-events:auto;
      cursor:pointer;
      transform:translate(-50%, -50%);
-     white-space:normal;
+     white-space:pre-line;
      word-break:keep-all;
      overflow-wrap:normal;
      line-break:auto;
      text-shadow:0 0 6px rgba(255,255,255,.95);
-     display:-webkit-box;
-     -webkit-line-clamp:2;
-     -webkit-box-orient:vertical;
-     overflow:hidden;
+     overflow:visible;
      color:#111827;
    }
 
@@ -570,6 +572,42 @@
          </div>
        </div>
 
+       <div class="section-title">실험실명 라벨 조정</div>
+
+       <div class="hint-box" style="margin-top:8px;">
+         실제 실험실명과 별도로 레이아웃에 표시할 라벨을 입력합니다.
+         표시 라벨 입력칸에서 Enter를 넣으면 원하는 위치에서 줄바꿈됩니다.
+       </div>
+
+       <div class="form-grid" style="margin-top:10px;">
+         <div class="form-row">
+           <label>표시 라벨</label>
+           <textarea id="labelText" class="compact-textarea" placeholder="예: 소둔모사&#10;실험실"></textarea>
+         </div>
+       </div>
+
+       <div class="small-grid" style="margin-top:10px;">
+         <div class="form-row">
+           <label>글자 크기(px)</label>
+           <input id="labelFontSize" type="number" min="6" max="24" value="9" />
+         </div>
+
+         <div class="form-row">
+           <label>최대 폭(px)</label>
+           <input id="labelMaxWidth" type="number" min="30" max="240" value="90" />
+         </div>
+
+         <div class="form-row">
+           <label>X 위치 보정</label>
+           <input id="labelOffsetX" type="number" step="0.1" value="0" />
+         </div>
+
+         <div class="form-row">
+           <label>Y 위치 보정</label>
+           <input id="labelOffsetY" type="number" step="0.1" value="0" />
+         </div>
+       </div>
+
        <div class="section-title">현재 셀 범위 정보</div>
        <div class="small-grid">
          <div class="form-row">
@@ -701,13 +739,13 @@
    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
    const firebaseConfig = {
-  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
-  authDomain: "lab-test-888d2.firebaseapp.com",
-  projectId: "lab-test-888d2",
-  storageBucket: "lab-test-888d2.firebasestorage.app",
-  messagingSenderId: "417323251483",
-  appId: "1:417323251483:web:2938bce7431260aff385be",
-  measurementId: "G-EK060DBSQK"
+     apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+     authDomain: "lab-test-888d2.firebaseapp.com",
+     projectId: "lab-test-888d2",
+     storageBucket: "lab-test-888d2.firebasestorage.app",
+     messagingSenderId: "417323251483",
+     appId: "1:417323251483:web:2938bce7431260aff385be",
+     measurementId: "G-EK060DBSQK"
    };
 
    const app = initializeApp(firebaseConfig);
@@ -760,6 +798,12 @@
    const formW = document.getElementById("formW");
    const formH = document.getElementById("formH");
    const formCellCount = document.getElementById("formCellCount");
+
+   const labelText = document.getElementById("labelText");
+   const labelFontSize = document.getElementById("labelFontSize");
+   const labelMaxWidth = document.getElementById("labelMaxWidth");
+   const labelOffsetX = document.getElementById("labelOffsetX");
+   const labelOffsetY = document.getElementById("labelOffsetY");
 
    const workersBody = document.getElementById("workersBody");
    const chemicalsBody = document.getElementById("chemicalsBody");
@@ -837,6 +881,22 @@
        }
      }
      return Array.from(unique);
+   }
+
+   function clampNumber(value, fallback, min, max) {
+     const n = Number(value);
+     if (!Number.isFinite(n)) return fallback;
+     return Math.min(max, Math.max(min, n));
+   }
+
+   function getDefaultLabelStyle(region = {}) {
+     return {
+       labelText: region.labelText || "",
+       labelFontSize: clampNumber(region.labelFontSize, 9, 6, 24),
+       labelMaxWidth: clampNumber(region.labelMaxWidth, 90, 30, 240),
+       labelOffsetX: clampNumber(region.labelOffsetX, 0, -60, 60),
+       labelOffsetY: clampNumber(region.labelOffsetY, 0, -26, 26)
+     };
    }
 
    function boundsFromCells(cells = []) {
@@ -937,6 +997,7 @@
        .map(parseCell)
        .sort((a, b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
      const bestLabel = getBestLabelPosition(cells);
+     const labelStyle = getDefaultLabelStyle(region);
 
      return {
        id: region?.id || "",
@@ -948,6 +1009,7 @@
        topLeftY: topLeft.y,
        labelX: bestLabel.x,
        labelY: bestLabel.y,
+       ...labelStyle,
        ...bounds
      };
    }
@@ -964,6 +1026,7 @@
        managerMain: "",
        managerSub: "",
        cells: [],
+       ...getDefaultLabelStyle(),
        workers: [{ no:1, team:"", title:"", name:"" }],
        chemicals: [{ no:1, name:"", msdsName:"", msdsUrl:"" }]
      };
@@ -1071,7 +1134,12 @@
            x: normalized.x,
            y: normalized.y,
            w: normalized.w,
-           h: normalized.h
+           h: normalized.h,
+           labelText: normalized.labelText || "",
+           labelFontSize: normalized.labelFontSize,
+           labelMaxWidth: normalized.labelMaxWidth,
+           labelOffsetX: normalized.labelOffsetX,
+           labelOffsetY: normalized.labelOffsetY
          };
        }),
        updatedAt: new Date().toISOString()
@@ -1326,12 +1394,21 @@
        labelLayer.appendChild(numberBadge);
      }
 
-     if (normalized.labName) {
+     const displayLabel = normalized.labelText || normalized.labName || "";
+
+     if (displayLabel) {
        const nameBadge = document.createElement("div");
        nameBadge.className = `region-name-badge ${normalized.type}`;
-       nameBadge.textContent = normalized.labName;
-       nameBadge.style.left = `${((normalized.labelX - normalized.x + 0.5) / normalized.w) * 100}%`;
-       nameBadge.style.top = `${((normalized.labelY - normalized.y + 0.5) / normalized.h) * 100}%`;
+       nameBadge.textContent = displayLabel;
+
+       const labelLeft = ((normalized.labelX - normalized.x + 0.5 + normalized.labelOffsetX) / normalized.w) * 100;
+       const labelTop = ((normalized.labelY - normalized.y + 0.5 + normalized.labelOffsetY) / normalized.h) * 100;
+
+       nameBadge.style.left = `${labelLeft}%`;
+       nameBadge.style.top = `${labelTop}%`;
+       nameBadge.style.fontSize = `${normalized.labelFontSize}px`;
+       nameBadge.style.maxWidth = `${normalized.labelMaxWidth}px`;
+
        if (!isEditingThisRegion) nameBadge.addEventListener("click", selectThisRegion);
        labelLayer.appendChild(nameBadge);
      }
@@ -1626,6 +1703,12 @@
      formManagerMain.value = data.managerMain || "";
      formManagerSub.value = data.managerSub || "";
 
+     labelText.value = normalized.labelText || normalized.labName || "";
+     labelFontSize.value = normalized.labelFontSize;
+     labelMaxWidth.value = normalized.labelMaxWidth;
+     labelOffsetX.value = normalized.labelOffsetX;
+     labelOffsetY.value = normalized.labelOffsetY;
+
      selection = {
        cells: new Set(normalized.cells),
        x: normalized.x,
@@ -1690,6 +1773,14 @@
 
      const bounds = boundsFromCells(cells);
 
+     const labelStyle = getDefaultLabelStyle({
+       labelText: labelText.value.trim(),
+       labelFontSize: labelFontSize.value,
+       labelMaxWidth: labelMaxWidth.value,
+       labelOffsetX: labelOffsetX.value,
+       labelOffsetY: labelOffsetY.value
+     });
+
      const payload = {
        layoutId: currentLayoutId,
        regionId,
@@ -1704,6 +1795,7 @@
        y: bounds.y,
        w: bounds.w,
        h: bounds.h,
+       ...labelStyle,
        workers: readWorkerRowsFromDOM(),
        chemicals: readChemicalRowsFromDOM(),
        updatedAt: new Date().toISOString()
@@ -1720,7 +1812,8 @@
          type: payload.type,
          number: payload.number,
          labName: payload.labName,
-         cells: payload.cells
+         cells: payload.cells,
+         ...labelStyle
        });
 
        if (idx >= 0) {
@@ -1999,6 +2092,25 @@
      renderChemicals(chemicalRowsData);
    }
 
+   function applyLabelStylePreview() {
+     if (!selectedId) return;
+
+     const idx = spaces.findIndex(s => s.id === selectedId);
+     if (idx < 0) return;
+
+     spaces[idx] = normalizeRegion({
+       ...spaces[idx],
+       labName: formLabName.value,
+       labelText: labelText.value,
+       labelFontSize: labelFontSize.value,
+       labelMaxWidth: labelMaxWidth.value,
+       labelOffsetX: labelOffsetX.value,
+       labelOffsetY: labelOffsetY.value
+     });
+
+     renderLayout(labSearch?.value || "");
+   }
+
    layoutSelector.addEventListener("change", () => {
      currentLayoutId = layoutSelector.value;
      loadCurrentLayoutIntoUI();
@@ -2109,6 +2221,10 @@
 
    labSearch?.addEventListener("input", (e) => {
      renderLayout(e.target.value);
+   });
+
+   [labelText, labelFontSize, labelMaxWidth, labelOffsetX, labelOffsetY].forEach((input) => {
+     input.addEventListener("input", applyLabelStylePreview);
    });
 
    await loadLayouts();
