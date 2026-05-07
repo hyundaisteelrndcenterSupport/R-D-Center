@@ -2237,8 +2237,19 @@
      input.addEventListener("input", applyLabelStylePreview);
    });
 
-   await loadLayouts();
-   bindGridSelection();
- </script>
+[labelText, labelFontSize, labelMaxWidth, labelOffsetX, labelOffsetY].forEach((input) => {
+  input.addEventListener("input", applyLabelStylePreview);
+});
+
+async function main() {
+  await loadLayouts();
+  bindGridSelection();
+}
+
+main().catch((err) => {
+  console.error("관리자 페이지 초기화 오류:", err);
+  alert("관리자 페이지를 불러오는 중 오류가 발생했습니다.\n\n상세: " + (err?.message || err));
+});
+</script>
 </body>
 </html>
