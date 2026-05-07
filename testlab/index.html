@@ -81,6 +81,11 @@
      font-family:inherit;
    }
 
+   .compact-textarea {
+     min-height:54px;
+     resize:vertical;
+   }
+
    button {
      cursor:pointer;
      font-weight:700;
@@ -109,12 +114,6 @@
      color:#111827;
    }
 
-   .active-mode {
-     background:#111827;
-     color:#fff;
-     border-color:#111827;
-   }
-
    .panel {
      background:var(--panel);
      border:1px solid #ddd;
@@ -131,7 +130,6 @@
      justify-content:space-between;
      align-items:center;
      gap:12px;
-     flex-wrap:wrap;
    }
 
    .panel-header h2 {
@@ -199,37 +197,32 @@
    .region-piece.utility { background:var(--utility); }
    .region-piece.storage { background:var(--storage); }
 
-   .region-piece.overlap-warning {
-     box-shadow: inset 0 0 0 2px rgba(220,38,38,.55);
-   }
-
-   .region-group.highlight .region-piece {
-     box-shadow: inset 0 0 0 2px rgba(245,158,11,.55);
-   }
-
-   .border-layer {
+   .region-outline {
      position:absolute;
      inset:0;
+     pointer-events:none;
+     z-index:6;
+   }
+
+   .region-outline svg {
      width:100%;
      height:100%;
-     z-index:9;
-     pointer-events:none;
+     overflow:visible;
+     display:block;
    }
 
-   .border-layer line {
+   .region-outline path.lab-outline {
+     fill:none;
+     stroke:rgba(0,0,0,.72);
+     stroke-width:1.2;
      vector-effect:non-scaling-stroke;
-     stroke-linecap:square;
+     stroke-linecap:butt;
+     stroke-linejoin:miter;
    }
 
-   .custom-border-edge {
-     stroke-linecap:square;
-   }
-
-   .selected-outer-edge {
-     stroke:#f59e0b;
-     stroke-width:2.4;
-     stroke-dasharray:3 2;
-     stroke-linecap:square;
+   .region-group.highlight .region-outline path {
+     stroke:var(--highlight);
+     stroke-width:2.2;
    }
 
    .label-layer {
@@ -258,7 +251,9 @@
 
    .region-name-badge {
      position:absolute;
+     max-width:90px;
      padding:0;
+     font-size:9px;
      line-height:1.15;
      text-align:center;
      font-weight:700;
@@ -273,6 +268,7 @@
      overflow-wrap:normal;
      line-break:auto;
      text-shadow:0 0 6px rgba(255,255,255,.95);
+     overflow:visible;
      color:#111827;
    }
 
@@ -363,7 +359,6 @@
      display:flex;
      gap:8px;
      flex-wrap:wrap;
-     margin-top:10px;
    }
 
    .scroll-box {
@@ -458,34 +453,6 @@
      flex-wrap:wrap;
    }
 
-   .border-tools {
-     display:flex;
-     gap:8px;
-     flex-wrap:wrap;
-     align-items:center;
-     margin-top:12px;
-     padding:10px;
-     border:1px solid #e5e7eb;
-     border-radius:12px;
-     background:#f8fafc;
-   }
-
-   .border-tools input[type="color"] {
-     width:48px;
-     min-width:48px;
-     padding:4px;
-   }
-
-   .border-tools input[type="number"] {
-     width:86px;
-     min-width:86px;
-   }
-
-   .compact-textarea {
-     min-height:54px;
-     resize:vertical;
-   }
-
    @media (max-width:900px) {
      .topbar { flex-direction:column; }
      .form-row { grid-template-columns:1fr; }
@@ -516,7 +483,7 @@
      <div class="panel-header">
        <div>
          <h2>레이아웃</h2>
-         <div class="sub">드래그는 범위 토글, 클릭은 셀 단위 토글입니다. 실험실 선택 시 외곽 변이 하이라이트됩니다.</div>
+         <div class="sub">드래그는 범위 토글, 클릭은 셀 단위 토글입니다. 기존 실험실 선택 후 면적 수정 가능합니다.</div>
        </div>
        <div id="selectedBadge" class="muted">선택된 구역 없음</div>
      </div>
@@ -539,22 +506,6 @@
 
        <div id="layoutCanvas" class="layout-canvas">
          <div id="layoutGrid" class="layout-grid"></div>
-         <svg id="borderLayer" class="border-layer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
-       </div>
-
-       <div class="border-tools">
-         <button id="borderModeBtn" type="button" class="ghost">셀 테두리 편집 OFF</button>
-
-         <label style="font-weight:700;">선 색상</label>
-         <input id="borderColor" type="color" value="#111827" />
-
-         <label style="font-weight:700;">선 두께</label>
-         <input id="borderWidth" type="number" value="2" min="1" max="10" />
-
-         <button id="autoOuterBorderBtn" type="button" class="ghost">선택 구역 외곽선 자동 추가</button>
-         <button id="clearRegionBordersBtn" type="button" class="danger">선택 구역 테두리 삭제</button>
-
-         <span id="borderModeHint" class="muted">셀 편집 모드입니다.</span>
        </div>
 
        <div class="legend">
@@ -605,7 +556,7 @@
          </div>
          <div class="form-row">
            <label>실험실명</label>
-           <textarea id="formLabName" class="compact-textarea" placeholder="예: 소둔모사&#10;실험실"></textarea>
+           <input id="formLabName" placeholder="예: 진공용해실험장" />
          </div>
          <div class="form-row">
            <label>담당팀</label>
@@ -622,22 +573,35 @@
        </div>
 
        <div class="section-title">실험실명 라벨 조정</div>
+
        <div class="hint-box" style="margin-top:8px;">
-         실험실명 입력칸에서 Enter를 넣으면 원하는 위치에서 줄바꿈됩니다. 예: 소둔모사 ↵ 실험실
+         실제 실험실명과 별도로 레이아웃에 표시할 라벨을 입력합니다.
+         표시 라벨 입력칸에서 Enter를 넣으면 원하는 위치에서 줄바꿈됩니다.
        </div>
+
+       <div class="form-grid" style="margin-top:10px;">
+         <div class="form-row">
+           <label>표시 라벨</label>
+           <textarea id="labelText" class="compact-textarea" placeholder="예: 소둔모사&#10;실험실"></textarea>
+         </div>
+       </div>
+
        <div class="small-grid" style="margin-top:10px;">
          <div class="form-row">
            <label>글자 크기(px)</label>
            <input id="labelFontSize" type="number" min="6" max="24" value="9" />
          </div>
+
          <div class="form-row">
            <label>최대 폭(px)</label>
            <input id="labelMaxWidth" type="number" min="30" max="240" value="90" />
          </div>
+
          <div class="form-row">
            <label>X 위치 보정</label>
            <input id="labelOffsetX" type="number" step="0.1" value="0" />
          </div>
+
          <div class="form-row">
            <label>Y 위치 보정</label>
            <input id="labelOffsetY" type="number" step="0.1" value="0" />
@@ -721,7 +685,7 @@
      <div class="panel-header">
        <div>
          <h2>취급 화학물질 / MSDS</h2>
-         <div class="sub">MSDS 파일명 열을 제거하고 링크만 관리합니다. 엑셀 업로드/복붙 가능</div>
+         <div class="sub">행 추가/삭제 가능, 엑셀 업로드/복붙 가능</div>
        </div>
      </div>
      <div class="editor-wrap">
@@ -731,6 +695,7 @@
              <tr>
                <th>번호</th>
                <th>제품명</th>
+               <th>MSDS 파일명</th>
                <th>MSDS 링크</th>
                <th>관리</th>
              </tr>
@@ -745,14 +710,14 @@
          <input id="chemicalsExcelInput" class="hidden-file" type="file" accept=".xlsx,.xls,.csv" />
        </div>
        <div id="chemicalsPasteBox" class="paste-box" hidden>
-         <div class="import-hint">탭 또는 쉼표로 구분된 3열: 번호 / 제품명 / MSDS링크</div>
-         <textarea id="chemicalsPasteInput" placeholder="예시&#10;1 황산 https://example.com/sulfuric-acid-msds.pdf&#10;2 아세톤 https://example.com/acetone-msds.pdf"></textarea>
+         <div class="import-hint">탭 또는 쉼표로 구분된 4열: 번호 / 제품명 / MSDS파일명 / MSDS링크</div>
+         <textarea id="chemicalsPasteInput" placeholder="예시&#10;1 황산 황산_MSDS.pdf https://example.com&#10;2 아세톤 아세톤_MSDS.pdf https://example.com"></textarea>
          <div class="paste-actions">
            <button id="applyChemicalsPasteBtn" type="button" class="primary mini-btn">화학물질 붙여넣기 반영</button>
            <button id="clearChemicalsPasteBtn" type="button" class="mini-btn">입력창 비우기</button>
          </div>
        </div>
-       <div class="import-hint">화학물질 헤더 예시: no, name, msdsUrl 또는 번호, 제품명, MSDS링크</div>
+       <div class="import-hint">화학물질 헤더 예시: no, name, msdsName, msdsUrl 또는 번호, 제품명, MSDS파일명, MSDS링크</div>
      </div>
    </section>
  </div>
@@ -801,8 +766,6 @@
    let movedDuringDrag = false;
    let dragPreviewCells = new Set();
 
-   let borderMode = false;
-
    let workerRowsData = [];
    let chemicalRowsData = [];
 
@@ -815,18 +778,10 @@
    const layoutDescriptionInput = document.getElementById("layoutDescription");
    const layoutCanvas = document.getElementById("layoutCanvas");
    const layoutGrid = document.getElementById("layoutGrid");
-   const borderLayer = document.getElementById("borderLayer");
    const selectedBadge = document.getElementById("selectedBadge");
    const labSearch = document.getElementById("labSearch");
    const newRegionBtn = document.getElementById("newRegionBtn");
    const clearSelectionBtn = document.getElementById("clearSelectionBtn");
-
-   const borderModeBtn = document.getElementById("borderModeBtn");
-   const borderColor = document.getElementById("borderColor");
-   const borderWidth = document.getElementById("borderWidth");
-   const autoOuterBorderBtn = document.getElementById("autoOuterBorderBtn");
-   const clearRegionBordersBtn = document.getElementById("clearRegionBordersBtn");
-   const borderModeHint = document.getElementById("borderModeHint");
 
    const editorEmpty = document.getElementById("editorEmpty");
    const editorWrap = document.getElementById("editorWrap");
@@ -844,6 +799,7 @@
    const formH = document.getElementById("formH");
    const formCellCount = document.getElementById("formCellCount");
 
+   const labelText = document.getElementById("labelText");
    const labelFontSize = document.getElementById("labelFontSize");
    const labelMaxWidth = document.getElementById("labelMaxWidth");
    const labelOffsetX = document.getElementById("labelOffsetX");
@@ -892,6 +848,16 @@
      }
    };
 
+   function rectToCells(x, y, w, h) {
+     const cells = [];
+     for (let yy = y; yy < y + h; yy++) {
+       for (let xx = x; xx < x + w; xx++) {
+         cells.push(`${xx}-${yy}`);
+       }
+     }
+     return cells;
+   }
+
    function cellKey(x, y) {
      return `${x}-${y}`;
    }
@@ -899,16 +865,6 @@
    function parseCell(key) {
      const [x, y] = String(key).split("-").map(Number);
      return { x, y };
-   }
-
-   function rectToCells(x, y, w, h) {
-     const cells = [];
-     for (let yy = y; yy < y + h; yy++) {
-       for (let xx = x; xx < x + w; xx++) {
-         cells.push(cellKey(xx, yy));
-       }
-     }
-     return cells;
    }
 
    function sanitizeCells(cells = []) {
@@ -925,6 +881,22 @@
        }
      }
      return Array.from(unique);
+   }
+
+   function clampNumber(value, fallback, min, max) {
+     const n = Number(value);
+     if (!Number.isFinite(n)) return fallback;
+     return Math.min(max, Math.max(min, n));
+   }
+
+   function getDefaultLabelStyle(region = {}) {
+     return {
+       labelText: region.labelText || "",
+       labelFontSize: clampNumber(region.labelFontSize, 9, 6, 24),
+       labelMaxWidth: clampNumber(region.labelMaxWidth, 90, 30, 240),
+       labelOffsetX: clampNumber(region.labelOffsetX, 0, -60, 60),
+       labelOffsetY: clampNumber(region.labelOffsetY, 0, -26, 26)
+     };
    }
 
    function boundsFromCells(cells = []) {
@@ -944,23 +916,8 @@
      };
    }
 
-   function clampNumber(value, fallback, min, max) {
-     const n = Number(value);
-     if (!Number.isFinite(n)) return fallback;
-     return Math.min(max, Math.max(min, n));
-   }
-
-   function getDefaultLabelStyle(region = {}) {
-     return {
-       labelFontSize: clampNumber(region.labelFontSize, 9, 6, 24),
-       labelMaxWidth: clampNumber(region.labelMaxWidth, 90, 30, 240),
-       labelOffsetX: clampNumber(region.labelOffsetX, 0, -60, 60),
-       labelOffsetY: clampNumber(region.labelOffsetY, 0, -26, 26)
-     };
-   }
-
    function getBestLabelPosition(cells) {
-     if (!cells.length) return { x:1, y:1 };
+     if (!cells.length) return { x: 1, y: 1 };
 
      const coords = cells.map(parseCell);
      const rows = new Map();
@@ -973,13 +930,13 @@
      const segments = [];
 
      for (const [y, xs] of rows.entries()) {
-       const sorted = [...xs].sort((a,b) => a-b);
+       const sorted = [...xs].sort((a, b) => a - b);
        if (!sorted.length) continue;
 
        let segStart = sorted[0];
        let prev = sorted[0];
 
-       for (let i=1; i<=sorted.length; i++) {
+       for (let i = 1; i <= sorted.length; i++) {
          const cur = sorted[i];
 
          if (cur === prev + 1) {
@@ -1005,9 +962,11 @@
      const longestSegments = segments.filter(s => s.length === maxLength);
 
      const ys = coords.map(c => c.y);
-     const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+     const minY = Math.min(...ys);
+     const maxY = Math.max(...ys);
+     const centerY = (minY + maxY) / 2;
 
-     longestSegments.sort((a,b) => {
+     longestSegments.sort((a, b) => {
        const da = Math.abs(a.y - centerY);
        const db = Math.abs(b.y - centerY);
        if (da !== db) return da - db;
@@ -1020,14 +979,6 @@
        x: (best.startX + best.endX) / 2,
        y: best.y
      };
-   }
-
-   function normalizeBorderEdges(edges = []) {
-     return Array.from(new Set(
-       edges
-         .map(v => String(v || "").trim())
-         .filter(v => /^\d+-\d+:(top|right|bottom|left)$/.test(v))
-     ));
    }
 
    function normalizeRegion(region) {
@@ -1044,12 +995,12 @@
      const bounds = boundsFromCells(cells);
      const topLeft = [...cells]
        .map(parseCell)
-       .sort((a,b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
+       .sort((a, b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
      const bestLabel = getBestLabelPosition(cells);
      const labelStyle = getDefaultLabelStyle(region);
 
      return {
-       id: region?.id || region?.regionId || "",
+       id: region?.id || "",
        type: region?.type || "lab",
        number: region?.number || "",
        labName: region?.labName || "",
@@ -1059,19 +1010,8 @@
        labelX: bestLabel.x,
        labelY: bestLabel.y,
        ...labelStyle,
-       borderEdges: normalizeBorderEdges(region?.borderEdges || []),
-       borderColor: region?.borderColor || "#111827",
-       borderWidth: clampNumber(region?.borderWidth, 2, 1, 10),
        ...bounds
      };
-   }
-
-   function normalizeChemicalRows(rows = []) {
-     return rows.map((row, i) => ({
-       no: row.no ?? i + 1,
-       name: row.name ?? "",
-       msdsUrl: row.msdsUrl ?? row.url ?? ""
-     }));
    }
 
    function makeDefaultLabData(layoutId, regionId) {
@@ -1087,11 +1027,8 @@
        managerSub: "",
        cells: [],
        ...getDefaultLabelStyle(),
-       borderEdges: [],
-       borderColor: "#111827",
-       borderWidth: 2,
        workers: [{ no:1, team:"", title:"", name:"" }],
-       chemicals: [{ no:1, name:"", msdsUrl:"" }]
+       chemicals: [{ no:1, name:"", msdsName:"", msdsUrl:"" }]
      };
    }
 
@@ -1157,7 +1094,7 @@
      layoutIdInput.value = currentLayoutId;
      layoutNameInput.value = layout.name || "";
      layoutDescriptionInput.value = layout.description || "";
-     spaces = Array.isArray(layout.regions) ? layout.regions.map(normalizeRegion) : [];
+     spaces = Array.isArray(layout.regions) ? [...layout.regions] : [];
 
      selectedId = null;
      currentData = null;
@@ -1166,41 +1103,6 @@
 
      renderLayout(labSearch?.value || "");
      resetEditorView();
-   }
-
-   function removeCellsFromOtherRegions(targetRegionId, targetCells) {
-     const targetSet = new Set(targetCells);
-     let removedCount = 0;
-
-     spaces = spaces
-       .map((space) => {
-         if (space.id === targetRegionId) return space;
-
-         const normalized = normalizeRegion(space);
-         const remainingCells = normalized.cells.filter(key => {
-           const shouldKeep = !targetSet.has(key);
-           if (!shouldKeep) removedCount += 1;
-           return shouldKeep;
-         });
-
-         if (!remainingCells.length) return null;
-
-         const remainingSet = new Set(remainingCells);
-         const remainingBorders = normalizeBorderEdges(normalized.borderEdges || [])
-           .filter(edgeKey => {
-             const parsed = parseEdgeKey(edgeKey);
-             return parsed && remainingSet.has(parsed.cell);
-           });
-
-         return normalizeRegion({
-           ...normalized,
-           cells: remainingCells,
-           borderEdges: remainingBorders
-         });
-       })
-       .filter(Boolean);
-
-     return removedCount;
    }
 
    async function saveCurrentLayout() {
@@ -1233,13 +1135,11 @@
            y: normalized.y,
            w: normalized.w,
            h: normalized.h,
+           labelText: normalized.labelText || "",
            labelFontSize: normalized.labelFontSize,
            labelMaxWidth: normalized.labelMaxWidth,
            labelOffsetX: normalized.labelOffsetX,
-           labelOffsetY: normalized.labelOffsetY,
-           borderEdges: normalized.borderEdges,
-           borderColor: normalized.borderColor,
-           borderWidth: normalized.borderWidth
+           labelOffsetY: normalized.labelOffsetY
          };
        }),
        updatedAt: new Date().toISOString()
@@ -1342,8 +1242,7 @@
            id: snap.id,
            ...data,
            ...normalized,
-           cells: normalized.cells,
-           chemicals: normalizeChemicalRows(data.chemicals || [])
+           cells: normalized.cells
          };
        }
      } catch (e) {
@@ -1382,280 +1281,40 @@
      }
    }
 
-   function getOverlapCellMap() {
-     const map = new Map();
-
-     spaces.forEach((space) => {
-       const normalized = normalizeRegion(space);
-       normalized.cells.forEach((cell) => {
-         if (!map.has(cell)) map.set(cell, []);
-         map.get(cell).push(normalized.id);
-       });
-     });
-
-     return map;
-   }
-
-   function makeEdgeKey(cell, side) {
-     return `${cell}:${side}`;
-   }
-
-   function parseEdgeKey(edgeKey) {
-     const [cell, side] = String(edgeKey || "").split(":");
-     if (!cell || !side) return null;
-     const { x, y } = parseCell(cell);
-     if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
-     if (!["top", "right", "bottom", "left"].includes(side)) return null;
-     return { cell, x, y, side };
-   }
-
-   function edgeToLine(edgeKey) {
-     const parsed = parseEdgeKey(edgeKey);
-     if (!parsed) return null;
-
-     const x1Cell = parsed.x - 1;
-     const y1Cell = parsed.y - 1;
-     let x1 = x1Cell;
-     let y1 = y1Cell;
-     let x2 = x1Cell + 1;
-     let y2 = y1Cell;
-
-     if (parsed.side === "right") {
-       x1 = x1Cell + 1;
-       y1 = y1Cell;
-       x2 = x1Cell + 1;
-       y2 = y1Cell + 1;
-     } else if (parsed.side === "bottom") {
-       x1 = x1Cell;
-       y1 = y1Cell + 1;
-       x2 = x1Cell + 1;
-       y2 = y1Cell + 1;
-     } else if (parsed.side === "left") {
-       x1 = x1Cell;
-       y1 = y1Cell;
-       x2 = x1Cell;
-       y2 = y1Cell + 1;
-     }
-
-     return {
-       x1: (x1 / GRID_COLS) * 100,
-       y1: (y1 / GRID_ROWS) * 100,
-       x2: (x2 / GRID_COLS) * 100,
-       y2: (y2 / GRID_ROWS) * 100
-     };
-   }
-
-   function getOuterEdges(cells = []) {
+   function buildOutlinePath(cells, bounds) {
      const cellSet = new Set(cells);
-     const edges = [];
      const dirs = [
-       { side:"top", dx:0, dy:-1 },
-       { side:"right", dx:1, dy:0 },
-       { side:"bottom", dx:0, dy:1 },
-       { side:"left", dx:-1, dy:0 }
+       { dx: 0, dy: -1, side: "top" },
+       { dx: 1, dy: 0, side: "right" },
+       { dx: 0, dy: 1, side: "bottom" },
+       { dx: -1, dy: 0, side: "left" }
      ];
 
-     cells.forEach((cell) => {
-       const { x, y } = parseCell(cell);
-       dirs.forEach((dir) => {
-         const neighbor = cellKey(x + dir.dx, y + dir.dy);
-         if (!cellSet.has(neighbor)) {
-           edges.push(makeEdgeKey(cell, dir.side));
+     const segments = [];
+
+     for (const key of cells) {
+       const { x, y } = parseCell(key);
+       for (const dir of dirs) {
+         const nx = x + dir.dx;
+         const ny = y + dir.dy;
+         if (!cellSet.has(cellKey(nx, ny))) {
+           const lx = x - bounds.x;
+           const ly = y - bounds.y;
+
+           if (dir.side === "top") {
+             segments.push(`M ${lx} ${ly} L ${lx + 1} ${ly}`);
+           } else if (dir.side === "right") {
+             segments.push(`M ${lx + 1} ${ly} L ${lx + 1} ${ly + 1}`);
+           } else if (dir.side === "bottom") {
+             segments.push(`M ${lx} ${ly + 1} L ${lx + 1} ${ly + 1}`);
+           } else if (dir.side === "left") {
+             segments.push(`M ${lx} ${ly} L ${lx} ${ly + 1}`);
+           }
          }
-       });
-     });
-
-     return edges;
-   }
-
-   function drawEdge(edgeKey, options = {}) {
-     const line = edgeToLine(edgeKey);
-     if (!line) return;
-
-     const svgNS = "http://www.w3.org/2000/svg";
-     const el = document.createElementNS(svgNS, "line");
-     el.setAttribute("x1", line.x1);
-     el.setAttribute("y1", line.y1);
-     el.setAttribute("x2", line.x2);
-     el.setAttribute("y2", line.y2);
-     el.setAttribute("stroke", options.color || "#111827");
-     el.setAttribute("stroke-width", options.width || 2);
-     el.setAttribute("class", options.className || "custom-border-edge");
-     borderLayer.appendChild(el);
-   }
-
-   function renderBorders() {
-     while (borderLayer.firstChild) borderLayer.firstChild.remove();
-
-     const selectedRegion = selectedId ? spaces.find(s => s.id === selectedId) : null;
-
-     if (selectedRegion) {
-       const normalized = normalizeRegion(selectedRegion);
-
-       if (normalized.type === "lab") {
-         getOuterEdges(normalized.cells).forEach((edgeKey) => {
-           drawEdge(edgeKey, {
-             color: "#f59e0b",
-             width: 2.4,
-             className: "selected-outer-edge"
-           });
-         });
        }
-
-       normalized.borderEdges.forEach((edgeKey) => {
-         drawEdge(edgeKey, {
-           color: normalized.borderColor || borderColor.value || "#111827",
-           width: normalized.borderWidth || clampNumber(borderWidth.value, 2, 1, 10),
-           className: "custom-border-edge"
-         });
-       });
-
-       return;
      }
 
-     const rendered = new Set();
-
-     spaces.map(normalizeRegion).forEach((region) => {
-       region.borderEdges.forEach((edgeKey) => {
-         if (rendered.has(edgeKey)) return;
-         rendered.add(edgeKey);
-
-         drawEdge(edgeKey, {
-           color: region.borderColor || "#111827",
-           width: region.borderWidth || 2,
-           className: "custom-border-edge"
-         });
-       });
-     });
-   }
-
-   function getCanvasPercentPoint(evt) {
-     const rect = layoutCanvas.getBoundingClientRect();
-     const x = ((evt.clientX - rect.left) / rect.width) * 100;
-     const y = ((evt.clientY - rect.top) / rect.height) * 100;
-
-     return {
-       x: Math.min(100, Math.max(0, x)),
-       y: Math.min(100, Math.max(0, y))
-     };
-   }
-
-   function setBorderMode(nextValue) {
-     borderMode = Boolean(nextValue);
-     borderModeBtn.textContent = borderMode ? "셀 테두리 편집 ON" : "셀 테두리 편집 OFF";
-     borderModeBtn.className = borderMode ? "active-mode" : "ghost";
-     borderModeHint.textContent = borderMode
-       ? "테두리 편집 모드입니다. 선택한 구역 안에서 원하는 셀의 변 가까이를 클릭하면 해당 변이 토글됩니다."
-       : "셀 편집 모드입니다.";
-   }
-
-   function getClosestCellEdge(evt) {
-     const pt = getCanvasPercentPoint(evt);
-     const rawX = (pt.x / 100) * GRID_COLS;
-     const rawY = (pt.y / 100) * GRID_ROWS;
-
-     const x = Math.min(GRID_COLS, Math.max(1, Math.floor(rawX) + 1));
-     const y = Math.min(GRID_ROWS, Math.max(1, Math.floor(rawY) + 1));
-     const fx = rawX - Math.floor(rawX);
-     const fy = rawY - Math.floor(rawY);
-
-     const distances = [
-       { side:"top", value:fy },
-       { side:"right", value:1 - fx },
-       { side:"bottom", value:1 - fy },
-       { side:"left", value:fx }
-     ].sort((a,b) => a.value - b.value);
-
-     return {
-       cell: cellKey(x, y),
-       side: distances[0].side
-     };
-   }
-
-   function toggleSelectedRegionBorderEdge(edgeKey) {
-     if (!selectedId) {
-       alert("먼저 테두리를 편집할 구역을 선택하세요.");
-       return;
-     }
-
-     const idx = spaces.findIndex(s => s.id === selectedId);
-     if (idx < 0) return;
-
-     const normalized = normalizeRegion(spaces[idx]);
-     const parsed = parseEdgeKey(edgeKey);
-     if (!parsed) return;
-
-     if (!new Set(normalized.cells).has(parsed.cell)) {
-       alert("선택한 구역 내부 셀의 변만 편집할 수 있습니다.");
-       return;
-     }
-
-     const set = new Set(normalized.borderEdges || []);
-
-     if (set.has(edgeKey)) set.delete(edgeKey);
-     else set.add(edgeKey);
-
-     spaces[idx] = normalizeRegion({
-       ...normalized,
-       borderEdges: Array.from(set),
-       borderColor: borderColor.value || "#111827",
-       borderWidth: clampNumber(borderWidth.value, 2, 1, 10)
-     });
-
-     renderLayout(labSearch?.value || "");
-   }
-
-   function applyOuterBorderToSelectedRegion() {
-     if (!selectedId) {
-       alert("먼저 구역을 선택하세요.");
-       return;
-     }
-
-     const idx = spaces.findIndex(s => s.id === selectedId);
-     if (idx < 0) return;
-
-     const normalized = normalizeRegion(spaces[idx]);
-     const edges = getOuterEdges(normalized.cells);
-
-     spaces[idx] = normalizeRegion({
-       ...normalized,
-       borderEdges: edges,
-       borderColor: borderColor.value || "#111827",
-       borderWidth: clampNumber(borderWidth.value, 2, 1, 10)
-     });
-
-     renderLayout(labSearch?.value || "");
-   }
-
-   function clearSelectedRegionBorders() {
-     if (!selectedId) {
-       alert("먼저 구역을 선택하세요.");
-       return;
-     }
-
-     const idx = spaces.findIndex(s => s.id === selectedId);
-     if (idx < 0) return;
-
-     const normalized = normalizeRegion(spaces[idx]);
-
-     spaces[idx] = normalizeRegion({
-       ...normalized,
-       borderEdges: []
-     });
-
-     renderLayout(labSearch?.value || "");
-   }
-
-   function bindBorderEditing() {
-     layoutCanvas.addEventListener("click", (e) => {
-       if (!borderMode) return;
-
-       e.preventDefault();
-       e.stopPropagation();
-
-       const edge = getClosestCellEdge(e);
-       toggleSelectedRegionBorderEdge(makeEdgeKey(edge.cell, edge.side));
-     }, true);
+     return segments.join(" ");
    }
 
    function renderRegionGroup(space, filterText = "") {
@@ -1667,12 +1326,9 @@
 
      const matches = !filterText || displayName.toLowerCase().includes(filterText);
      const isEditingThisRegion = selectedId === normalized.id;
-     const shouldHighlightRegion = isEditingThisRegion && normalized.type === "lab";
-     const overlapMap = getOverlapCellMap();
 
      const group = document.createElement("div");
-     group.className = `region-group${shouldHighlightRegion ? " highlight" : ""}${normalized.type === "lab" ? " layer-lab" : ""}`;
-
+     group.className = `region-group${isEditingThisRegion ? " highlight" : ""}${normalized.type === "lab" ? " layer-lab" : ""}`;
      if (filterText && !matches) group.style.opacity = "0.3";
 
      group.style.left = `${((normalized.x - 1) / GRID_COLS) * 100}%`;
@@ -1682,7 +1338,6 @@
 
      const selectThisRegion = async (e) => {
        e.stopPropagation();
-       if (borderMode) return;
        await selectRegion(normalized.id, true);
      };
 
@@ -1692,14 +1347,13 @@
        const localY = y - normalized.y;
 
        const piece = document.createElement("div");
-       const overlapWarning = (overlapMap.get(key) || []).length > 1;
-       piece.className = `region-piece ${normalized.type}${overlapWarning ? " overlap-warning" : ""}`;
+       piece.className = `region-piece ${normalized.type}`;
        piece.style.left = `${(localX / normalized.w) * 100}%`;
        piece.style.top = `${(localY / normalized.h) * 100}%`;
        piece.style.width = `${(1 / normalized.w) * 100}%`;
        piece.style.height = `${(1 / normalized.h) * 100}%`;
 
-       if (isEditingThisRegion || borderMode) {
+       if (isEditingThisRegion) {
          piece.style.pointerEvents = "none";
        } else {
          piece.style.pointerEvents = "auto";
@@ -1708,6 +1362,24 @@
 
        group.appendChild(piece);
      });
+
+     if (normalized.type === "lab") {
+       const outline = document.createElement("div");
+       outline.className = "region-outline";
+
+       const svgNS = "http://www.w3.org/2000/svg";
+       const svg = document.createElementNS(svgNS, "svg");
+       svg.setAttribute("viewBox", `0 0 ${normalized.w} ${normalized.h}`);
+       svg.setAttribute("preserveAspectRatio", "none");
+
+       const path = document.createElementNS(svgNS, "path");
+       path.setAttribute("class", "lab-outline");
+       path.setAttribute("d", buildOutlinePath(normalized.cells, normalized));
+
+       svg.appendChild(path);
+       outline.appendChild(svg);
+       group.appendChild(outline);
+     }
 
      const labelLayer = document.createElement("div");
      labelLayer.className = "label-layer";
@@ -1718,14 +1390,16 @@
        numberBadge.textContent = normalized.number;
        numberBadge.style.left = `${((normalized.topLeftX - normalized.x) / normalized.w) * 100}%`;
        numberBadge.style.top = `${((normalized.topLeftY - normalized.y) / normalized.h) * 100}%`;
-       if (!isEditingThisRegion && !borderMode) numberBadge.addEventListener("click", selectThisRegion);
+       if (!isEditingThisRegion) numberBadge.addEventListener("click", selectThisRegion);
        labelLayer.appendChild(numberBadge);
      }
 
-     if (normalized.labName) {
+     const displayLabel = normalized.labelText || normalized.labName || "";
+
+     if (displayLabel) {
        const nameBadge = document.createElement("div");
        nameBadge.className = `region-name-badge ${normalized.type}`;
-       nameBadge.textContent = normalized.labName;
+       nameBadge.textContent = displayLabel;
 
        const labelLeft = ((normalized.labelX - normalized.x + 0.5 + normalized.labelOffsetX) / normalized.w) * 100;
        const labelTop = ((normalized.labelY - normalized.y + 0.5 + normalized.labelOffsetY) / normalized.h) * 100;
@@ -1735,7 +1409,7 @@
        nameBadge.style.fontSize = `${normalized.labelFontSize}px`;
        nameBadge.style.maxWidth = `${normalized.labelMaxWidth}px`;
 
-       if (!isEditingThisRegion && !borderMode) nameBadge.addEventListener("click", selectThisRegion);
+       if (!isEditingThisRegion) nameBadge.addEventListener("click", selectThisRegion);
        labelLayer.appendChild(nameBadge);
      }
 
@@ -1747,11 +1421,10 @@
      layoutCanvas.querySelectorAll(".region-group").forEach(el => el.remove());
      const normalizedFilter = filterText.trim().toLowerCase();
 
-     const sortedSpaces = [...spaces].map(normalizeRegion).sort((a, b) => {
-       const order = { office: 1, corridor: 2, storage: 3, utility: 4, lab: 5 };
-       const typeDiff = (order[a.type] || 9) - (order[b.type] || 9);
-       if (typeDiff !== 0) return typeDiff;
-       return (a.y - b.y) || (a.x - b.x) || String(a.id).localeCompare(String(b.id));
+     const sortedSpaces = [...spaces].sort((a, b) => {
+       const aIsLab = a.type === "lab" ? 1 : 0;
+       const bIsLab = b.type === "lab" ? 1 : 0;
+       return aIsLab - bIsLab;
      });
 
      sortedSpaces.forEach((space) => {
@@ -1759,7 +1432,6 @@
      });
 
      renderGrid();
-     renderBorders();
    }
 
    function updateSelectionBoundsFromCells() {
@@ -1802,7 +1474,6 @@
          cells.add(cellKey(x, y));
        }
      }
-
      return cells;
    }
 
@@ -1849,8 +1520,6 @@
 
    function bindGridSelection() {
      layoutGrid.addEventListener("pointerdown", (e) => {
-       if (borderMode) return;
-
        const cell = e.target.closest(".grid-cell");
        if (!cell) return;
 
@@ -1865,9 +1534,7 @@
      });
 
      layoutGrid.addEventListener("pointermove", (e) => {
-       if (borderMode) return;
        if (!isDragging || !dragStart) return;
-
        const cell = e.target.closest(".grid-cell");
        if (!cell) return;
 
@@ -1882,8 +1549,6 @@
      });
 
      window.addEventListener("pointerup", (e) => {
-       if (borderMode) return;
-
        if (!isDragging || !dragStart) {
          isDragging = false;
          dragStart = null;
@@ -1893,7 +1558,6 @@
 
        let endX = dragStart.x;
        let endY = dragStart.y;
-
        const cell = e.target?.closest?.(".grid-cell");
        if (cell) {
          endX = Number(cell.dataset.x);
@@ -1944,7 +1608,6 @@
        : [{ no:1, team:"", title:"", name:"" }];
 
      workersBody.innerHTML = "";
-
      workerRowsData.forEach((row, i) => {
        const tr = document.createElement("tr");
        tr.innerHTML = `
@@ -1956,34 +1619,31 @@
        `;
        workersBody.appendChild(tr);
      });
-
      bindWorkerDeleteButtons();
    }
 
    function renderChemicals(rows = []) {
      chemicalRowsData = rows.length
-       ? normalizeChemicalRows(rows)
-       : [{ no:1, name:"", msdsUrl:"" }];
+       ? rows.map(r => ({ ...r }))
+       : [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
 
      chemicalsBody.innerHTML = "";
-
      chemicalRowsData.forEach((row, i) => {
        const tr = document.createElement("tr");
        tr.innerHTML = `
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="no" value="${row.no ?? ""}"></td>
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="name" value="${row.name ?? ""}"></td>
+         <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsName" value="${row.msdsName ?? ""}"></td>
          <td><input class="table-input" data-type="chemical" data-index="${i}" data-field="msdsUrl" value="${row.msdsUrl ?? ""}" placeholder="MSDS 링크 입력"></td>
          <td><div class="row-tools"><button type="button" class="mini-btn danger chemical-delete-btn" data-index="${i}">삭제</button></div></td>
        `;
        chemicalsBody.appendChild(tr);
      });
-
      bindChemicalDeleteButtons();
    }
 
    function collectRows(type, fields) {
      const grouped = {};
-
      document.querySelectorAll(`[data-type="${type}"]`).forEach((el) => {
        const idx = el.dataset.index;
        const field = el.dataset.field;
@@ -2002,11 +1662,7 @@
    }
 
    function readChemicalRowsFromDOM() {
-     return collectRows("chemical", ["no", "name", "msdsUrl"]).map((row, i) => ({
-       no: row.no || i + 1,
-       name: row.name || "",
-       msdsUrl: row.msdsUrl || ""
-     }));
+     return collectRows("chemical", ["no", "name", "msdsName", "msdsUrl"]);
    }
 
    function bindWorkerDeleteButtons() {
@@ -2039,7 +1695,7 @@
 
      const normalized = normalizeRegion(data);
 
-     formId.value = data.regionId || data.id || "";
+     formId.value = data.regionId || "";
      formType.value = data.type || "lab";
      formNumber.value = data.number || "";
      formLabName.value = data.labName || "";
@@ -2047,13 +1703,11 @@
      formManagerMain.value = data.managerMain || "";
      formManagerSub.value = data.managerSub || "";
 
+     labelText.value = normalized.labelText || normalized.labName || "";
      labelFontSize.value = normalized.labelFontSize;
      labelMaxWidth.value = normalized.labelMaxWidth;
      labelOffsetX.value = normalized.labelOffsetX;
      labelOffsetY.value = normalized.labelOffsetY;
-
-     borderColor.value = normalized.borderColor || "#111827";
-     borderWidth.value = normalized.borderWidth || 2;
 
      selection = {
        cells: new Set(normalized.cells),
@@ -2071,7 +1725,7 @@
 
      renderWorkers(data.workers || []);
      renderChemicals(data.chemicals || []);
-     selectedBadge.textContent = `${data.number || "-"} / ${data.labName || data.regionId || data.id}`;
+     selectedBadge.textContent = `${data.number || "-"} / ${data.labName || data.regionId}`;
 
      renderLayout(labSearch?.value || "");
    }
@@ -2117,23 +1771,14 @@
        return;
      }
 
-     const existingSpace = spaces.find(s => s.id === regionId);
-     const existingBorderEdges = normalizeBorderEdges(existingSpace?.borderEdges || []);
-
-     const removedCount = removeCellsFromOtherRegions(regionId, cells);
      const bounds = boundsFromCells(cells);
 
      const labelStyle = getDefaultLabelStyle({
+       labelText: labelText.value.trim(),
        labelFontSize: labelFontSize.value,
        labelMaxWidth: labelMaxWidth.value,
        labelOffsetX: labelOffsetX.value,
        labelOffsetY: labelOffsetY.value
-     });
-
-     const cellSet = new Set(cells);
-     const filteredBorderEdges = existingBorderEdges.filter(edgeKey => {
-       const parsed = parseEdgeKey(edgeKey);
-       return parsed && cellSet.has(parsed.cell);
      });
 
      const payload = {
@@ -2151,9 +1796,6 @@
        w: bounds.w,
        h: bounds.h,
        ...labelStyle,
-       borderEdges: filteredBorderEdges,
-       borderColor: borderColor.value || "#111827",
-       borderWidth: clampNumber(borderWidth.value, 2, 1, 10),
        workers: readWorkerRowsFromDOM(),
        chemicals: readChemicalRowsFromDOM(),
        updatedAt: new Date().toISOString()
@@ -2171,10 +1813,7 @@
          number: payload.number,
          labName: payload.labName,
          cells: payload.cells,
-         ...labelStyle,
-         borderEdges: payload.borderEdges,
-         borderColor: payload.borderColor,
-         borderWidth: payload.borderWidth
+         ...labelStyle
        });
 
        if (idx >= 0) {
@@ -2187,11 +1826,7 @@
        currentData = await loadLabData(currentLayoutId, regionId);
        fillEditor(currentData);
 
-       const message = removedCount > 0
-         ? `실험실 저장 완료\n\n겹치는 셀 ${removedCount}개는 다른 구역에서 자동 제거되었습니다.\n레이아웃 저장도 눌러 최종 반영하세요.`
-         : "실험실 저장 완료\n\n레이아웃 저장도 눌러 최종 반영하세요.";
-
-       alert(message);
+       alert("실험실 저장 완료");
      } catch (e) {
        console.error(e);
        alert("실험실 저장 실패: " + e.message);
@@ -2200,7 +1835,6 @@
 
    async function deleteCurrentLab() {
      if (!currentLayoutId) return;
-
      const regionId = formId.value.trim();
      if (!regionId) return;
 
@@ -2219,7 +1853,7 @@
        selection = null;
        dragPreviewCells = new Set();
        renderGrid();
-       alert("실험실 삭제 완료\n\n레이아웃 저장도 눌러 최종 반영하세요.");
+       alert("실험실 삭제 완료");
      } catch (e) {
        console.error(e);
        alert("실험실 삭제 실패: " + e.message);
@@ -2236,6 +1870,7 @@
 
      const fileName = (file.name || "").toLowerCase();
      const isCsv = fileName.endsWith(".csv");
+
      const reader = new FileReader();
 
      reader.onerror = (err) => {
@@ -2327,7 +1962,6 @@
          return value ?? "";
        }
      }
-
      return "";
    }
 
@@ -2361,11 +1995,13 @@
      const imported = rows.map((row, i) => ({
        no: pickValue(row, ["no", "번호"]) || i + 1,
        name: pickValue(row, ["name", "제품명", "물질명"]) || "",
+       msdsName: pickValue(row, ["msdsname", "msds파일명", "msds 파일명", "파일명"]) || "",
        msdsUrl: pickValue(row, ["msdsurl", "msds링크", "msds 링크", "링크", "url"]) || ""
      }));
 
      chemicalRowsData = imported.filter(r =>
        String(r.name).trim() !== "" ||
+       String(r.msdsName).trim() !== "" ||
        String(r.msdsUrl).trim() !== ""
      );
 
@@ -2373,9 +2009,9 @@
        alert(
          "화학물질 엑셀에서 읽을 데이터가 없습니다.\n\n" +
          "첫 번째 시트 첫 줄 헤더를 아래처럼 맞춰 주세요:\n" +
-         "no | name | msdsUrl\n또는\n번호 | 제품명 | MSDS링크"
+         "no | name | msdsName | msdsUrl\n또는\n번호 | 제품명 | MSDS파일명 | MSDS링크"
        );
-       chemicalRowsData = [{ no:1, name:"", msdsUrl:"" }];
+       chemicalRowsData = [{ no:1, name:"", msdsName:"", msdsUrl:"" }];
      }
 
      renderChemicals(chemicalRowsData);
@@ -2388,7 +2024,7 @@
      return line.split(",").map(v => v.trim());
    }
 
-   function parsePastedRows(text, expectedColumns = 3) {
+   function parsePastedRows(text, expectedColumns = 4) {
      const lines = String(text || "")
        .split(/\r?\n/)
        .map(line => line.trim())
@@ -2401,13 +2037,11 @@
          rows.push(cols.slice(0, expectedColumns));
        }
      }
-
      return rows;
    }
 
    function applyWorkersPaste() {
      const rows = parsePastedRows(workersPasteInput.value, 4);
-
      if (!rows.length) {
        alert("붙여넣은 근무자 데이터가 없습니다.");
        return;
@@ -2433,8 +2067,7 @@
    }
 
    function applyChemicalsPaste() {
-     const rows = parsePastedRows(chemicalsPasteInput.value, 3);
-
+     const rows = parsePastedRows(chemicalsPasteInput.value, 4);
      if (!rows.length) {
        alert("붙여넣은 화학물질 데이터가 없습니다.");
        return;
@@ -2443,9 +2076,11 @@
      chemicalRowsData = rows.map((cols, i) => ({
        no: cols[0] || i + 1,
        name: cols[1] || "",
-       msdsUrl: cols[2] || ""
+       msdsName: cols[2] || "",
+       msdsUrl: cols[3] || ""
      })).filter(r =>
        String(r.name).trim() !== "" ||
+       String(r.msdsName).trim() !== "" ||
        String(r.msdsUrl).trim() !== ""
      );
 
@@ -2466,6 +2101,7 @@
      spaces[idx] = normalizeRegion({
        ...spaces[idx],
        labName: formLabName.value,
+       labelText: labelText.value,
        labelFontSize: labelFontSize.value,
        labelMaxWidth: labelMaxWidth.value,
        labelOffsetX: labelOffsetX.value,
@@ -2519,18 +2155,6 @@
      resetEditorView();
    });
 
-   borderModeBtn.addEventListener("click", () => {
-     setBorderMode(!borderMode);
-   });
-
-   autoOuterBorderBtn.addEventListener("click", () => {
-     applyOuterBorderToSelectedRegion();
-   });
-
-   clearRegionBordersBtn.addEventListener("click", () => {
-     clearSelectedRegionBorders();
-   });
-
    addWorkerBtn.addEventListener("click", () => {
      workerRowsData = readWorkerRowsFromDOM();
      workerRowsData.push({
@@ -2547,6 +2171,7 @@
      chemicalRowsData.push({
        no: chemicalRowsData.length + 1,
        name: "",
+       msdsName: "",
        msdsUrl: ""
      });
      renderChemicals(chemicalRowsData);
@@ -2594,36 +2219,16 @@
      fillEditor(await loadLabData(currentLayoutId, selectedId));
    });
 
-   [formLabName, labelFontSize, labelMaxWidth, labelOffsetX, labelOffsetY].forEach((input) => {
-     input.addEventListener("input", applyLabelStylePreview);
-   });
-
-   [borderColor, borderWidth].forEach((input) => {
-     input.addEventListener("input", () => {
-       if (!selectedId) return;
-
-       const idx = spaces.findIndex(s => s.id === selectedId);
-       if (idx < 0) return;
-
-       const normalized = normalizeRegion(spaces[idx]);
-       spaces[idx] = normalizeRegion({
-         ...normalized,
-         borderColor: borderColor.value || "#111827",
-         borderWidth: clampNumber(borderWidth.value, 2, 1, 10)
-       });
-
-       renderLayout(labSearch?.value || "");
-     });
-   });
-
    labSearch?.addEventListener("input", (e) => {
      renderLayout(e.target.value);
    });
 
+   [labelText, labelFontSize, labelMaxWidth, labelOffsetX, labelOffsetY].forEach((input) => {
+     input.addEventListener("input", applyLabelStylePreview);
+   });
+
    await loadLayouts();
    bindGridSelection();
-   bindBorderEditing();
-   setBorderMode(false);
  </script>
 </body>
 </html>
