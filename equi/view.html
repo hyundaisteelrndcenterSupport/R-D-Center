@@ -19,13 +19,31 @@
      --border:#d1d5db;
      --blue:#2563eb;
      --head:#eef2ff;
+
+     --font-main:Arial, sans-serif;
+     --font-base:15px;
+     --font-title:30px;
+     --font-section-title:22px;
+     --font-card-title:18px;
+     --font-sub:16px;
+     --font-table:15px;
+     --font-kv:16px;
+     --font-layout-number:12px;
+     --font-layout-name-default:11px;
+     --font-equipment-text:12px;
+
+     --line-base:1.45;
+     --line-table:1.35;
+     --line-layout-name:1.15;
    }
 
    * { box-sizing:border-box; }
 
    body {
      margin:0;
-     font-family:Arial, sans-serif;
+     font-family:var(--font-main);
+     font-size:var(--font-base);
+     line-height:var(--line-base);
      background:var(--bg);
      color:var(--text);
    }
@@ -46,12 +64,13 @@
 
    h1 {
      margin:0;
-     font-size:28px;
+     font-size:var(--font-title);
+     line-height:1.2;
    }
 
    .sub {
      margin-top:6px;
-     font-size:14px;
+     font-size:var(--font-sub);
      color:var(--muted);
    }
 
@@ -63,7 +82,7 @@
    }
 
    select, input {
-     font-size:14px;
+     font-size:var(--font-base);
      border:1px solid #cfd4dc;
      border-radius:8px;
      background:#fff;
@@ -99,7 +118,8 @@
 
    .panel-header h2 {
      margin:0;
-     font-size:20px;
+     font-size:var(--font-section-title);
+     line-height:1.25;
    }
 
    .content {
@@ -199,7 +219,7 @@
      min-width:18px;
      min-height:16px;
      padding:1px 4px;
-     font-size:10px;
+     font-size:var(--font-layout-number);
      font-weight:700;
      line-height:1.2;
      color:#374151;
@@ -214,22 +234,19 @@
      position:absolute;
      max-width:90px;
      padding:0;
-     font-size:9px;
-     line-height:1.15;
+     font-size:var(--font-layout-name-default);
+     line-height:var(--line-layout-name);
      text-align:center;
      font-weight:700;
      background:transparent;
      border-radius:0;
      box-shadow:none;
      transform:translate(-50%, -50%);
-     white-space:normal;
+     white-space:pre-line;
      word-break:keep-all;
      overflow-wrap:normal;
      text-shadow:0 0 6px rgba(255,255,255,.95);
-     display:-webkit-box;
-     -webkit-line-clamp:2;
-     -webkit-box-orient:vertical;
-     overflow:hidden;
+     overflow:visible;
      color:#111827;
      pointer-events:auto;
      cursor:pointer;
@@ -281,7 +298,8 @@
      padding:12px 14px;
      background:#f8fafc;
      border-bottom:1px solid #e5e7eb;
-     font-size:16px;
+     font-size:var(--font-card-title);
+     line-height:1.25;
    }
 
    .info-body {
@@ -292,12 +310,20 @@
      display:grid;
      grid-template-columns:120px 1fr;
      gap:8px 12px;
-     font-size:14px;
+     font-size:var(--font-kv);
    }
 
    .kv div:nth-child(odd) {
      font-weight:700;
      color:#374151;
+   }
+
+   .spec-value {
+     white-space:pre-wrap;
+     word-break:keep-all;
+     overflow-wrap:anywhere;
+     text-align:left;
+     line-height:1.45;
    }
 
    .table-wrap {
@@ -307,7 +333,8 @@
    table {
      width:100%;
      border-collapse:collapse;
-     font-size:13px;
+     font-size:var(--font-table);
+     line-height:var(--line-table);
      table-layout:fixed;
    }
 
@@ -378,7 +405,7 @@
 
    .interior-wrap {
      display:grid;
-     grid-template-columns: minmax(0, 1fr) 360px;
+     grid-template-columns:minmax(0, 1fr) 360px;
      gap:16px;
      align-items:start;
    }
@@ -416,7 +443,8 @@
      padding:12px 14px;
      background:#f8fafc;
      border-bottom:1px solid #e5e7eb;
-     font-size:16px;
+     font-size:var(--font-card-title);
+     line-height:1.25;
    }
 
    .equip-object {
@@ -432,7 +460,7 @@
      margin-top:16px;
    }
 
-   @media (max-width: 1000px) {
+   @media (max-width:1000px) {
      .topbar {
        flex-direction:column;
      }
@@ -446,7 +474,20 @@
      }
    }
 
-   @media (max-width: 900px) {
+   @media (max-width:900px) {
+     :root {
+       --font-base:15px;
+       --font-title:24px;
+       --font-section-title:19px;
+       --font-card-title:15px;
+       --font-sub:14px;
+       --font-table:12px;
+       --font-kv:12px;
+       --font-layout-number:9px;
+       --font-layout-name-default:8px;
+       --font-equipment-text:10px;
+     }
+
      .app {
        padding:12px;
      }
@@ -462,13 +503,11 @@
      .kv {
        grid-template-columns:84px 1fr;
        gap:6px 8px;
-       font-size:12px;
      }
 
      select, input {
        width:100%;
        min-width:0;
-       font-size:13px;
        padding:9px 10px;
      }
 
@@ -485,7 +524,6 @@
      }
 
      .region-number-badge {
-       font-size:9px;
        min-width:16px;
        min-height:14px;
        padding:1px 3px;
@@ -503,7 +541,6 @@
 
      .info-card h3,
      .equip-card h3 {
-       font-size:14px;
        padding:10px 12px;
      }
 
@@ -514,13 +551,11 @@
      table {
        width:100%;
        min-width:0;
-       font-size:11px;
        table-layout:fixed;
      }
 
      th, td {
        padding:6px 4px;
-       font-size:11px;
        word-break:keep-all;
        overflow-wrap:normal;
        white-space:normal;
@@ -530,25 +565,20 @@
        white-space:normal;
      }
 
-     /* 근무자 표 열 너비 */
      #workersWrap table col.col-no { width:9%; }
      #workersWrap table col.col-team { width:40%; }
      #workersWrap table col.col-title { width:28%; }
      #workersWrap table col.col-name { width:23%; }
 
-     /* 화학물질 표 열 너비 */
-     #chemicalsWrap table col.col-no { width:9%; }
-     #chemicalsWrap table col.col-product { width:48%; }
-     #chemicalsWrap table col.col-msdsname { width:28%; }
-     #chemicalsWrap table col.col-msdsurl { width:15%; }
+     #chemicalsWrap table col.col-no { width:10%; }
+     #chemicalsWrap table col.col-product { width:55%; }
+     #chemicalsWrap table col.col-msdsurl { width:35%; }
 
-     /* 문서 표 열 너비 */
      #equipmentDocs table col.col-doc-no { width:10%; }
      #equipmentDocs table col.col-doc-name { width:32%; }
      #equipmentDocs table col.col-doc-standard { width:29%; }
      #equipmentDocs table col.col-doc-risk { width:29%; }
 
-     /* 번호 열 좁게 */
      #workersWrap th:nth-child(1),
      #workersWrap td:nth-child(1),
      #chemicalsWrap th:nth-child(1),
@@ -561,7 +591,6 @@
        padding-right:2px;
      }
 
-     /* 근무자 줄바꿈 최소화 */
      #workersWrap td:nth-child(2),
      #workersWrap td:nth-child(3),
      #workersWrap td:nth-child(4) {
@@ -570,21 +599,18 @@
        overflow-wrap:normal;
      }
 
-     /* 화학물질 제품명/파일명 */
-     #chemicalsWrap td:nth-child(2),
-     #chemicalsWrap td:nth-child(3) {
+     #chemicalsWrap td:nth-child(2) {
        white-space:nowrap;
        word-break:keep-all;
        overflow-wrap:normal;
      }
 
-     #chemicalsWrap td:nth-child(4) {
+     #chemicalsWrap td:nth-child(3) {
        font-size:10px;
        word-break:break-all;
        overflow-wrap:anywhere;
      }
 
-     /* 작업표준/위험성평가 표 */
      #equipmentDocs td:nth-child(2) {
        white-space:nowrap;
        word-break:keep-all;
@@ -599,11 +625,11 @@
      }
 
      .interior-canvas-box {
-       aspect-ratio: 1 / 1;
+       aspect-ratio:1 / 1;
      }
 
      .interior-svg text {
-       font-size:10px !important;
+       font-size:var(--font-equipment-text) !important;
      }
 
      .helper, .sub, #focusMeta {
@@ -721,7 +747,7 @@
                <div id="equipmentInfo" class="kv"></div>
 
                <div class="info-card" style="margin-top:12px;">
-                 <h3 style="font-size:14px;">Spec</h3>
+                 <h3 style="font-size:var(--font-card-title);">Spec</h3>
                  <div class="info-body">
                    <div id="equipmentSpec" class="kv"></div>
                  </div>
@@ -758,12 +784,12 @@
    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
    const firebaseConfig = {
-  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
-  authDomain: "lab-test-888d2.firebaseapp.com",
-  projectId: "lab-test-888d2",
-  storageBucket: "lab-test-888d2.firebasestorage.app",
-  messagingSenderId: "417323251483",
-  appId: "1:417323251483:web:2938bce7431260aff385be"
+     apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+     authDomain: "lab-test-888d2.firebaseapp.com",
+     projectId: "lab-test-888d2",
+     storageBucket: "lab-test-888d2.firebasestorage.app",
+     messagingSenderId: "417323251483",
+     appId: "1:417323251483:web:2938bce7431260aff385be"
    };
 
    const app = initializeApp(firebaseConfig);
@@ -794,7 +820,6 @@
    const interiorPanel = document.getElementById("interiorPanel");
    const interiorSub = document.getElementById("interiorSub");
    const equipmentFocusMeta = document.getElementById("equipmentFocusMeta");
-   const interiorSvg = document.getElementById("interiorSvg");
    const interiorLabBase = document.getElementById("interiorLabBase");
    const interiorLabOutline = document.getElementById("interiorLabOutline");
    const interiorObjectLayer = document.getElementById("interiorObjectLayer");
@@ -856,6 +881,22 @@
        }
      }
      return Array.from(unique);
+   }
+
+   function clampNumber(value, fallback, min, max) {
+     const n = Number(value);
+     if (!Number.isFinite(n)) return fallback;
+     return Math.min(max, Math.max(min, n));
+   }
+
+   function getDefaultLabelStyle(region = {}) {
+     return {
+       labelText: region.labelText || "",
+       labelFontSize: clampNumber(region.labelFontSize, 9, 6, 24),
+       labelMaxWidth: clampNumber(region.labelMaxWidth, 90, 30, 240),
+       labelOffsetX: clampNumber(region.labelOffsetX, 0, -60, 60),
+       labelOffsetY: clampNumber(region.labelOffsetY, 0, -26, 26)
+     };
    }
 
    function boundsFromCells(cells = []) {
@@ -948,6 +989,7 @@
        .map(parseCell)
        .sort((a,b) => (a.y - b.y) || (a.x - b.x))[0] || { x:1, y:1 };
      const bestLabel = getBestLabelPosition(cells);
+     const labelStyle = getDefaultLabelStyle(region);
 
      return {
        id: region?.id || "",
@@ -959,6 +1001,7 @@
        topLeftY: topLeft.y,
        labelX: bestLabel.x,
        labelY: bestLabel.y,
+       ...labelStyle,
        ...bounds
      };
    }
@@ -970,6 +1013,39 @@
        .replaceAll(">", "&gt;")
        .replaceAll('"', "&quot;")
        .replaceAll("'", "&#39;");
+   }
+
+   function normalizeChemicalRows(rows = []) {
+     return rows.map((row, i) => ({
+       no: row.no ?? i + 1,
+       name: row.name ?? "",
+       msdsUrl: row.msdsUrl ?? row.url ?? ""
+     }));
+   }
+
+   function normalizeSpecItems(meta = {}) {
+     if (Array.isArray(meta.specItems)) {
+       return meta.specItems
+         .map(item => ({
+           id: item.id || "",
+           label: item.label || "",
+           value: item.value || ""
+         }))
+         .filter(item => item.label || item.value);
+     }
+
+     if (meta.spec && typeof meta.spec === "object") {
+       return [
+         { label: "제원", value: meta.spec.dimension || "" },
+         { label: "허용압력", value: meta.spec.pressure || "" },
+         { label: "사용온도", value: meta.spec.temperature || "" },
+         { label: "전력", value: meta.spec.power || "" },
+         { label: "용량", value: meta.spec.capacity || "" },
+         { label: "무게", value: meta.spec.weight || "" }
+       ].filter(item => item.value);
+     }
+
+     return [];
    }
 
    function renderGrid() {
@@ -986,11 +1062,12 @@
    function buildOutlinePath(cells, bounds) {
      const cellSet = new Set(cells);
      const dirs = [
-       { dx: 0, dy: -1, side: "top" },
-       { dx: 1, dy: 0, side: "right" },
-       { dx: 0, dy: 1, side: "bottom" },
-       { dx: -1, dy: 0, side: "left" }
+       { dx:0, dy:-1, side:"top" },
+       { dx:1, dy:0, side:"right" },
+       { dx:0, dy:1, side:"bottom" },
+       { dx:-1, dy:0, side:"left" }
      ];
+
      const segments = [];
 
      for (const key of cells) {
@@ -1014,7 +1091,8 @@
    }
 
    function regionDisplayName(region) {
-     return `${region.number ? region.number + " / " : ""}${region.labName || region.id}`;
+     const label = region.labelText || region.labName || region.id;
+     return `${region.number ? region.number + " / " : ""}${label}`;
    }
 
    function flashPanel(panel) {
@@ -1035,7 +1113,13 @@
        return;
      }
 
-     currentFocusedLabData = labSnap.data();
+     const labData = labSnap.data();
+
+     currentFocusedLabData = {
+       ...labData,
+       chemicals: normalizeChemicalRows(labData.chemicals || [])
+     };
+
      currentInteriorDoc = interiorSnap.exists() ? interiorSnap.data() : { objects: [] };
      currentSelectedEquipmentId = null;
 
@@ -1139,12 +1223,21 @@
        labelLayer.appendChild(numberBadge);
      }
 
-     if (normalized.labName) {
+     const displayLabel = normalized.labelText || normalized.labName || "";
+
+     if (displayLabel) {
        const nameBadge = document.createElement("div");
        nameBadge.className = `region-name-badge ${normalized.type}`;
-       nameBadge.textContent = normalized.labName;
-       nameBadge.style.left = `${((normalized.labelX - normalized.x + 0.5) / normalized.w) * 100}%`;
-       nameBadge.style.top = `${((normalized.labelY - normalized.y + 0.5) / normalized.h) * 100}%`;
+       nameBadge.textContent = displayLabel;
+
+       const labelLeft = ((normalized.labelX - normalized.x + 0.5 + normalized.labelOffsetX) / normalized.w) * 100;
+       const labelTop = ((normalized.labelY - normalized.y + 0.5 + normalized.labelOffsetY) / normalized.h) * 100;
+
+       nameBadge.style.left = `${labelLeft}%`;
+       nameBadge.style.top = `${labelTop}%`;
+       nameBadge.style.fontSize = `${normalized.labelFontSize}px`;
+       nameBadge.style.maxWidth = `${normalized.labelMaxWidth}px`;
+
        if (normalized.type === "lab") nameBadge.addEventListener("click", clickHandler);
        labelLayer.appendChild(nameBadge);
      }
@@ -1179,7 +1272,7 @@
      ];
 
      basicInfo.innerHTML = items
-       .map(([k,v]) => `<div>${k}</div><div>${escapeHtml(v)}</div>`)
+       .map(([k,v]) => `<div>${escapeHtml(k)}</div><div>${escapeHtml(v)}</div>`)
        .join("");
    }
 
@@ -1221,11 +1314,12 @@
 
    function renderChemicalsTable(chemicals = [], searchText = "") {
      const q = searchText.trim().toLowerCase();
+     const normalizedChemicals = normalizeChemicalRows(chemicals);
+
      const filtered = !q
-       ? chemicals
-       : chemicals.filter(c =>
+       ? normalizedChemicals
+       : normalizedChemicals.filter(c =>
            String(c.name ?? "").toLowerCase().includes(q) ||
-           String(c.msdsName ?? "").toLowerCase().includes(q) ||
            String(c.msdsUrl ?? "").toLowerCase().includes(q)
          );
 
@@ -1239,14 +1333,12 @@
          <colgroup>
            <col class="col-no">
            <col class="col-product">
-           <col class="col-msdsname">
            <col class="col-msdsurl">
          </colgroup>
          <thead>
            <tr>
              <th>번호</th>
              <th>제품명</th>
-             <th>MSDS 파일명</th>
              <th>MSDS 링크</th>
            </tr>
          </thead>
@@ -1255,7 +1347,6 @@
              <tr>
                <td>${escapeHtml(String(c.no ?? ""))}</td>
                <td>${escapeHtml(String(c.name ?? ""))}</td>
-               <td>${escapeHtml(String(c.msdsName ?? ""))}</td>
                <td>${renderLinkCell(c.msdsUrl)}</td>
              </tr>
            `).join("")}
@@ -1428,8 +1519,8 @@
          tspan.textContent = line;
          text.appendChild(tspan);
        });
-       group.appendChild(text);
 
+       group.appendChild(text);
        group.addEventListener("click", () => selectEquipment(obj.id));
        interiorObjectLayer.appendChild(group);
      });
@@ -1476,19 +1567,21 @@
        .map(([k,v]) => `<div>${escapeHtml(k)}</div><div>${escapeHtml(v)}</div>`)
        .join("");
 
-     const spec = obj.meta?.spec || {};
-     const specItems = [
-       ["제원", spec.dimension || "-"],
-       ["허용압력", spec.pressure || "-"],
-       ["사용온도", spec.temperature || "-"],
-       ["전력", spec.power || "-"],
-       ["용량", spec.capacity || "-"],
-       ["무게", spec.weight || "-"]
-     ];
+     const specItems = normalizeSpecItems(obj.meta || {});
 
-     equipmentSpec.innerHTML = specItems
-       .map(([k,v]) => `<div>${escapeHtml(k)}</div><div>${escapeHtml(v)}</div>`)
-       .join("");
+     if (!specItems.length) {
+       equipmentSpec.innerHTML = `
+         <div>Spec</div>
+         <div class="muted spec-value">등록된 Spec 정보가 없습니다.</div>
+       `;
+     } else {
+       equipmentSpec.innerHTML = specItems
+         .map(item => `
+           <div>${escapeHtml(item.label || "-")}</div>
+           <div class="spec-value">${escapeHtml(item.value || "-")}</div>
+         `)
+         .join("");
+     }
 
      const docs = Array.isArray(obj.meta?.documents) ? obj.meta.documents : [];
      if (!docs.length) {
@@ -1635,13 +1728,25 @@
        const interiorSnap = await getDoc(doc(db, "labInteriorLayouts", labDocId));
 
        if (labSnap.exists()) {
-         currentFocusedLabData = labSnap.data();
+         const labData = labSnap.data();
+
+         currentFocusedLabData = {
+           ...labData,
+           chemicals: normalizeChemicalRows(labData.chemicals || [])
+         };
+
          currentInteriorDoc = interiorSnap.exists() ? interiorSnap.data() : { objects: [] };
          if (equipmentIdToLoad) currentSelectedEquipmentId = equipmentIdToLoad;
        }
      }
 
      renderFocusedState();
+
+     if (currentFocusedLabData && currentSelectedEquipmentId) {
+       setTimeout(() => {
+         interiorPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+       }, 200);
+     }
    }
 
    layoutSelectPublic.addEventListener("change", async () => {
