@@ -308,6 +308,21 @@
    .compact-input {
      font-size:12.5px;
      padding:9px 10px;
+     width:100%;
+   }
+
+   .spec-value-input {
+     width:100%;
+     min-height:54px;
+     resize:vertical;
+     font-family:inherit;
+     font-size:12.5px;
+     line-height:1.35;
+     white-space:pre-wrap;
+   }
+
+   .spec-row {
+     align-items:start !important;
    }
 
    .file-line {
@@ -364,6 +379,10 @@
 
      .small-grid {
        grid-template-columns:1fr;
+     }
+
+     .spec-row {
+       grid-template-columns:1fr !important;
      }
    }
  </style>
@@ -531,32 +550,13 @@
 
                <div class="section-title">Spec</div>
                <div class="mini-card">
-                 <div class="form-grid">
-                   <div class="form-row">
-                     <label>제원</label>
-                     <input id="metaSpecDimension" />
+                 <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+                   <div class="muted" style="font-size:12px;">
+                     항목명과 값을 직접 수정할 수 있습니다. 값 입력칸에서 Enter를 넣으면 게시용 화면에서도 줄바꿈됩니다.
                    </div>
-                   <div class="form-row">
-                     <label>허용압력</label>
-                     <input id="metaSpecPressure" />
-                   </div>
-                   <div class="form-row">
-                     <label>사용온도</label>
-                     <input id="metaSpecTemperature" />
-                   </div>
-                   <div class="form-row">
-                     <label>전력</label>
-                     <input id="metaSpecPower" />
-                   </div>
-                   <div class="form-row">
-                     <label>용량</label>
-                     <input id="metaSpecCapacity" />
-                   </div>
-                   <div class="form-row">
-                     <label>무게</label>
-                     <input id="metaSpecWeight" />
-                   </div>
+                   <button id="addSpecItemBtn" type="button">Spec 항목 추가</button>
                  </div>
+                 <div id="specItemsWrap" class="form-grid"></div>
                </div>
 
                <div class="form-row">
@@ -582,7 +582,7 @@
 
                <div class="section-title">작업표준 / 위험성평가</div>
                <div class="mini-card">
-                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
                    <div class="muted" style="font-size:12px;">선택한 설비에 귀속되는 자료입니다.</div>
                    <button id="addObjectDocBtn" type="button">자료 추가</button>
                  </div>
@@ -611,12 +611,12 @@
    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
    const firebaseConfig = {
-  apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
-  authDomain: "lab-test-888d2.firebaseapp.com",
-  projectId: "lab-test-888d2",
-  storageBucket: "lab-test-888d2.firebasestorage.app",
-  messagingSenderId: "417323251483",
-  appId: "1:417323251483:web:2938bce7431260aff385be"
+     apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
+     authDomain: "lab-test-888d2.firebaseapp.com",
+     projectId: "lab-test-888d2",
+     storageBucket: "lab-test-888d2.firebasestorage.app",
+     messagingSenderId: "417323251483",
+     appId: "1:417323251483:web:2938bce7431260aff385be"
    };
 
    const app = initializeApp(firebaseConfig);
@@ -668,12 +668,8 @@
    const metaManagerMain = document.getElementById("metaManagerMain");
    const metaManagerSub = document.getElementById("metaManagerSub");
    const metaTeam = document.getElementById("metaTeam");
-   const metaSpecDimension = document.getElementById("metaSpecDimension");
-   const metaSpecPressure = document.getElementById("metaSpecPressure");
-   const metaSpecTemperature = document.getElementById("metaSpecTemperature");
-   const metaSpecPower = document.getElementById("metaSpecPower");
-   const metaSpecCapacity = document.getElementById("metaSpecCapacity");
-   const metaSpecWeight = document.getElementById("metaSpecWeight");
+   const addSpecItemBtn = document.getElementById("addSpecItemBtn");
+   const specItemsWrap = document.getElementById("specItemsWrap");
    const metaSafetyInspection = document.getElementById("metaSafetyInspection");
    const metaSelfSafetyCheck = document.getElementById("metaSelfSafetyCheck");
    const metaNote = document.getElementById("metaNote");
@@ -814,6 +810,40 @@
      };
    }
 
+   function createDefaultSpecItems() {
+     return [
+       { id: uid("spec"), label: "제원", value: "" },
+       { id: uid("spec"), label: "허용압력", value: "" },
+       { id: uid("spec"), label: "사용온도", value: "" },
+       { id: uid("spec"), label: "전력", value: "" },
+       { id: uid("spec"), label: "용량", value: "" },
+       { id: uid("spec"), label: "무게", value: "" }
+     ];
+   }
+
+   function normalizeSpecItems(meta = {}) {
+     if (Array.isArray(meta.specItems)) {
+       return meta.specItems.map(item => ({
+         id: item.id || uid("spec"),
+         label: item.label || "",
+         value: item.value || ""
+       }));
+     }
+
+     if (meta.spec && typeof meta.spec === "object") {
+       return [
+         { id: uid("spec"), label: "제원", value: meta.spec.dimension || "" },
+         { id: uid("spec"), label: "허용압력", value: meta.spec.pressure || "" },
+         { id: uid("spec"), label: "사용온도", value: meta.spec.temperature || "" },
+         { id: uid("spec"), label: "전력", value: meta.spec.power || "" },
+         { id: uid("spec"), label: "용량", value: meta.spec.capacity || "" },
+         { id: uid("spec"), label: "무게", value: meta.spec.weight || "" }
+       ];
+     }
+
+     return createDefaultSpecItems();
+   }
+
    function createDefaultObject(type) {
      const base = {
        id: uid(),
@@ -832,14 +862,7 @@
          managerMain: "",
          managerSub: "",
          team: "",
-         spec: {
-           dimension: "",
-           pressure: "",
-           temperature: "",
-           power: "",
-           capacity: "",
-           weight: ""
-         },
+         specItems: createDefaultSpecItems(),
          safetyInspection: "해당없음",
          selfSafetyCheck: "해당없음",
          note: "",
@@ -954,20 +977,12 @@
          };
 
      objects = Array.isArray(interiorDoc.objects) ? structuredClone(interiorDoc.objects) : [];
+
      objects.forEach((obj) => {
        obj.rotation = obj.rotation || 0;
        obj.fontSize = obj.fontSize || (obj.type === "text" ? 18 : 20);
        if (!obj.meta) obj.meta = {};
-       if (!obj.meta.spec) {
-         obj.meta.spec = {
-           dimension: "",
-           pressure: "",
-           temperature: "",
-           power: "",
-           capacity: "",
-           weight: ""
-         };
-       }
+       obj.meta.specItems = normalizeSpecItems(obj.meta);
        if (!Array.isArray(obj.meta.documents)) obj.meta.documents = [];
      });
 
@@ -1394,6 +1409,67 @@
      });
    }
 
+   function renderSpecItems() {
+     const obj = getSelectedObject();
+
+     if (!obj) {
+       specItemsWrap.innerHTML = "";
+       return;
+     }
+
+     if (!obj.meta) obj.meta = {};
+     obj.meta.specItems = normalizeSpecItems(obj.meta);
+
+     specItemsWrap.innerHTML = obj.meta.specItems.map((item) => `
+       <div class="spec-row small-grid" style="grid-template-columns:1fr 1.5fr auto; align-items:start;">
+         <input
+           class="compact-input"
+           data-spec-label="${item.id}"
+           placeholder="항목명"
+           value="${escapeHtmlAttr(item.label || "")}"
+         />
+
+         <textarea
+           class="compact-input spec-value-input"
+           data-spec-value="${item.id}"
+           placeholder="값 입력&#10;예: 전압: 220V&#10;전류: 10A"
+         >${escapeHtml(item.value || "")}</textarea>
+
+         <button
+           type="button"
+           class="danger compact-input"
+           data-spec-delete="${item.id}"
+         >
+           삭제
+         </button>
+       </div>
+     `).join("");
+
+     specItemsWrap.querySelectorAll("[data-spec-label]").forEach((input) => {
+       input.addEventListener("input", (e) => {
+         const id = e.target.dataset.specLabel;
+         const target = obj.meta.specItems.find(v => v.id === id);
+         if (target) target.label = e.target.value;
+       });
+     });
+
+     specItemsWrap.querySelectorAll("[data-spec-value]").forEach((textarea) => {
+       textarea.addEventListener("input", (e) => {
+         const id = e.target.dataset.specValue;
+         const target = obj.meta.specItems.find(v => v.id === id);
+         if (target) target.value = e.target.value;
+       });
+     });
+
+     specItemsWrap.querySelectorAll("[data-spec-delete]").forEach((btn) => {
+       btn.addEventListener("click", () => {
+         const id = btn.dataset.specDelete;
+         obj.meta.specItems = obj.meta.specItems.filter(v => v.id !== id);
+         renderSpecItems();
+       });
+     });
+   }
+
    function renderObjectDocumentsTable() {
      const obj = getSelectedObject();
 
@@ -1420,11 +1496,10 @@
        <table>
          <colgroup>
            <col style="width:8%">
-           <col style="width:24%">
-           <col style="width:24%">
-           <col style="width:24%">
-           <col style="width:20%">
-           <col style="width:10%">
+           <col style="width:28%">
+           <col style="width:28%">
+           <col style="width:28%">
+           <col style="width:8%">
          </colgroup>
          <thead>
            <tr>
@@ -1432,7 +1507,6 @@
              <th>명칭</th>
              <th>작업표준 파일</th>
              <th>위험성평가 파일</th>
-             <th>자동 관리번호</th>
              <th>삭제</th>
            </tr>
          </thead>
@@ -1447,18 +1521,14 @@
                  <div style="display:grid; gap:4px;">
                    <input type="file" data-obj-doc-file="standard" data-doc-id="${docItem.id}" />
                    <div class="file-line">${escapeHtml(docItem.standardFileName || "파일 없음")}</div>
+                   <div class="file-line"><b>관리번호:</b> ${escapeHtml(docItem.standardCode || "-")}</div>
                  </div>
                </td>
                <td>
                  <div style="display:grid; gap:4px;">
                    <input type="file" data-obj-doc-file="risk" data-doc-id="${docItem.id}" />
                    <div class="file-line">${escapeHtml(docItem.riskFileName || "파일 없음")}</div>
-                 </div>
-               </td>
-               <td style="text-align:left;">
-                 <div style="display:grid; gap:4px;">
-                   <div><b>작업표준:</b> ${escapeHtml(docItem.standardCode || "-")}</div>
-                   <div><b>위험성평가:</b> ${escapeHtml(docItem.riskCode || "-")}</div>
+                   <div class="file-line"><b>관리번호:</b> ${escapeHtml(docItem.riskCode || "-")}</div>
                  </div>
                </td>
                <td>
@@ -1521,6 +1591,7 @@
        objectEmpty.style.display = "block";
        objectFormWrap.style.display = "none";
        objectDocTableWrap.innerHTML = `<div class="empty">객체를 선택하세요.</div>`;
+       specItemsWrap.innerHTML = "";
        return;
      }
 
@@ -1543,16 +1614,11 @@
      metaManagerMain.value = obj.meta?.managerMain || "";
      metaManagerSub.value = obj.meta?.managerSub || "";
      metaTeam.value = obj.meta?.team || "";
-     metaSpecDimension.value = obj.meta?.spec?.dimension || "";
-     metaSpecPressure.value = obj.meta?.spec?.pressure || "";
-     metaSpecTemperature.value = obj.meta?.spec?.temperature || "";
-     metaSpecPower.value = obj.meta?.spec?.power || "";
-     metaSpecCapacity.value = obj.meta?.spec?.capacity || "";
-     metaSpecWeight.value = obj.meta?.spec?.weight || "";
      metaSafetyInspection.value = obj.meta?.safetyInspection || "해당없음";
      metaSelfSafetyCheck.value = obj.meta?.selfSafetyCheck || "해당없음";
      metaNote.value = obj.meta?.note || "";
 
+     renderSpecItems();
      renderObjectDocumentsTable();
    }
 
@@ -1585,6 +1651,16 @@
        alert("먼저 레이아웃과 실험실을 선택하세요.");
        return;
      }
+
+     objects.forEach(obj => {
+       if (!obj.meta) obj.meta = {};
+       obj.meta.specItems = normalizeSpecItems(obj.meta).map(item => ({
+         id: item.id || uid("spec"),
+         label: String(item.label || "").trim(),
+         value: String(item.value || "")
+       }));
+       delete obj.meta.spec;
+     });
 
      const payload = {
        layoutId: currentLayoutId,
@@ -1629,14 +1705,15 @@
      obj.meta.managerMain = metaManagerMain.value.trim();
      obj.meta.managerSub = metaManagerSub.value.trim();
      obj.meta.team = metaTeam.value.trim();
-     obj.meta.spec = {
-       dimension: metaSpecDimension.value.trim(),
-       pressure: metaSpecPressure.value.trim(),
-       temperature: metaSpecTemperature.value.trim(),
-       power: metaSpecPower.value.trim(),
-       capacity: metaSpecCapacity.value.trim(),
-       weight: metaSpecWeight.value.trim()
-     };
+
+     obj.meta.specItems = normalizeSpecItems(obj.meta).map(item => ({
+       id: item.id || uid("spec"),
+       label: String(item.label || "").trim(),
+       value: String(item.value || "")
+     }));
+
+     delete obj.meta.spec;
+
      obj.meta.safetyInspection = metaSafetyInspection.value;
      obj.meta.selfSafetyCheck = metaSelfSafetyCheck.value;
      obj.meta.note = metaNote.value.trim();
@@ -1651,6 +1728,26 @@
      selectedObjectId = null;
      renderAll();
    }
+
+   addSpecItemBtn.addEventListener("click", () => {
+     const obj = getSelectedObject();
+
+     if (!obj) {
+       alert("먼저 객체를 선택하세요.");
+       return;
+     }
+
+     if (!obj.meta) obj.meta = {};
+     obj.meta.specItems = normalizeSpecItems(obj.meta);
+
+     obj.meta.specItems.push({
+       id: uid("spec"),
+       label: "",
+       value: ""
+     });
+
+     renderSpecItems();
+   });
 
    addObjectDocBtn.addEventListener("click", () => {
      const obj = getSelectedObject();
