@@ -99,6 +99,31 @@
      color:#111827;
    }
 
+   .auth-box {
+     display:flex;
+     gap:8px;
+     align-items:center;
+     flex-wrap:wrap;
+     padding:8px 10px;
+     border:1px solid #dbe0e7;
+     border-radius:10px;
+     background:#fff;
+   }
+
+   .auth-status {
+     font-size:13px;
+     font-weight:700;
+     color:#6b7280;
+   }
+
+   .auth-status.ok {
+     color:#16a34a;
+   }
+
+   .auth-status.warn {
+     color:#dc2626;
+   }
+
    .panel {
      background:var(--panel);
      border:1px solid #ddd;
@@ -400,6 +425,12 @@
        <select id="labSelect"></select>
        <button id="loadBtn" class="primary" type="button">불러오기</button>
        <button id="saveBtn" class="success" type="button">저장</button>
+
+       <div class="auth-box">
+         <button id="loginBtn" type="button" class="primary">Google 로그인</button>
+         <button id="logoutBtn" type="button" class="ghost" style="display:none;">로그아웃</button>
+         <span id="loginStatus" class="auth-status warn">로그인 필요</span>
+       </div>
      </div>
    </div>
 
@@ -610,6 +641,14 @@
      setDoc
    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+   import {
+     getAuth,
+     GoogleAuthProvider,
+     signInWithPopup,
+     signOut,
+     onAuthStateChanged
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
    const firebaseConfig = {
      apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
      authDomain: "lab-test-888d2.firebaseapp.com",
@@ -621,11 +660,21 @@
 
    const app = initializeApp(firebaseConfig);
    const db = getFirestore(app);
+   const auth = getAuth(app);
+   const provider = new GoogleAuthProvider();
+
+   provider.setCustomParameters({
+     prompt: "select_account"
+   });
 
    const layoutSelect = document.getElementById("layoutSelect");
    const labSelect = document.getElementById("labSelect");
    const loadBtn = document.getElementById("loadBtn");
    const saveBtn = document.getElementById("saveBtn");
+
+   const loginBtn = document.getElementById("loginBtn");
+   const logoutBtn = document.getElementById("logoutBtn");
+   const loginStatus = document.getElementById("loginStatus");
 
    const currentMeta = document.getElementById("currentMeta");
    const shapeBadge = document.getElementById("shapeBadge");
@@ -692,6 +741,51 @@
    let selectedObjectId = null;
    let dragState = null;
    let labShape = null;
+
+   loginBtn?.addEventListener("click", async () => {
+     try {
+       await signInWithPopup(auth, provider);
+     } catch (error) {
+       console.error("로그인 실패:", error);
+       alert("로그인 실패: " + error.message);
+     }
+   });
+
+   logoutBtn?.addEventListener("click", async () => {
+     try {
+       await signOut(auth);
+     } catch (error) {
+       console.error("로그아웃 실패:", error);
+       alert("로그아웃 실패: " + error.message);
+     }
+   });
+
+   onAuthStateChanged(auth, (user) => {
+     if (user) {
+       loginStatus.textContent = `로그인됨: ${user.email}`;
+       loginStatus.classList.remove("warn");
+       loginStatus.classList.add("ok");
+       loginBtn.style.display = "none";
+       logoutBtn.style.display = "inline-block";
+     } else {
+       loginStatus.textContent = "로그인 필요";
+       loginStatus.classList.remove("ok");
+       loginStatus.classList.add("warn");
+       loginBtn.style.display = "inline-block";
+       logoutBtn.style.display = "none";
+     }
+   });
+
+   function requireLogin() {
+     const user = auth.currentUser;
+
+     if (!user) {
+       alert("저장하려면 먼저 Google 로그인이 필요합니다.");
+       throw new Error("Firebase Auth 로그인 필요");
+     }
+
+     return user;
+   }
 
    function parseCell(key) {
      const [x, y] = String(key).split("-").map(Number);
@@ -1647,6 +1741,8 @@
    }
 
    async function saveInteriorLayout() {
+     requireLogin();
+
      if (!currentLayoutId || !currentLabId) {
        alert("먼저 레이아웃과 실험실을 선택하세요.");
        return;
@@ -1669,13 +1765,18 @@
        updatedAt: new Date().toISOString()
      };
 
-     await setDoc(
-       doc(db, "labInteriorLayouts", getInteriorDocId(currentLayoutId, currentLabId)),
-       payload,
-       { merge: true }
-     );
+     try {
+       await setDoc(
+         doc(db, "labInteriorLayouts", getInteriorDocId(currentLayoutId, currentLabId)),
+         payload,
+         { merge: true }
+       );
 
-     alert("내부 레이아웃 저장 완료");
+       alert("내부 레이아웃 저장 완료");
+     } catch (error) {
+       console.error("내부 레이아웃 저장 실패:", error);
+       alert("내부 레이아웃 저장 실패: " + error.message);
+     }
    }
 
    function applyObjectForm() {
@@ -1868,8 +1969,13 @@
      }
    });
 
-   await loadLayouts();
-   await loadSelectedLab();
+   try {
+     await loadLayouts();
+     await loadSelectedLab();
+   } catch (error) {
+     console.error("초기화 오류:", error);
+     alert("페이지 초기화 중 오류가 발생했습니다: " + error.message);
+   }
  </script>
 </body>
 </html>
