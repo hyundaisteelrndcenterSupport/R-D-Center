@@ -114,6 +114,31 @@
      color:#111827;
    }
 
+   .auth-box {
+     display:flex;
+     gap:8px;
+     align-items:center;
+     flex-wrap:wrap;
+     padding:8px 10px;
+     border:1px solid #dbe0e7;
+     border-radius:10px;
+     background:#fff;
+   }
+
+   .auth-status {
+     font-size:13px;
+     font-weight:700;
+     color:#6b7280;
+   }
+
+   .auth-status.ok {
+     color:#16a34a;
+   }
+
+   .auth-status.warn {
+     color:#dc2626;
+   }
+
    .panel {
      background:var(--panel);
      border:1px solid #ddd;
@@ -471,6 +496,13 @@
      <div class="toolbar">
        <select id="layoutSelector"></select>
        <input id="labSearch" placeholder="실험실명 또는 번호 검색" />
+
+       <div class="auth-box">
+         <button id="loginBtn" type="button" class="primary">Google 로그인</button>
+         <button id="logoutBtn" type="button" class="ghost" style="display:none;">로그아웃</button>
+         <span id="loginStatus" class="auth-status warn">로그인 필요</span>
+       </div>
+
        <button id="newLayoutBtn" type="button" class="success">새 레이아웃</button>
        <button id="saveLayoutBtn" type="button" class="primary">레이아웃 저장</button>
        <button id="deleteLayoutBtn" type="button" class="danger">레이아웃 삭제</button>
@@ -737,6 +769,14 @@
      where
    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+   import {
+     getAuth,
+     GoogleAuthProvider,
+     signInWithPopup,
+     signOut,
+     onAuthStateChanged
+   } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
    const firebaseConfig = {
      apiKey: "AIzaSyCUQhxvEllxuIsPGKnqyAJw91-1FR4v94U",
      authDomain: "lab-test-888d2.firebaseapp.com",
@@ -749,6 +789,12 @@
 
    const app = initializeApp(firebaseConfig);
    const db = getFirestore(app);
+   const auth = getAuth(app);
+   const provider = new GoogleAuthProvider();
+
+   provider.setCustomParameters({
+     prompt: "select_account"
+   });
 
    const GRID_COLS = 60;
    const GRID_ROWS = 26;
@@ -781,6 +827,10 @@
    const labSearch = document.getElementById("labSearch");
    const newRegionBtn = document.getElementById("newRegionBtn");
    const clearSelectionBtn = document.getElementById("clearSelectionBtn");
+
+   const loginBtn = document.getElementById("loginBtn");
+   const logoutBtn = document.getElementById("logoutBtn");
+   const loginStatus = document.getElementById("loginStatus");
 
    const editorEmpty = document.getElementById("editorEmpty");
    const editorWrap = document.getElementById("editorWrap");
@@ -828,6 +878,51 @@
    const chemicalsPasteInput = document.getElementById("chemicalsPasteInput");
    const applyChemicalsPasteBtn = document.getElementById("applyChemicalsPasteBtn");
    const clearChemicalsPasteBtn = document.getElementById("clearChemicalsPasteBtn");
+
+   loginBtn?.addEventListener("click", async () => {
+     try {
+       await signInWithPopup(auth, provider);
+     } catch (error) {
+       console.error("로그인 실패:", error);
+       alert("로그인 실패: " + error.message);
+     }
+   });
+
+   logoutBtn?.addEventListener("click", async () => {
+     try {
+       await signOut(auth);
+     } catch (error) {
+       console.error("로그아웃 실패:", error);
+       alert("로그아웃 실패: " + error.message);
+     }
+   });
+
+   onAuthStateChanged(auth, (user) => {
+     if (user) {
+       loginStatus.textContent = `로그인됨: ${user.email}`;
+       loginStatus.classList.remove("warn");
+       loginStatus.classList.add("ok");
+       loginBtn.style.display = "none";
+       logoutBtn.style.display = "inline-block";
+     } else {
+       loginStatus.textContent = "로그인 필요";
+       loginStatus.classList.remove("ok");
+       loginStatus.classList.add("warn");
+       loginBtn.style.display = "inline-block";
+       logoutBtn.style.display = "none";
+     }
+   });
+
+   function requireLogin() {
+     const user = auth.currentUser;
+
+     if (!user) {
+       alert("저장/삭제하려면 먼저 Google 로그인이 필요합니다.");
+       throw new Error("Firebase Auth 로그인 필요");
+     }
+
+     return user;
+   }
 
    const fallbackLayouts = {
      "research-building": {
@@ -1113,6 +1208,8 @@
    }
 
    async function saveCurrentLayout() {
+     requireLogin();
+
      const inputId = layoutIdInput.value.trim();
      if (!inputId) {
        alert("레이아웃 ID를 입력하세요. 예: research-building");
@@ -1193,6 +1290,8 @@
    }
 
    async function deleteCurrentLayout() {
+     requireLogin();
+
      if (!currentLayoutId) return;
 
      const layoutName = layoutsMap[currentLayoutId]?.name || currentLayoutId;
@@ -1769,6 +1868,8 @@
    }
 
    async function saveCurrentLab() {
+     requireLogin();
+
      if (!currentLayoutId) {
        alert("레이아웃을 먼저 선택하세요.");
        return;
@@ -1849,6 +1950,8 @@
    }
 
    async function deleteCurrentLab() {
+     requireLogin();
+
      if (!currentLayoutId) return;
      const regionId = formId.value.trim();
      if (!regionId) return;
@@ -2237,19 +2340,15 @@
      input.addEventListener("input", applyLabelStylePreview);
    });
 
-[labelText, labelFontSize, labelMaxWidth, labelOffsetX, labelOffsetY].forEach((input) => {
-  input.addEventListener("input", applyLabelStylePreview);
-});
+   async function main() {
+     await loadLayouts();
+     bindGridSelection();
+   }
 
-async function main() {
-  await loadLayouts();
-  bindGridSelection();
-}
-
-main().catch((err) => {
-  console.error("관리자 페이지 초기화 오류:", err);
-  alert("관리자 페이지를 불러오는 중 오류가 발생했습니다.\n\n상세: " + (err?.message || err));
-});
-</script>
+   main().catch((err) => {
+     console.error("관리자 페이지 초기화 오류:", err);
+     alert("관리자 페이지를 불러오는 중 오류가 발생했습니다.\n\n상세: " + (err?.message || err));
+   });
+ </script>
 </body>
 </html>
