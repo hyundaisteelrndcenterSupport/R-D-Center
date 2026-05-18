@@ -343,6 +343,81 @@
       overflow:auto;
     }
 
+ /* 취급 화학물질 표: 최대 15개 항목까지만 표시 후 상하 스크롤 */
+.chemicals-scroll {
+  --chemical-head-height: 42px;
+  --chemical-row-height: 40px;
+
+  max-height: calc(var(--chemical-head-height) + (15 * var(--chemical-row-height)));
+  overflow-y: auto;
+  overflow-x: auto;
+
+  border: 1px solid #dbe0e7;
+  border-radius: 8px;
+  background: #fff;
+
+  /* PC에서도 스크롤 영역을 명확하게 유지 */
+  scrollbar-gutter: stable;
+}
+
+/* 스크롤 내부 표 */
+.chemicals-scroll table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: none;
+}
+
+/* 헤더 고정 */
+.chemicals-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: var(--chemical-head-height);
+  background: var(--head);
+}
+
+/* 행 높이 고정: 15행 기준 스크롤을 안정적으로 만들기 위함 */
+.chemicals-scroll tbody tr {
+  height: var(--chemical-row-height);
+}
+
+.chemicals-scroll th,
+.chemicals-scroll td {
+  height: var(--chemical-row-height);
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+/* 바깥 테두리 중복 제거 */
+.chemicals-scroll th:first-child,
+.chemicals-scroll td:first-child {
+  border-left: none;
+}
+
+.chemicals-scroll th:last-child,
+.chemicals-scroll td:last-child {
+  border-right: none;
+}
+
+/* 마지막 행 아래쪽 선 정리 */
+.chemicals-scroll tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 제품명이 너무 길어도 행 높이가 무한정 늘어나지 않도록 처리 */
+.chemicals-scroll td:nth-child(2) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* MSDS 링크 칸 */
+.chemicals-scroll td:nth-child(3) {
+  white-space: nowrap;
+}
+
     table {
       width:100%;
       border-collapse:collapse;
@@ -513,6 +588,29 @@
         max-height:220px;
         overflow:auto;
       }
+
+     .chemicals-scroll {
+  --chemical-head-height: 38px;
+  --chemical-row-height: 34px;
+
+  max-height: calc(var(--chemical-head-height) + (15 * var(--chemical-row-height)));
+  overflow-y: auto;
+  overflow-x: auto;
+
+  /* 모바일에서는 표가 너무 찌그러지지 않게 최소폭 유지 */
+  -webkit-overflow-scrolling: touch;
+}
+
+.chemicals-scroll table {
+  min-width: 460px;
+}
+
+.chemicals-scroll th,
+.chemicals-scroll td {
+  height: var(--chemical-row-height);
+  padding: 6px 5px;
+  vertical-align: middle;
+}
 
       table {
         width:100%;
@@ -1176,48 +1274,54 @@
       `;
     }
 
-    function renderChemicalsTable(chemicals = [], searchText = "") {
-      const q = searchText.trim().toLowerCase();
-      const normalizedChemicals = normalizeChemicalRows(chemicals);
+   function renderChemicalsTable(chemicals = [], searchText = "") {
+  const q = searchText.trim().toLowerCase();
+  const normalizedChemicals = normalizeChemicalRows(chemicals);
 
-      const filtered = !q
-        ? normalizedChemicals
-        : normalizedChemicals.filter(c =>
-            String(c.name ?? "").toLowerCase().includes(q) ||
-            String(c.msdsUrl ?? "").toLowerCase().includes(q)
-          );
+  const filtered = !q
+    ? normalizedChemicals
+    : normalizedChemicals.filter(c =>
+        String(c.name ?? "").toLowerCase().includes(q) ||
+        String(c.msdsUrl ?? "").toLowerCase().includes(q)
+      );
 
-      if (!filtered.length) {
-        chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
-        return;
-      }
+  if (!filtered.length) {
+    chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+    return;
+  }
 
-      chemicalsWrap.innerHTML = `
-        <table>
-          <colgroup>
-            <col class="col-no">
-            <col class="col-product">
-            <col class="col-msdsurl">
-          </colgroup>
-          <thead>
+  const needsScroll = filtered.length > 15;
+
+  chemicalsWrap.innerHTML = `
+    <div class="chemicals-scroll ${needsScroll ? "has-scroll" : ""}">
+      <table>
+        <colgroup>
+          <col class="col-no">
+          <col class="col-product">
+          <col class="col-msdsurl">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>번호</th>
+            <th>제품명</th>
+            <th>MSDS 링크</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(c => `
             <tr>
-              <th>번호</th>
-              <th>제품명</th>
-              <th>MSDS 링크</th>
+              <td>${escapeHtml(String(c.no ?? ""))}</td>
+              <td title="${escapeHtml(String(c.name ?? ""))}">
+                ${escapeHtml(String(c.name ?? ""))}
+              </td>
+              <td>${renderLinkCell(c.msdsUrl)}</td>
             </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(c => `
-              <tr>
-                <td>${escapeHtml(String(c.no ?? ""))}</td>
-                <td>${escapeHtml(String(c.name ?? ""))}</td>
-                <td>${renderLinkCell(c.msdsUrl)}</td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      `;
-    }
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
 
     function renderLinkCell(url) {
       const text = String(url || "").trim();
