@@ -36,9 +36,15 @@
      --line-table:1.35;
      --line-layout-name:1.15;
 
-     /* 표 세로 스크롤 높이 */
-     --workers-table-max-height:240px;
-     --chemicals-table-max-height:320px;
+     /* 표 세로 스크롤 설정
+        - 근무자: 헤더 1줄 + 본문 6명까지 표시
+        - 화학물질: 헤더 1줄 + 본문 15개까지 표시 */
+     --detail-table-header-height:38px;
+     --detail-table-row-height:36px;
+     --workers-visible-rows:6;
+     --chemicals-visible-rows:15;
+     --workers-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--workers-visible-rows)) + 2px);
+     --chemicals-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--chemicals-visible-rows)) + 2px);
      --docs-table-max-height:280px;
 
      /* 근무자 표 컬럼 너비 */
@@ -392,8 +398,19 @@
    #workersWrap td,
    #chemicalsWrap th,
    #chemicalsWrap td {
+     height:var(--detail-table-row-height);
+     max-height:var(--detail-table-row-height);
+     line-height:1.2;
+     vertical-align:middle;
      overflow:hidden;
      text-overflow:ellipsis;
+     white-space:nowrap;
+   }
+
+   #workersWrap thead th,
+   #chemicalsWrap thead th {
+     height:var(--detail-table-header-height);
+     max-height:var(--detail-table-header-height);
    }
 
    thead th {
@@ -535,8 +552,10 @@
        --font-layout-name-default:8px;
        --font-equipment-text:10px;
 
-       --workers-table-max-height:220px;
-       --chemicals-table-max-height:260px;
+       --detail-table-header-height:32px;
+       --detail-table-row-height:30px;
+       --workers-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--workers-visible-rows)) + 2px);
+       --chemicals-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--chemicals-visible-rows)) + 2px);
        --docs-table-max-height:240px;
 
        --workers-col-no:10%;
