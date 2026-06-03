@@ -1703,7 +1703,7 @@
    }
 
    function renderDataFileCell(fileName, dataUrl) {
-     if (!fileName) return "업데이트 준비";
+     if (!fileName) return "업데이트 준비중";
      if (!dataUrl) return escapeHtml(fileName);
      return `<a href="${escapeHtml(dataUrl)}" download="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>`;
    }
