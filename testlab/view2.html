@@ -350,7 +350,71 @@
       line-height:var(--line-table);
       table-layout:fixed;
     }
+/* ================================
+   웹 버전 근무자 / 화학물질 표 열 비율
+   ================================ */
 
+/* 근무자 표 열 너비: 번호 / 팀 / 직급 / 이름 */
+#workersWrap table col.col-no {
+  width:9%;
+}
+
+#workersWrap table col.col-team {
+  width:40%;
+}
+
+#workersWrap table col.col-title {
+  width:28%;
+}
+
+#workersWrap table col.col-name {
+  width:23%;
+}
+
+/* 화학물질 표 열 너비: 번호 / 제품명 / MSDS 링크 */
+#chemicalsWrap table col.col-no {
+  width:10%;
+}
+
+#chemicalsWrap table col.col-product {
+  width:55%;
+}
+
+#chemicalsWrap table col.col-msdsurl {
+  width:35%;
+}
+
+/* 웹 버전에서도 번호 칸은 작게 */
+#workersWrap th:nth-child(1),
+#workersWrap td:nth-child(1),
+#chemicalsWrap th:nth-child(1),
+#chemicalsWrap td:nth-child(1) {
+  white-space:nowrap;
+  padding-left:4px;
+  padding-right:4px;
+}
+
+/* 웹 버전에서도 팀/직급/이름은 한 줄 유지 */
+#workersWrap td:nth-child(2),
+#workersWrap td:nth-child(3),
+#workersWrap td:nth-child(4) {
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow-wrap:normal;
+}
+
+/* 웹 버전 화학물질 제품명은 한 줄 유지 */
+#chemicalsWrap td:nth-child(2) {
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow-wrap:normal;
+}
+
+/* MSDS 링크는 길 수 있으니 필요 시 줄바꿈 */
+#chemicalsWrap td:nth-child(3) {
+  word-break:break-all;
+  overflow-wrap:anywhere;
+}
     th, td {
       border:1px solid #dbe0e7;
       padding:9px 10px;
