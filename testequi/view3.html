@@ -35,7 +35,23 @@
      --line-base:1.45;
      --line-table:1.35;
      --line-layout-name:1.15;
-   }
+
+     /* 표 세로 스크롤 높이 */
+     --workers-table-max-height:240px;
+     --chemicals-table-max-height:320px;
+     --docs-table-max-height:280px;
+
+     /* 근무자 표 컬럼 너비 */
+     --workers-col-no:10%;
+     --workers-col-team:36%;
+     --workers-col-title:26%;
+     --workers-col-name:28%;
+
+     /* 화학물질 표 컬럼 너비 */
+     --chemicals-col-no:8%;
+     --chemicals-col-product:62%;
+     --chemicals-col-msdsurl:30%;
+      }
 
    * { box-sizing:border-box; }
 
@@ -327,8 +343,32 @@
    }
 
    .table-wrap {
-     overflow:auto;
+     width:100%;
+     max-width:100%;
+     overflow-x:hidden;
+     overflow-y:auto;
    }
+
+   #workersWrap {
+     max-height:var(--workers-table-max-height);
+   }
+
+   #chemicalsWrap {
+     max-height:var(--chemicals-table-max-height);
+   }
+
+   #equipmentDocs {
+     max-height:var(--docs-table-max-height);
+   }
+
+   #workersWrap table col.col-no { width:var(--workers-col-no); }
+   #workersWrap table col.col-team { width:var(--workers-col-team); }
+   #workersWrap table col.col-title { width:var(--workers-col-title); }
+   #workersWrap table col.col-name { width:var(--workers-col-name); }
+
+   #chemicalsWrap table col.col-no { width:var(--chemicals-col-no); }
+   #chemicalsWrap table col.col-product { width:var(--chemicals-col-product); }
+   #chemicalsWrap table col.col-msdsurl { width:var(--chemicals-col-msdsurl); }
 
    table {
      width:100%;
@@ -346,6 +386,14 @@
      word-break:break-word;
      overflow-wrap:anywhere;
      white-space:normal;
+   }
+
+   #workersWrap th,
+   #workersWrap td,
+   #chemicalsWrap th,
+   #chemicalsWrap td {
+     overflow:hidden;
+     text-overflow:ellipsis;
    }
 
    thead th {
@@ -486,6 +534,19 @@
        --font-layout-number:9px;
        --font-layout-name-default:8px;
        --font-equipment-text:10px;
+
+       --workers-table-max-height:220px;
+       --chemicals-table-max-height:260px;
+       --docs-table-max-height:240px;
+
+       --workers-col-no:10%;
+       --workers-col-team:34%;
+       --workers-col-title:26%;
+       --workers-col-name:30%;
+
+       --chemicals-col-no:10%;
+       --chemicals-col-product:58%;
+       --chemicals-col-msdsurl:32%;
      }
 
      .app {
@@ -565,14 +626,14 @@
        white-space:normal;
      }
 
-     #workersWrap table col.col-no { width:9%; }
-     #workersWrap table col.col-team { width:40%; }
-     #workersWrap table col.col-title { width:28%; }
-     #workersWrap table col.col-name { width:23%; }
+     #workersWrap table col.col-no { width:var(--workers-col-no); }
+     #workersWrap table col.col-team { width:var(--workers-col-team); }
+     #workersWrap table col.col-title { width:var(--workers-col-title); }
+     #workersWrap table col.col-name { width:var(--workers-col-name); }
 
-     #chemicalsWrap table col.col-no { width:10%; }
-     #chemicalsWrap table col.col-product { width:55%; }
-     #chemicalsWrap table col.col-msdsurl { width:35%; }
+     #chemicalsWrap table col.col-no { width:var(--chemicals-col-no); }
+     #chemicalsWrap table col.col-product { width:var(--chemicals-col-product); }
+     #chemicalsWrap table col.col-msdsurl { width:var(--chemicals-col-msdsurl); }
 
      #equipmentDocs table col.col-doc-no { width:10%; }
      #equipmentDocs table col.col-doc-name { width:32%; }
@@ -597,12 +658,16 @@
        white-space:nowrap;
        word-break:keep-all;
        overflow-wrap:normal;
+       overflow:hidden;
+       text-overflow:ellipsis;
      }
 
      #chemicalsWrap td:nth-child(2) {
        white-space:nowrap;
        word-break:keep-all;
        overflow-wrap:normal;
+       overflow:hidden;
+       text-overflow:ellipsis;
      }
 
      #chemicalsWrap td:nth-child(3) {
