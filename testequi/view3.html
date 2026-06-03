@@ -1656,7 +1656,7 @@
      if (!specItems.length) {
        equipmentSpec.innerHTML = `
          <div>Spec</div>
-         <div class="muted spec-value">등록된 Spec 정보가 없습니다.</div>
+         <div class="muted spec-value">-</div>
        `;
      } else {
        equipmentSpec.innerHTML = specItems
@@ -1669,7 +1669,7 @@
 
      const docs = Array.isArray(obj.meta?.documents) ? obj.meta.documents : [];
      if (!docs.length) {
-       equipmentDocs.innerHTML = `<div class="empty">등록된 자료가 없습니다.</div>`;
+       equipmentDocs.innerHTML = `<div class="empty">업데이트 준비중 입니다.</div>`;
      } else {
        equipmentDocs.innerHTML = `
          <table>
@@ -1703,7 +1703,7 @@
    }
 
    function renderDataFileCell(fileName, dataUrl) {
-     if (!fileName) return "파일 없음";
+     if (!fileName) return "업데이트 준비";
      if (!dataUrl) return escapeHtml(fileName);
      return `<a href="${escapeHtml(dataUrl)}" download="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>`;
    }
