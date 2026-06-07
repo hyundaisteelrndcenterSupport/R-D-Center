@@ -1595,29 +1595,46 @@
        text.setAttribute("text-anchor", "middle");
        text.setAttribute("dominant-baseline", "middle");
 
-       const linesText = String(obj.label || "").split("\n").slice(0, 2);
-       linesText.forEach((line, idx) => {
-         const tspan = document.createElementNS(svgNS, "tspan");
-         tspan.setAttribute("x", obj.x + obj.w / 2);
-         tspan.setAttribute("dy", idx === 0 ? (linesText.length > 1 ? "-0.35em" : "0") : "1.2em");
-         tspan.textContent = line;
-         text.appendChild(tspan);
-       });
+const linesText = String(obj.label || "")
+  .split("\n")
+  .map(v => v.trim())
+  .filter(Boolean);
 
+const fontSize = getInteriorAutoFontSize(obj);
+const lineHeight = fontSize * 1.2;
+const startDy = linesText.length > 1
+  ? -((linesText.length - 1) * lineHeight) / 2
+  : 0;
+
+linesText.forEach((line, idx) => {
+  const tspan = document.createElementNS(svgNS, "tspan");
+  tspan.setAttribute("x", obj.x + obj.w / 2);
+  tspan.setAttribute("dy", idx === 0 ? startDy : lineHeight);
+  tspan.textContent = line;
+  text.appendChild(tspan);
+});
        group.appendChild(text);
        group.addEventListener("click", () => selectEquipment(obj.id));
        interiorObjectLayer.appendChild(group);
      });
    }
 
-   function getInteriorAutoFontSize(obj) {
-     const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
-     const lines = String(obj.label || "").split("\n").slice(0, 2);
-     const longest = Math.max(1, ...lines.map(v => v.length || 1));
-     const maxByWidth = (obj.w * 0.78) / (longest * 0.62);
-     const maxByHeight = (obj.h * 0.55) / Math.max(1, lines.length);
-     return Math.max(8, Math.min(base, maxByWidth, maxByHeight));
-   }
+function getInteriorAutoFontSize(obj) {
+  const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
+
+  const lines = String(obj.label || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  const lineCount = Math.max(1, lines.length);
+  const longest = Math.max(1, ...lines.map(v => v.length || 1));
+
+  const maxByWidth = (obj.w * 0.82) / (longest * 0.62);
+  const maxByHeight = (obj.h * 0.82) / (lineCount * 1.2);
+
+  return Math.max(6, Math.min(base, maxByWidth, maxByHeight));
+}
 
    function renderInteriorDetail() {
      renderInteriorLayout();
