@@ -35,7 +35,29 @@
      --line-base:1.45;
      --line-table:1.35;
      --line-layout-name:1.15;
-   }
+
+     /* 표 세로 스크롤 설정
+        - 근무자: 헤더 1줄 + 본문 6명까지 표시
+        - 화학물질: 헤더 1줄 + 본문 15개까지 표시 */
+     --detail-table-header-height:38px;
+     --detail-table-row-height:36px;
+     --workers-visible-rows:6;
+     --chemicals-visible-rows:15;
+     --workers-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--workers-visible-rows)) + 2px);
+     --chemicals-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--chemicals-visible-rows)) + 2px);
+     --docs-table-max-height:280px;
+
+     /* 근무자 표 컬럼 너비 */
+     --workers-col-no:10%;
+     --workers-col-team:36%;
+     --workers-col-title:26%;
+     --workers-col-name:28%;
+
+     /* 화학물질 표 컬럼 너비 */
+     --chemicals-col-no:8%;
+     --chemicals-col-product:62%;
+     --chemicals-col-msdsurl:30%;
+      }
 
    * { box-sizing:border-box; }
 
@@ -327,37 +349,33 @@
    }
 
    .table-wrap {
-     overflow:auto;
+     width:100%;
+     max-width:100%;
+     overflow-x:hidden;
+     overflow-y:auto;
    }
 
-   .chemicals-scroll {
-   max-height: calc((15 * 38px) + 42px);
-   overflow-y: auto;
-   overflow-x: auto;
-   border: 1px solid #dbe0e7;
-   border-radius: 8px;
+   #workersWrap {
+     max-height:var(--workers-table-max-height);
    }
 
-  .chemicals-scroll table {
-   border: none;
+   #chemicalsWrap {
+     max-height:var(--chemicals-table-max-height);
    }
 
-  .chemicals-scroll th:first-child,
-  .chemicals-scroll td:first-child {
-   border-left: none;
+   #equipmentDocs {
+     max-height:var(--docs-table-max-height);
    }
 
-  .chemicals-scroll th:last-child,
-  .chemicals-scroll td:last-child {
-   border-right: none;
-   }
+   #workersWrap table col.col-no { width:var(--workers-col-no); }
+   #workersWrap table col.col-team { width:var(--workers-col-team); }
+   #workersWrap table col.col-title { width:var(--workers-col-title); }
+   #workersWrap table col.col-name { width:var(--workers-col-name); }
 
-  .chemicals-scroll thead th {
-   position: sticky;
-   top: 0;
-   z-index: 2;
-   }
-  
+   #chemicalsWrap table col.col-no { width:var(--chemicals-col-no); }
+   #chemicalsWrap table col.col-product { width:var(--chemicals-col-product); }
+   #chemicalsWrap table col.col-msdsurl { width:var(--chemicals-col-msdsurl); }
+
    table {
      width:100%;
      border-collapse:collapse;
@@ -374,6 +392,25 @@
      word-break:break-word;
      overflow-wrap:anywhere;
      white-space:normal;
+   }
+
+   #workersWrap th,
+   #workersWrap td,
+   #chemicalsWrap th,
+   #chemicalsWrap td {
+     height:var(--detail-table-row-height);
+     max-height:var(--detail-table-row-height);
+     line-height:1.2;
+     vertical-align:middle;
+     overflow:hidden;
+     text-overflow:ellipsis;
+     white-space:nowrap;
+   }
+
+   #workersWrap thead th,
+   #chemicalsWrap thead th {
+     height:var(--detail-table-header-height);
+     max-height:var(--detail-table-header-height);
    }
 
    thead th {
@@ -514,6 +551,21 @@
        --font-layout-number:9px;
        --font-layout-name-default:8px;
        --font-equipment-text:10px;
+
+       --detail-table-header-height:32px;
+       --detail-table-row-height:30px;
+       --workers-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--workers-visible-rows)) + 2px);
+       --chemicals-table-max-height:calc(var(--detail-table-header-height) + (var(--detail-table-row-height) * var(--chemicals-visible-rows)) + 2px);
+       --docs-table-max-height:240px;
+
+       --workers-col-no:10%;
+       --workers-col-team:34%;
+       --workers-col-title:26%;
+       --workers-col-name:30%;
+
+       --chemicals-col-no:10%;
+       --chemicals-col-product:58%;
+       --chemicals-col-msdsurl:32%;
      }
 
      .app {
@@ -602,10 +654,6 @@
      #chemicalsWrap table col.col-product { width:55%; }
      #chemicalsWrap table col.col-msdsurl { width:35%; }
 
-    .chemicals-scroll {
-     max-height: calc((15 * 31px) + 38px);
-     }
-    
      #equipmentDocs table col.col-doc-no { width:10%; }
      #equipmentDocs table col.col-doc-name { width:32%; }
      #equipmentDocs table col.col-doc-standard { width:29%; }
@@ -629,12 +677,16 @@
        white-space:nowrap;
        word-break:keep-all;
        overflow-wrap:normal;
+       overflow:hidden;
+       text-overflow:ellipsis;
      }
 
      #chemicalsWrap td:nth-child(2) {
        white-space:nowrap;
        word-break:keep-all;
        overflow-wrap:normal;
+       overflow:hidden;
+       text-overflow:ellipsis;
      }
 
      #chemicalsWrap td:nth-child(3) {
@@ -1345,49 +1397,47 @@
    }
 
    function renderChemicalsTable(chemicals = [], searchText = "") {
-  const q = searchText.trim().toLowerCase();
-  const normalizedChemicals = normalizeChemicalRows(chemicals);
+     const q = searchText.trim().toLowerCase();
+     const normalizedChemicals = normalizeChemicalRows(chemicals);
 
-  const filtered = !q
-    ? normalizedChemicals
-    : normalizedChemicals.filter(c =>
-        String(c.name ?? "").toLowerCase().includes(q) ||
-        String(c.msdsUrl ?? "").toLowerCase().includes(q)
-      );
+     const filtered = !q
+       ? normalizedChemicals
+       : normalizedChemicals.filter(c =>
+           String(c.name ?? "").toLowerCase().includes(q) ||
+           String(c.msdsUrl ?? "").toLowerCase().includes(q)
+         );
 
-  if (!filtered.length) {
-    chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
-    return;
-  }
+     if (!filtered.length) {
+       chemicalsWrap.innerHTML = `<div class="empty">검색 결과가 없습니다.</div>`;
+       return;
+     }
 
-  chemicalsWrap.innerHTML = `
-    <div class="chemicals-scroll">
-      <table>
-        <colgroup>
-          <col class="col-no">
-          <col class="col-product">
-          <col class="col-msdsurl">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>번호</th>
-            <th>제품명</th>
-            <th>MSDS 링크</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${filtered.map(c => `
-            <tr>
-              <td>${escapeHtml(String(c.no ?? ""))}</td>
-              <td>${escapeHtml(String(c.name ?? ""))}</td>
-              <td>${renderLinkCell(c.msdsUrl)}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
+     chemicalsWrap.innerHTML = `
+       <table>
+         <colgroup>
+           <col class="col-no">
+           <col class="col-product">
+           <col class="col-msdsurl">
+         </colgroup>
+         <thead>
+           <tr>
+             <th>번호</th>
+             <th>제품명</th>
+             <th>MSDS 링크</th>
+           </tr>
+         </thead>
+         <tbody>
+           ${filtered.map(c => `
+             <tr>
+               <td>${escapeHtml(String(c.no ?? ""))}</td>
+               <td>${escapeHtml(String(c.name ?? ""))}</td>
+               <td>${renderLinkCell(c.msdsUrl)}</td>
+             </tr>
+           `).join("")}
+         </tbody>
+       </table>
+     `;
+   }
 
    function renderLinkCell(url) {
      const text = String(url || "").trim();
@@ -1545,29 +1595,46 @@
        text.setAttribute("text-anchor", "middle");
        text.setAttribute("dominant-baseline", "middle");
 
-       const linesText = String(obj.label || "").split("\n").slice(0, 2);
-       linesText.forEach((line, idx) => {
-         const tspan = document.createElementNS(svgNS, "tspan");
-         tspan.setAttribute("x", obj.x + obj.w / 2);
-         tspan.setAttribute("dy", idx === 0 ? (linesText.length > 1 ? "-0.35em" : "0") : "1.2em");
-         tspan.textContent = line;
-         text.appendChild(tspan);
-       });
+const linesText = String(obj.label || "")
+  .split("\n")
+  .map(v => v.trim())
+  .filter(Boolean);
 
+const fontSize = getInteriorAutoFontSize(obj);
+const lineHeight = fontSize * 1.2;
+const startDy = linesText.length > 1
+  ? -((linesText.length - 1) * lineHeight) / 2
+  : 0;
+
+linesText.forEach((line, idx) => {
+  const tspan = document.createElementNS(svgNS, "tspan");
+  tspan.setAttribute("x", obj.x + obj.w / 2);
+  tspan.setAttribute("dy", idx === 0 ? startDy : lineHeight);
+  tspan.textContent = line;
+  text.appendChild(tspan);
+});
        group.appendChild(text);
        group.addEventListener("click", () => selectEquipment(obj.id));
        interiorObjectLayer.appendChild(group);
      });
    }
 
-   function getInteriorAutoFontSize(obj) {
-     const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
-     const lines = String(obj.label || "").split("\n").slice(0, 2);
-     const longest = Math.max(1, ...lines.map(v => v.length || 1));
-     const maxByWidth = (obj.w * 0.78) / (longest * 0.62);
-     const maxByHeight = (obj.h * 0.55) / Math.max(1, lines.length);
-     return Math.max(8, Math.min(base, maxByWidth, maxByHeight));
-   }
+function getInteriorAutoFontSize(obj) {
+  const base = obj.fontSize || (obj.type === "text" ? 18 : 20);
+
+  const lines = String(obj.label || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  const lineCount = Math.max(1, lines.length);
+  const longest = Math.max(1, ...lines.map(v => v.length || 1));
+
+  const maxByWidth = (obj.w * 0.82) / (longest * 0.62);
+  const maxByHeight = (obj.h * 0.82) / (lineCount * 1.2);
+
+  return Math.max(6, Math.min(base, maxByWidth, maxByHeight));
+}
 
    function renderInteriorDetail() {
      renderInteriorLayout();
@@ -1606,7 +1673,7 @@
      if (!specItems.length) {
        equipmentSpec.innerHTML = `
          <div>Spec</div>
-         <div class="muted spec-value">등록된 Spec 정보가 없습니다.</div>
+         <div class="muted spec-value">-</div>
        `;
      } else {
        equipmentSpec.innerHTML = specItems
@@ -1619,7 +1686,7 @@
 
      const docs = Array.isArray(obj.meta?.documents) ? obj.meta.documents : [];
      if (!docs.length) {
-       equipmentDocs.innerHTML = `<div class="empty">등록된 자료가 없습니다.</div>`;
+       equipmentDocs.innerHTML = `<div class="empty">업데이트 준비중 입니다.</div>`;
      } else {
        equipmentDocs.innerHTML = `
          <table>
@@ -1653,7 +1720,7 @@
    }
 
    function renderDataFileCell(fileName, dataUrl) {
-     if (!fileName) return "파일 없음";
+     if (!fileName) return "업데이트 준비중";
      if (!dataUrl) return escapeHtml(fileName);
      return `<a href="${escapeHtml(dataUrl)}" download="${escapeHtml(fileName)}">${escapeHtml(fileName)}</a>`;
    }
