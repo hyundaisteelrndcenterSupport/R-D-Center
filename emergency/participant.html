@@ -482,7 +482,7 @@
    }
 
    /********************************************************
-    * 모바일 전용 UI
+    * 모바일 전용 UI - 카드형이 아니라 표 형식 유지
     ********************************************************/
    @media (max-width: 760px) {
      body {
@@ -692,86 +692,97 @@
      }
 
      .table-wrap {
-       border:0;
-       max-height:none;
-       overflow:visible;
-       background:transparent;
+       width:100%;
+       border:2px solid #222;
+       border-radius:12px;
+       overflow-x:hidden;
+       overflow-y:auto;
+       max-height:calc(100dvh - 330px);
+       background:#fff;
+       box-shadow:var(--mobile-shadow);
      }
 
-     table,
-     thead,
-     tbody,
-     tr,
-     th,
-     td {
-       display:block;
+     table {
        width:100%;
+       min-width:0;
+       border-collapse:collapse;
+       table-layout:fixed;
+       font-size:12px;
      }
 
      thead {
-       display:none;
+       display:table-header-group;
      }
 
      tbody {
-       display:flex;
-       flex-direction:column;
-       gap:10px;
+       display:table-row-group;
      }
 
      tr {
-       border:1px solid var(--gray-200);
-       border-radius:18px;
-       background:#fff;
-       box-shadow:var(--mobile-shadow);
-       overflow:hidden;
+       display:table-row;
      }
 
+     th,
      td {
-       min-height:42px;
-       height:auto;
-       display:flex;
-       justify-content:space-between;
-       align-items:center;
-       gap:14px;
-       border:0;
-       border-bottom:1px solid var(--gray-100);
-       padding:11px 14px;
-       text-align:right;
-       font-size:15px;
+       display:table-cell;
+       height:38px;
+       min-height:0;
+       border:1px solid var(--line);
+       padding:4px 3px;
+       text-align:center;
+       vertical-align:middle;
+       font-size:12px;
        font-weight:800;
-       word-break:break-word;
+       line-height:1.25;
+       word-break:keep-all;
+       overflow-wrap:anywhere;
      }
 
-     td:last-child {
-       border-bottom:0;
-     }
-
-     td::before {
-       content:attr(data-label);
-       flex:0 0 auto;
-       color:var(--gray-500);
-       font-size:13px;
+     th {
+       position:sticky;
+       top:0;
+       z-index:2;
+       background:#fff;
+       font-size:12px;
        font-weight:900;
-       text-align:left;
+     }
+
+     .col-no {
+       width:9%;
+     }
+
+     .col-team,
+     .col-affiliation {
+       width:24%;
+     }
+
+     .col-name {
+       width:17%;
+     }
+
+     .col-check {
+       width:16%;
+     }
+
+     .col-time {
+       width:34%;
      }
 
      .complete {
-       color:var(--green);
+       color:#111;
+       font-weight:900;
      }
 
      .empty-row {
-       display:block;
-       padding:28px 18px;
-       border:1px solid var(--gray-200);
-       border-radius:18px;
+       display:table-cell;
+       height:80px;
+       padding:16px 8px;
+       border:1px solid var(--line);
        background:#fff;
-       box-shadow:var(--mobile-shadow);
        text-align:center;
-       font-size:15px;
-     }
-
-     .empty-row::before {
-       content:"";
+       font-size:13px;
+       font-weight:900;
+       color:var(--gray-500);
      }
 
      .fatal {
@@ -933,6 +944,7 @@
    let externalParticipants = [];
    let duplicateActiveTrainingDetected = false;
    let userCheckedInThisSession = false;
+   let listModeManuallyOpened = false;
 
    let unsubscribeTraining = null;
    let unsubscribeParticipants = null;
@@ -1414,7 +1426,8 @@
      if (
        status.code === "open" &&
        !userCheckedInThisSession &&
-       !duplicateActiveTrainingDetected
+       !duplicateActiveTrainingDetected &&
+       !listModeManuallyOpened
      ) {
        showCheckForm(false);
        return;
@@ -1439,6 +1452,8 @@
        showListOnly();
        return;
      }
+
+     listModeManuallyOpened = false;
 
      $("fatalView").classList.add("hidden");
      $("checkView").classList.remove("hidden");
@@ -1468,6 +1483,10 @@
    }
 
    function showListOnly(force = true) {
+     if (force) {
+       listModeManuallyOpened = true;
+     }
+
      $("fatalView").classList.add("hidden");
      $("checkView").classList.add("hidden");
      $("listView").classList.remove("hidden");
@@ -1543,6 +1562,7 @@
        if (person.checked === true) {
          setMessage("이미 출석체크가 완료된 참석자입니다.", "warn");
          userCheckedInThisSession = true;
+         listModeManuallyOpened = true;
          setTimeout(() => showListOnly(), 500);
          return;
        }
@@ -1558,6 +1578,7 @@
 
        setMessage("출석체크가 완료되었습니다.", "ok");
        userCheckedInThisSession = true;
+       listModeManuallyOpened = true;
        $("empNoInput").value = "";
 
        setTimeout(() => {
@@ -1641,6 +1662,7 @@
 
        setMessage("출석체크가 완료되었습니다.", "ok");
        userCheckedInThisSession = true;
+       listModeManuallyOpened = true;
        $("affiliationInput").value = "";
        $("externalNameInput").value = "";
 
@@ -1708,11 +1730,11 @@
 
        return `
          <tr>
-           <td data-label="순번">${escapeHtml(p.order ?? index + 1)}</td>
-           <td data-label="팀명">${escapeHtml(p.team ?? "")}</td>
-           <td data-label="성명">${escapeHtml(p.name ?? "")}</td>
-           <td data-label="출석체크" class="${checked ? "complete" : ""}">${checkedText}</td>
-           <td data-label="출석 시간">${escapeHtml(timeText)}</td>
+           <td>${index + 1}</td>
+           <td>${escapeHtml(p.team ?? "")}</td>
+           <td>${escapeHtml(p.name ?? "")}</td>
+           <td class="${checked ? "complete" : ""}">${checkedText}</td>
+           <td>${escapeHtml(timeText)}</td>
          </tr>
        `;
      }).join("");
@@ -1745,11 +1767,11 @@
 
        return `
          <tr>
-           <td data-label="순번">${escapeHtml(p.order ?? index + 1)}</td>
-           <td data-label="소속">${escapeHtml(p.affiliation ?? "")}</td>
-           <td data-label="성명">${escapeHtml(p.name ?? "")}</td>
-           <td data-label="출석체크" class="${checked ? "complete" : ""}">${checkedText}</td>
-           <td data-label="출석 시간">${escapeHtml(timeText)}</td>
+           <td>${index + 1}</td>
+           <td>${escapeHtml(p.affiliation ?? "")}</td>
+           <td>${escapeHtml(p.name ?? "")}</td>
+           <td class="${checked ? "complete" : ""}">${checkedText}</td>
+           <td>${escapeHtml(timeText)}</td>
          </tr>
        `;
      }).join("");
