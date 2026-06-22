@@ -1,1597 +1,1650 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
-  <title>비상대응훈련 참석자 출석</title>
-
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
-
-  <style>
-    :root {
-      --red:#c00000;
-      --red-dark:#9f0000;
-      --black:#111827;
-      --blue:#2563eb;
-      --green:#059669;
-      --yellow:#ca8a04;
-      --gray-50:#f8fafc;
-      --gray-100:#f1f5f9;
-      --gray-200:#e2e8f0;
-      --gray-300:#cbd5e1;
-      --gray-500:#64748b;
-      --gray-600:#475569;
-      --gray-700:#334155;
-      --gray-900:#0f172a;
-      --shadow:0 16px 40px rgba(15,23,42,.08);
-      --mobile-shadow:0 10px 24px rgba(15,23,42,.08);
-      --safe-bottom:env(safe-area-inset-bottom, 0px);
-    }
-
-    * {
-      box-sizing:border-box;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    html {
-      min-height:100%;
-      background:#f8fafc;
-    }
-
-    body {
-      margin:0;
-      min-height:100%;
-      background:linear-gradient(180deg,#f8fafc 0%,#ffffff 48%);
-      color:var(--black);
-      font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;
-    }
-
-    button,
-    input {
-      font-family:inherit;
-    }
-
-    .page {
-      width:min(960px,100%);
-      min-height:100vh;
-      margin:0 auto;
-      padding:28px 24px 24px;
-      display:flex;
-      flex-direction:column;
-    }
-
-    .top-bar {
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:16px;
-      margin-bottom:22px;
-      padding:18px 22px;
-      border:1px solid var(--gray-200);
-      border-radius:20px;
-      background:#fff;
-      box-shadow:var(--shadow);
-    }
-
-    .brand {
-      min-width:0;
-    }
-
-    .eyebrow {
-      margin:0 0 5px;
-      color:var(--red);
-      font-size:13px;
-      font-weight:900;
-      letter-spacing:.12em;
-    }
-
-    .brand-title {
-      margin:0;
-      font-size:28px;
-      font-weight:900;
-      letter-spacing:-.04em;
-      line-height:1.25;
-    }
-
-    .brand-desc {
-      margin:7px 0 0;
-      color:var(--gray-500);
-      font-size:13px;
-      font-weight:700;
-      line-height:1.5;
-    }
-
-    .clock-card {
-      min-width:260px;
-      padding:14px 16px;
-      border-radius:16px;
-      background:var(--gray-900);
-      color:#fff;
-      text-align:right;
-    }
-
-    .clock-card span {
-      display:block;
-      margin-bottom:6px;
-      color:#cbd5e1;
-      font-size:12px;
-      font-weight:800;
-    }
-
-    .clock-card strong {
-      display:block;
-      font-size:19px;
-      letter-spacing:-.02em;
-    }
-
-    .connection-state {
-      margin-top:8px;
-      font-size:12px;
-      font-weight:800;
-      color:#cbd5e1;
-      line-height:1.35;
-    }
-
-    .connection-state.ok {
-      color:#86efac;
-    }
-
-    .connection-state.warn {
-      color:#fde68a;
-    }
-
-    .connection-state.error {
-      color:#fca5a5;
-    }
-
-    .hidden {
-      display:none !important;
-    }
-
-    .main-layout {
-      flex:1;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      padding:18px 0 54px;
-    }
-
-    .check-card,
-    .done-card,
-    .notice-card {
-      width:min(760px,100%);
-      border:5px solid #111;
-      border-radius:70px;
-      background:#fff;
-      padding:46px 58px;
-      box-shadow:var(--shadow);
-    }
-
-    .status-area {
-      text-align:center;
-      margin-bottom:18px;
-    }
-
-    .status-pill {
-      display:inline-flex;
-      justify-content:center;
-      align-items:center;
-      min-height:34px;
-      padding:0 15px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:900;
-    }
-
-    .status-pill.open {
-      background:#ecfdf5;
-      color:#047857;
-    }
-
-    .status-pill.wait {
-      background:#fff7ed;
-      color:#c2410c;
-    }
-
-    .status-pill.closed {
-      background:#f1f5f9;
-      color:#475569;
-    }
-
-    .status-pill.error {
-      background:#fef2f2;
-      color:var(--red);
-    }
-
-    .training-name-text {
-      text-align:center;
-      font-size:22px;
-      font-weight:900;
-      color:var(--gray-500);
-      margin-bottom:12px;
-      word-break:keep-all;
-      line-height:1.4;
-    }
-
-    .check-title {
-      text-align:center;
-      font-size:42px;
-      font-weight:800;
-      letter-spacing:-.04em;
-      margin:0 0 46px;
-      line-height:1.25;
-      word-break:keep-all;
-    }
-
-    .period-text {
-      text-align:center;
-      color:var(--gray-600);
-      font-size:16px;
-      font-weight:900;
-      line-height:1.5;
-      margin:-30px 0 36px;
-      word-break:keep-all;
-    }
-
-    .form-row {
-      display:grid;
-      grid-template-columns:130px 1fr;
-      gap:18px;
-      align-items:center;
-      width:100%;
-      margin:0 auto 22px;
-    }
-
-    .form-row label {
-      font-size:30px;
-      font-weight:700;
-      text-align:right;
-      white-space:nowrap;
-    }
-
-    .form-row input {
-      width:100%;
-      height:62px;
-      border:2px solid #888;
-      padding:0 18px;
-      font-size:28px;
-      outline:none;
-      border-radius:0;
-      background:#fff;
-    }
-
-    .form-row input:focus {
-      border-color:var(--blue);
-      box-shadow:0 0 0 4px rgba(37,99,235,.12);
-    }
-
-    .button-area {
-      width:100%;
-      margin:26px auto 0;
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    button {
-      width:100%;
-      min-height:58px;
-      border:0;
-      border-radius:14px;
-      padding:0 30px;
-      background:#111827;
-      color:#fff;
-      font-size:21px;
-      font-weight:900;
-      cursor:pointer;
-    }
-
-    button:hover {
-      filter:brightness(.94);
-    }
-
-    button.red {
-      background:var(--red);
-    }
-
-    button.red:active {
-      background:var(--red-dark);
-    }
-
-    button.gray {
-      background:var(--gray-700);
-    }
-
-    button:disabled {
-      opacity:.5;
-      cursor:not-allowed;
-    }
-
-    .message {
-      width:100%;
-      min-height:28px;
-      margin:20px auto 0;
-      text-align:center;
-      font-size:18px;
-      font-weight:900;
-      line-height:1.55;
-      color:var(--gray-700);
-      word-break:keep-all;
-    }
-
-    .message.ok {
-      color:var(--green);
-    }
-
-    .message.warn {
-      color:var(--yellow);
-    }
-
-    .message.error {
-      color:var(--red);
-    }
-
-    .done-card,
-    .notice-card {
-      text-align:center;
-    }
-
-    .done-icon {
-      width:74px;
-      height:74px;
-      margin:0 auto 18px;
-      border-radius:50%;
-      background:#ecfdf5;
-      color:var(--green);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:42px;
-      font-weight:900;
-    }
-
-    .notice-icon {
-      width:74px;
-      height:74px;
-      margin:0 auto 18px;
-      border-radius:50%;
-      background:#fff7ed;
-      color:#c2410c;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:36px;
-      font-weight:900;
-    }
-
-    .done-title,
-    .notice-title {
-      margin:0 0 12px;
-      font-size:34px;
-      font-weight:900;
-      letter-spacing:-.04em;
-      line-height:1.25;
-      word-break:keep-all;
-    }
-
-    .done-desc,
-    .notice-desc {
-      margin:0 auto 24px;
-      color:var(--gray-600);
-      font-size:17px;
-      font-weight:800;
-      line-height:1.6;
-      word-break:keep-all;
-    }
-
-    .result-box {
-      margin-top:22px;
-      border:1px solid var(--gray-200);
-      border-radius:18px;
-      background:var(--gray-50);
-      overflow:hidden;
-      text-align:left;
-    }
-
-    .result-row {
-      display:flex;
-      justify-content:space-between;
-      gap:14px;
-      padding:14px 18px;
-      border-bottom:1px solid var(--gray-200);
-    }
-
-    .result-row:last-child {
-      border-bottom:0;
-    }
-
-    .result-label {
-      color:var(--gray-500);
-      font-size:14px;
-      font-weight:900;
-      white-space:nowrap;
-    }
-
-    .result-value {
-      color:var(--gray-900);
-      font-size:15px;
-      font-weight:900;
-      text-align:right;
-      word-break:break-all;
-    }
-
-    .fatal {
-      flex:1;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      padding:60px 20px;
-      text-align:center;
-    }
-
-    .fatal-box {
-      width:min(720px,100%);
-      padding:34px 28px;
-      border:1px solid #fecaca;
-      border-radius:22px;
-      background:#fff5f5;
-      color:var(--red);
-      font-size:19px;
-      font-weight:900;
-      line-height:1.7;
-      box-shadow:var(--shadow);
-      word-break:keep-all;
-    }
-
-    .footer-note {
-      margin-top:auto;
-      padding-top:24px;
-      color:#777;
-      font-size:15px;
-      text-align:center;
-    }
-
-    @media (max-width: 760px) {
-      body {
-        background:#f8fafc;
-      }
-
-      .page {
-        width:100%;
-        min-height:100dvh;
-        padding:12px 12px calc(18px + var(--safe-bottom));
-      }
-
-      .top-bar {
-        flex-direction:column;
-        gap:12px;
-        margin-bottom:14px;
-        padding:16px 16px;
-        border-radius:20px;
-        box-shadow:var(--mobile-shadow);
-      }
-
-      .eyebrow {
-        font-size:11px;
-        margin-bottom:4px;
-      }
-
-      .brand-title {
-        font-size:22px;
-      }
-
-      .brand-desc {
-        font-size:12px;
-        line-height:1.45;
-      }
-
-      .clock-card {
-        width:100%;
-        min-width:0;
-        padding:12px 14px;
-        border-radius:14px;
-        text-align:left;
-      }
-
-      .clock-card span {
-        font-size:11px;
-      }
-
-      .clock-card strong {
-        font-size:18px;
-      }
-
-      .connection-state {
-        font-size:11px;
-      }
-
-      .main-layout {
-        align-items:flex-start;
-        padding:4px 0 16px;
-      }
-
-      .check-card,
-      .done-card,
-      .notice-card {
-        width:100%;
-        border:0;
-        border-radius:26px;
-        padding:22px 16px 20px;
-        box-shadow:var(--mobile-shadow);
-      }
-
-      .status-area {
-        margin-bottom:14px;
-      }
-
-      .status-pill {
-        min-height:32px;
-        padding:0 13px;
-        font-size:13px;
-      }
-
-      .training-name-text {
-        margin-bottom:8px;
-        font-size:15px;
-      }
-
-      .check-title {
-        margin:0 0 24px;
-        font-size:28px;
-        font-weight:900;
-      }
-
-      .period-text {
-        margin:-14px 0 22px;
-        font-size:13px;
-      }
-
-      .form-row {
-        display:block;
-        width:100%;
-        margin:0 0 16px;
-      }
-
-      .form-row label {
-        display:block;
-        margin:0 0 8px;
-        font-size:17px;
-        font-weight:900;
-        text-align:left;
-        color:var(--gray-700);
-      }
-
-      .form-row input {
-        height:58px;
-        border:1.5px solid var(--gray-300);
-        border-radius:14px;
-        padding:0 15px;
-        font-size:22px;
-        font-weight:800;
-        background:#fff;
-      }
-
-      .button-area {
-        margin:18px 0 0;
-        gap:10px;
-      }
-
-      button {
-        min-height:54px;
-        border-radius:14px;
-        padding:0 18px;
-        font-size:18px;
-      }
-
-      .message {
-        margin-top:16px;
-        font-size:15px;
-      }
-
-      .done-icon,
-      .notice-icon {
-        width:62px;
-        height:62px;
-        font-size:34px;
-        margin-bottom:14px;
-      }
-
-      .done-title,
-      .notice-title {
-        font-size:25px;
-      }
-
-      .done-desc,
-      .notice-desc {
-        font-size:14px;
-        margin-bottom:18px;
-      }
-
-      .result-row {
-        padding:12px 14px;
-      }
-
-      .result-label {
-        font-size:13px;
-      }
-
-      .result-value {
-        font-size:13px;
-      }
-
-      .fatal {
-        padding:28px 0;
-      }
-
-      .fatal-box {
-        padding:24px 18px;
-        border-radius:20px;
-        font-size:16px;
-      }
-
-      .footer-note {
-        padding-top:18px;
-        font-size:11px;
-        line-height:1.5;
-      }
-    }
-  </style>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+ <title>비상대응훈련 참석자 출석</title>
+
+ <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+ <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+
+ <style>
+   :root {
+     --red:#c00000;
+     --red-dark:#9f0000;
+     --black:#111827;
+     --blue:#2563eb;
+     --green:#059669;
+     --yellow:#ca8a04;
+     --gray-50:#f8fafc;
+     --gray-100:#f1f5f9;
+     --gray-200:#e2e8f0;
+     --gray-300:#cbd5e1;
+     --gray-500:#64748b;
+     --gray-600:#475569;
+     --gray-700:#334155;
+     --gray-900:#0f172a;
+     --shadow:0 16px 40px rgba(15,23,42,.08);
+     --mobile-shadow:0 10px 24px rgba(15,23,42,.08);
+     --safe-bottom:env(safe-area-inset-bottom, 0px);
+   }
+
+   * {
+     box-sizing:border-box;
+     -webkit-tap-highlight-color:transparent;
+   }
+
+   html {
+     min-height:100%;
+     background:#f8fafc;
+   }
+
+   body {
+     margin:0;
+     min-height:100%;
+     background:linear-gradient(180deg,#f8fafc 0%,#ffffff 48%);
+     color:var(--black);
+     font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;
+   }
+
+   button,
+   input {
+     font-family:inherit;
+   }
+
+   .page {
+     width:min(960px,100%);
+     min-height:100vh;
+     margin:0 auto;
+     padding:28px 24px 24px;
+     display:flex;
+     flex-direction:column;
+   }
+
+   .top-bar {
+     display:flex;
+     justify-content:space-between;
+     align-items:flex-start;
+     gap:16px;
+     margin-bottom:22px;
+     padding:18px 22px;
+     border:1px solid var(--gray-200);
+     border-radius:20px;
+     background:#fff;
+     box-shadow:var(--shadow);
+   }
+
+   .brand {
+     min-width:0;
+   }
+
+   .eyebrow {
+     margin:0 0 5px;
+     color:var(--red);
+     font-size:13px;
+     font-weight:900;
+     letter-spacing:.12em;
+   }
+
+   .brand-title {
+     margin:0;
+     font-size:28px;
+     font-weight:900;
+     letter-spacing:-.04em;
+     line-height:1.25;
+   }
+
+   .brand-desc {
+     margin:7px 0 0;
+     color:var(--gray-500);
+     font-size:13px;
+     font-weight:700;
+     line-height:1.5;
+   }
+
+   .clock-card {
+     min-width:260px;
+     padding:14px 16px;
+     border-radius:16px;
+     background:var(--gray-900);
+     color:#fff;
+     text-align:right;
+   }
+
+   .clock-card span {
+     display:block;
+     margin-bottom:6px;
+     color:#cbd5e1;
+     font-size:12px;
+     font-weight:800;
+   }
+
+   .clock-card strong {
+     display:block;
+     font-size:19px;
+     letter-spacing:-.02em;
+   }
+
+   .connection-state {
+     margin-top:8px;
+     font-size:12px;
+     font-weight:800;
+     color:#cbd5e1;
+     line-height:1.35;
+   }
+
+   .connection-state.ok {
+     color:#86efac;
+   }
+
+   .connection-state.warn {
+     color:#fde68a;
+   }
+
+   .connection-state.error {
+     color:#fca5a5;
+   }
+
+   .hidden {
+     display:none !important;
+   }
+
+   .main-layout {
+     flex:1;
+     display:flex;
+     justify-content:center;
+     align-items:center;
+     padding:18px 0 54px;
+   }
+
+   .check-card,
+   .done-card,
+   .notice-card {
+     width:min(760px,100%);
+     border:5px solid #111;
+     border-radius:70px;
+     background:#fff;
+     padding:46px 58px;
+     box-shadow:var(--shadow);
+   }
+
+   .status-area {
+     text-align:center;
+     margin-bottom:18px;
+   }
+
+   .status-pill {
+     display:inline-flex;
+     justify-content:center;
+     align-items:center;
+     min-height:34px;
+     padding:0 15px;
+     border-radius:999px;
+     font-size:14px;
+     font-weight:900;
+   }
+
+   .status-pill.open {
+     background:#ecfdf5;
+     color:#047857;
+   }
+
+   .status-pill.wait {
+     background:#fff7ed;
+     color:#c2410c;
+   }
+
+   .status-pill.closed {
+     background:#f1f5f9;
+     color:#475569;
+   }
+
+   .status-pill.error {
+     background:#fef2f2;
+     color:var(--red);
+   }
+
+   .training-name-text {
+     text-align:center;
+     font-size:22px;
+     font-weight:900;
+     color:var(--gray-500);
+     margin-bottom:12px;
+     word-break:keep-all;
+     line-height:1.4;
+   }
+
+   .check-title {
+     text-align:center;
+     font-size:42px;
+     font-weight:800;
+     letter-spacing:-.04em;
+     margin:0 0 46px;
+     line-height:1.25;
+     word-break:keep-all;
+   }
+
+   .period-text {
+     text-align:center;
+     color:var(--gray-600);
+     font-size:16px;
+     font-weight:900;
+     line-height:1.5;
+     margin:-30px 0 36px;
+     word-break:keep-all;
+   }
+
+   .form-row {
+     display:grid;
+     grid-template-columns:130px 1fr;
+     gap:18px;
+     align-items:center;
+     width:100%;
+     margin:0 auto 22px;
+   }
+
+   .form-row label {
+     font-size:30px;
+     font-weight:700;
+     text-align:right;
+     white-space:nowrap;
+   }
+
+   .form-row input {
+     width:100%;
+     height:62px;
+     border:2px solid #888;
+     padding:0 18px;
+     font-size:28px;
+     outline:none;
+     border-radius:0;
+     background:#fff;
+   }
+
+   .form-row input:focus {
+     border-color:var(--blue);
+     box-shadow:0 0 0 4px rgba(37,99,235,.12);
+   }
+
+   .button-area {
+     width:100%;
+     margin:26px auto 0;
+     display:grid;
+     grid-template-columns:1fr;
+     gap:12px;
+   }
+
+   button {
+     width:100%;
+     min-height:58px;
+     border:0;
+     border-radius:14px;
+     padding:0 30px;
+     background:#111827;
+     color:#fff;
+     font-size:21px;
+     font-weight:900;
+     cursor:pointer;
+   }
+
+   button:hover {
+     filter:brightness(.94);
+   }
+
+   button.red {
+     background:var(--red);
+   }
+
+   button.red:active {
+     background:var(--red-dark);
+   }
+
+   button.gray {
+     background:var(--gray-700);
+   }
+
+   button:disabled {
+     opacity:.5;
+     cursor:not-allowed;
+   }
+
+   .message {
+     width:100%;
+     min-height:28px;
+     margin:20px auto 0;
+     text-align:center;
+     font-size:18px;
+     font-weight:900;
+     line-height:1.55;
+     color:var(--gray-700);
+     word-break:keep-all;
+   }
+
+   .message.ok {
+     color:var(--green);
+   }
+
+   .message.warn {
+     color:var(--yellow);
+   }
+
+   .message.error {
+     color:var(--red);
+   }
+
+   .done-card,
+   .notice-card {
+     text-align:center;
+   }
+
+   .done-icon {
+     width:74px;
+     height:74px;
+     margin:0 auto 18px;
+     border-radius:50%;
+     background:#ecfdf5;
+     color:var(--green);
+     display:flex;
+     align-items:center;
+     justify-content:center;
+     font-size:42px;
+     font-weight:900;
+   }
+
+   .notice-icon {
+     width:74px;
+     height:74px;
+     margin:0 auto 18px;
+     border-radius:50%;
+     background:#fff7ed;
+     color:#c2410c;
+     display:flex;
+     align-items:center;
+     justify-content:center;
+     font-size:36px;
+     font-weight:900;
+   }
+
+   .done-title,
+   .notice-title {
+     margin:0 0 12px;
+     font-size:34px;
+     font-weight:900;
+     letter-spacing:-.04em;
+     line-height:1.25;
+     word-break:keep-all;
+   }
+
+   .done-desc,
+   .notice-desc {
+     margin:0 auto 24px;
+     color:var(--gray-600);
+     font-size:17px;
+     font-weight:800;
+     line-height:1.6;
+     word-break:keep-all;
+   }
+
+   .result-box {
+     margin-top:22px;
+     border:1px solid var(--gray-200);
+     border-radius:18px;
+     background:var(--gray-50);
+     overflow:hidden;
+     text-align:left;
+   }
+
+   .result-row {
+     display:flex;
+     justify-content:space-between;
+     gap:14px;
+     padding:14px 18px;
+     border-bottom:1px solid var(--gray-200);
+   }
+
+   .result-row:last-child {
+     border-bottom:0;
+   }
+
+   .result-label {
+     color:var(--gray-500);
+     font-size:14px;
+     font-weight:900;
+     white-space:nowrap;
+   }
+
+   .result-value {
+     color:var(--gray-900);
+     font-size:15px;
+     font-weight:900;
+     text-align:right;
+     word-break:break-all;
+   }
+
+   .fatal {
+     flex:1;
+     display:flex;
+     justify-content:center;
+     align-items:center;
+     padding:60px 20px;
+     text-align:center;
+   }
+
+   .fatal-box {
+     width:min(720px,100%);
+     padding:34px 28px;
+     border:1px solid #fecaca;
+     border-radius:22px;
+     background:#fff5f5;
+     color:var(--red);
+     font-size:19px;
+     font-weight:900;
+     line-height:1.7;
+     box-shadow:var(--shadow);
+     word-break:keep-all;
+   }
+
+   .footer-note {
+     margin-top:auto;
+     padding-top:24px;
+     color:#777;
+     font-size:15px;
+     text-align:center;
+   }
+
+   @media (max-width: 760px) {
+     body {
+       background:#f8fafc;
+     }
+
+     .page {
+       width:100%;
+       min-height:100dvh;
+       padding:12px 12px calc(18px + var(--safe-bottom));
+     }
+
+     .top-bar {
+       flex-direction:column;
+       gap:12px;
+       margin-bottom:14px;
+       padding:16px 16px;
+       border-radius:20px;
+       box-shadow:var(--mobile-shadow);
+     }
+
+     .eyebrow {
+       font-size:11px;
+       margin-bottom:4px;
+     }
+
+     .brand-title {
+       font-size:22px;
+     }
+
+     .brand-desc {
+       font-size:12px;
+       line-height:1.45;
+     }
+
+     .clock-card {
+       width:100%;
+       min-width:0;
+       padding:12px 14px;
+       border-radius:14px;
+       text-align:left;
+     }
+
+     .clock-card span {
+       font-size:11px;
+     }
+
+     .clock-card strong {
+       font-size:18px;
+     }
+
+     .connection-state {
+       font-size:11px;
+     }
+
+     .main-layout {
+       align-items:flex-start;
+       padding:4px 0 16px;
+     }
+
+     .check-card,
+     .done-card,
+     .notice-card {
+       width:100%;
+       border:0;
+       border-radius:26px;
+       padding:22px 16px 20px;
+       box-shadow:var(--mobile-shadow);
+     }
+
+     .status-area {
+       margin-bottom:14px;
+     }
+
+     .status-pill {
+       min-height:32px;
+       padding:0 13px;
+       font-size:13px;
+     }
+
+     .training-name-text {
+       margin-bottom:8px;
+       font-size:15px;
+     }
+
+     .check-title {
+       margin:0 0 24px;
+       font-size:28px;
+       font-weight:900;
+     }
+
+     .period-text {
+       margin:-14px 0 22px;
+       font-size:13px;
+     }
+
+     .form-row {
+       display:block;
+       width:100%;
+       margin:0 0 16px;
+     }
+
+     .form-row label {
+       display:block;
+       margin:0 0 8px;
+       font-size:17px;
+       font-weight:900;
+       text-align:left;
+       color:var(--gray-700);
+     }
+
+     .form-row input {
+       height:58px;
+       border:1.5px solid var(--gray-300);
+       border-radius:14px;
+       padding:0 15px;
+       font-size:22px;
+       font-weight:800;
+       background:#fff;
+     }
+
+     .button-area {
+       margin:18px 0 0;
+       gap:10px;
+     }
+
+     button {
+       min-height:54px;
+       border-radius:14px;
+       padding:0 18px;
+       font-size:18px;
+     }
+
+     .message {
+       margin-top:16px;
+       font-size:15px;
+     }
+
+     .done-icon,
+     .notice-icon {
+       width:62px;
+       height:62px;
+       font-size:34px;
+       margin-bottom:14px;
+     }
+
+     .done-title,
+     .notice-title {
+       font-size:25px;
+     }
+
+     .done-desc,
+     .notice-desc {
+       font-size:14px;
+       margin-bottom:18px;
+     }
+
+     .result-row {
+       padding:12px 14px;
+     }
+
+     .result-label {
+       font-size:13px;
+     }
+
+     .result-value {
+       font-size:13px;
+     }
+
+     .fatal {
+       padding:28px 0;
+     }
+
+     .fatal-box {
+       padding:24px 18px;
+       border-radius:20px;
+       font-size:16px;
+     }
+
+     .footer-note {
+       padding-top:18px;
+       font-size:11px;
+       line-height:1.5;
+     }
+   }
+ </style>
 </head>
 
 <body>
-  <div class="page">
-    <header class="top-bar">
-      <div class="brand">
-        <p class="eyebrow">EMERGENCY RESPONSE TRAINING</p>
-        <h1 class="brand-title">비상대응훈련 참석자 출석</h1>
-        <p class="brand-desc">
-          QR 접속 후 본인 출석만 체크합니다. 참석자 명단은 관리자 화면에서만 확인됩니다.
-        </p>
-      </div>
-
-      <div class="clock-card">
-        <span>현재 한국시간</span>
-        <strong id="kstClock">-</strong>
-        <div id="firebaseState" class="connection-state warn">Firebase 연결 확인 중</div>
-      </div>
-    </header>
-
-    <section id="fatalView" class="fatal hidden">
-      <div id="fatalBox" class="fatal-box"></div>
-    </section>
-
-    <section id="checkView" class="main-layout hidden">
-      <div class="check-card">
-        <div class="status-area">
-          <span id="statusPill" class="status-pill">-</span>
-        </div>
-
-        <div id="trainingNameText" class="training-name-text">-</div>
-        <h1 id="checkTitle" class="check-title">팀명</h1>
-        <div id="periodText" class="period-text">-</div>
-
-        <div id="internalForm">
-          <div class="form-row">
-            <label for="empNoInput">사번</label>
-            <input id="empNoInput" inputmode="numeric" autocomplete="off" placeholder="사번을 입력하세요" />
-          </div>
-
-          <div class="button-area">
-            <button id="internalSubmitBtn" class="red" onclick="checkInternalAttendance()">출석체크</button>
-          </div>
-        </div>
-
-        <div id="externalForm" class="hidden">
-          <div class="form-row">
-            <label for="affiliationInput">소속</label>
-            <input id="affiliationInput" autocomplete="organization" placeholder="소속을 입력하세요" />
-          </div>
-
-          <div class="form-row">
-            <label for="externalNameInput">성명</label>
-            <input id="externalNameInput" autocomplete="name" placeholder="성명을 입력하세요" />
-          </div>
-
-          <div class="button-area">
-            <button id="externalSubmitBtn" class="red" onclick="checkExternalAttendance()">출석체크</button>
-          </div>
-        </div>
-
-        <div id="formMessage" class="message"></div>
-      </div>
-    </section>
-
-    <section id="doneView" class="main-layout hidden">
-      <div class="done-card">
-        <div class="done-icon">✓</div>
-        <h2 class="done-title">출석체크가 완료되었습니다</h2>
-        <p class="done-desc">
-          정상적으로 출석 정보가 저장되었습니다.<br>
-          이 화면은 닫아도 됩니다.
-        </p>
-
-        <div class="result-box">
-          <div class="result-row">
-            <span class="result-label">훈련명</span>
-            <span id="doneTrainingName" class="result-value">-</span>
-          </div>
-          <div class="result-row">
-            <span id="doneTeamLabel" class="result-label">팀명</span>
-            <span id="doneTeamName" class="result-value">-</span>
-          </div>
-          <div class="result-row">
-            <span id="doneNameLabel" class="result-label">성명</span>
-            <span id="doneName" class="result-value">-</span>
-          </div>
-          <div class="result-row">
-            <span class="result-label">출석 시간</span>
-            <span id="doneTime" class="result-value">-</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="noticeView" class="main-layout hidden">
-      <div class="notice-card">
-        <div class="notice-icon">!</div>
-        <h2 id="noticeTitle" class="notice-title">출석 가능 시간이 아닙니다</h2>
-        <p id="noticeDesc" class="notice-desc">관리자가 설정한 출석 가능 시간에만 출석체크할 수 있습니다.</p>
-
-        <div class="result-box">
-          <div class="result-row">
-            <span class="result-label">훈련명</span>
-            <span id="noticeTrainingName" class="result-value">-</span>
-          </div>
-          <div class="result-row">
-            <span class="result-label">팀명/구분</span>
-            <span id="noticeTeamName" class="result-value">-</span>
-          </div>
-          <div class="result-row">
-            <span class="result-label">출석 가능 시간</span>
-            <span id="noticePeriod" class="result-value">-</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <div class="footer-note">
-      본 문서는 현대제철의 정보자산으로 관련 법령에 의해 보호 받습니다.
-    </div>
-  </div>
-
-  <script>
-    /********************************************************
-     * 1. Firebase 설정
-     * 관리자용 admin.html과 동일한 firebaseConfig를 입력하세요.
-     ********************************************************/
-    const firebaseConfig = {
-  apiKey: "AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",
-  authDomain: "emergy-e15f5.firebaseapp.com",
-  projectId: "emergy-e15f5",
-  storageBucket: "emergy-e15f5.firebasestorage.app",
-  messagingSenderId: "123548770828",
-  appId: "1:123548770828:web:904e66916a055a52d64429"
-    };
-
-    /********************************************************
-     * 2. URL / 전역 상태
-     ********************************************************/
-    const params = new URLSearchParams(location.search);
-
-    /*
-      일반 팀:
-      participant.html?team=R%26D안전인프라팀
-
-      협력·외주:
-      participant.html?team=협력%C2%B7외주&trainingId=훈련ID&external=1
-    */
-    let trainingId = params.get("trainingId") || "";
-    const teamName = params.get("team") || "";
-
-    const isExternal =
-      params.get("external") === "1" ||
-      params.get("type") === "external" ||
-      normalizeText(teamName) === normalizeText("협력·외주") ||
-      normalizeText(teamName) === normalizeText("협력/외주");
-
-    let db = null;
-    let firebaseReady = false;
-
-    let trainingData = null;
-    let duplicateActiveTrainingDetected = false;
-    let submitLocked = false;
-
-    let unsubscribeTraining = null;
-
-    const $ = (id) => document.getElementById(id);
-
-    /********************************************************
-     * 3. Firebase 안전 초기화
-     ********************************************************/
-    function initFirebaseSafely() {
-      try {
-        if (typeof firebase === "undefined") {
-          throw new Error("Firebase SDK가 로드되지 않았습니다.");
-        }
-
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-
-        db = firebase.firestore();
-        firebaseReady = true;
-
-        setFirebaseState("Firebase 연결 준비 완료", "ok");
-        return true;
-      } catch (err) {
-        console.error("Firebase 초기화 오류:", err);
-
-        db = null;
-        firebaseReady = false;
-
-        setFirebaseState("Firebase 연결 실패 · 설정값 확인 필요", "error");
-        showFatalError(
-          "Firebase 연결에 실패했습니다.<br>" +
-          "firebaseConfig 값, API Key 제한, Firestore 생성 여부를 확인해주세요.<br>" +
-          "현재 한국시간 표시는 계속 작동합니다."
-        );
-
-        return false;
-      }
-    }
-
-    function ensureFirebaseReady() {
-      if (!firebaseReady || !db) {
-        setFirebaseState("Firebase 연결 실패", "error");
-        throw new Error("Firebase 연결 실패");
-      }
-    }
-
-    function setFirebaseState(text, type) {
-      const el = $("firebaseState");
-      if (!el) return;
-
-      el.textContent = text;
-      el.className = `connection-state ${type || ""}`;
-    }
-
-    function handleFirestoreError(err, place) {
-      console.error(`${place} 오류:`, err);
-
-      let message = `${place} 중 오류가 발생했습니다.`;
-
-      if (err && err.code === "permission-denied") {
-        message =
-          `${place} 실패: Firestore 보안 규칙 권한이 없습니다.<br>` +
-          `emergencyTrainings, participants, externalParticipants 읽기/쓰기 권한을 확인해주세요.`;
-      } else if (err && err.code === "failed-precondition") {
-        message =
-          `${place} 실패: Firestore 인덱스 또는 데이터베이스 설정이 필요할 수 있습니다.`;
-      } else if (err && err.message) {
-        message = `${place} 실패: ${escapeHtml(err.message)}`;
-      }
-
-      setFirebaseState("Firebase 오류 발생", "error");
-      showFatalError(message);
-    }
-
-    /********************************************************
-     * 4. 한국시간 유틸
-     ********************************************************/
-    function pad2(value) {
-      return String(value).padStart(2, "0");
-    }
-
-    function getKstDate(date = new Date()) {
-      return new Date(date.getTime() + 9 * 60 * 60 * 1000);
-    }
-
-    function getKstParts(date = new Date()) {
-      const kst = getKstDate(date);
-
-      return {
-        year: kst.getUTCFullYear(),
-        month: kst.getUTCMonth() + 1,
-        day: kst.getUTCDate(),
-        hour: kst.getUTCHours(),
-        minute: kst.getUTCMinutes(),
-        second: kst.getUTCSeconds()
-      };
-    }
-
-    function formatKst(value, withSeconds = true) {
-      if (!value) return "";
-
-      let date;
-
-      if (typeof value.toDate === "function") {
-        date = value.toDate();
-      } else {
-        date = new Date(value);
-      }
-
-      const p = getKstParts(date);
-
-      const time = withSeconds
-        ? `${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`
-        : `${pad2(p.hour)}:${pad2(p.minute)}`;
-
-      return `${p.year}.${pad2(p.month)}.${pad2(p.day)}. ${time}`;
-    }
-
-    function formatKoreanDateTime(value) {
-      if (!value) return "";
-
-      let date;
-
-      if (typeof value.toDate === "function") {
-        date = value.toDate();
-      } else {
-        date = new Date(value);
-      }
-
-      const p = getKstParts(date);
-
-      return `${p.year}년 ${p.month}월 ${p.day}일 ${pad2(p.hour)}:${pad2(p.minute)}`;
-    }
-
-    function updateClock() {
-      const now = new Date();
-      const p = getKstParts(now);
-
-      $("kstClock").textContent =
-        `${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;
-
-      if (trainingData) {
-        renderTrainingInfo();
-        applyTimeBasedView();
-      }
-    }
-
-    /********************************************************
-     * 5. Firestore 경로
-     ********************************************************/
-    function trainingRef() {
-      ensureFirebaseReady();
-      return db.collection("emergencyTrainings").doc(trainingId);
-    }
-
-    function participantsRef() {
-      return trainingRef().collection("participants");
-    }
-
-    function externalParticipantsRef() {
-      return trainingRef().collection("externalParticipants");
-    }
-
-    /********************************************************
-     * 6. 초기 실행
-     ********************************************************/
-    function init() {
-      $("checkTitle").textContent = teamName || "팀명";
-
-      updateClock();
-      setInterval(updateClock, 1000);
-
-      if (!teamName) {
-        showFatalError(
-          "참석자 링크가 올바르지 않습니다.<br>" +
-          "관리자용 웹앱에서 생성된 팀별 QR 링크로 접속해주세요.<br><br>" +
-          "필요 값: team"
-        );
-        setFirebaseState("링크 정보 오류", "error");
-        return;
-      }
-
-      if (isExternal && !trainingId) {
-        showFatalError(
-          "협력·외주 참석자 링크가 올바르지 않습니다.<br>" +
-          "협력·외주 링크에는 trainingId가 포함되어야 합니다.<br>" +
-          "관리자용 웹앱에서 생성된 협력·외주 QR 링크로 접속해주세요."
-        );
-        setFirebaseState("협력·외주 링크 오류", "error");
-        return;
-      }
-
-      const ok = initFirebaseSafely();
-
-      if (!ok) return;
-
-      resolveTrainingByTeam()
-        .then(() => {
-          subscribeTraining();
-        })
-        .catch((err) => {
-          console.error(err);
-
-          showFatalError(
-            "해당 팀의 비상대응훈련을 찾지 못했습니다.<br>" +
-            "관리자에게 QR 링크 또는 훈련 등록 상태를 확인해주세요."
-          );
-
-          setFirebaseState("훈련 자동 탐색 실패", "error");
-        });
-    }
-
-    /********************************************************
-     * 7. team 기준 훈련 자동 탐색
-     ********************************************************/
-    async function resolveTrainingByTeam() {
-      ensureFirebaseReady();
-
-      if (trainingId) {
-        return trainingId;
-      }
-
-      const teamKey = normalizeTeamKey(teamName);
-      const now = new Date();
-      const nowMs = now.getTime();
-
-      const snapshot = await db.collection("emergencyTrainings")
-        .where("teamKeys", "array-contains", teamKey)
-        .get();
-
-      const candidates = snapshot.docs
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data()
-        }))
-        .filter((training) => {
-          if (!training.startAt || !training.endAt) return false;
-
-          const keys = Array.isArray(training.teamKeys)
-            ? training.teamKeys
-            : Array.isArray(training.teams)
-              ? training.teams.map((team) => normalizeTeamKey(team))
-              : [];
-
-          return keys.includes(teamKey);
-        });
-
-      if (candidates.length === 0) {
-        throw new Error("해당 팀이 포함된 훈련 없음");
-      }
-
-      const activeTrainings = candidates.filter((training) => {
-        const startMs = training.startAt.toDate().getTime();
-        const endMs = training.endAt.toDate().getTime();
-
-        return startMs <= nowMs && nowMs <= endMs;
-      });
-
-      if (activeTrainings.length === 1) {
-        trainingId = activeTrainings[0].id;
-        return trainingId;
-      }
-
-      if (activeTrainings.length >= 2) {
-        duplicateActiveTrainingDetected = true;
-        trainingId = activeTrainings[0].id;
-        return trainingId;
-      }
-
-      /*
-        출석 전용 버전에서는 과거 훈련보다
-        앞으로 시작될 가장 가까운 훈련을 먼저 보여주는 것이 자연스럽다.
-      */
-      const futureTrainings = candidates
-        .filter((training) => training.startAt.toDate().getTime() > nowMs)
-        .sort((a, b) => a.startAt.toDate().getTime() - b.startAt.toDate().getTime());
-
-      if (futureTrainings.length > 0) {
-        trainingId = futureTrainings[0].id;
-        return trainingId;
-      }
-
-      const endedTrainings = candidates
-        .filter((training) => training.endAt.toDate().getTime() < nowMs)
-        .sort((a, b) => b.endAt.toDate().getTime() - a.endAt.toDate().getTime());
-
-      if (endedTrainings.length > 0) {
-        trainingId = endedTrainings[0].id;
-        return trainingId;
-      }
-
-      throw new Error("선택 가능한 훈련 없음");
-    }
-
-    /********************************************************
-     * 8. 훈련 구독
-     * 참여자 명단 실시간 구독 없음
-     ********************************************************/
-    function subscribeTraining() {
-      try {
-        ensureFirebaseReady();
-
-        if (unsubscribeTraining) unsubscribeTraining();
-
-        unsubscribeTraining = trainingRef().onSnapshot(
-          async (doc) => {
-            if (!doc.exists) {
-              showFatalError("해당 비상대응훈련 정보를 찾을 수 없습니다.");
-              return;
-            }
-
-            trainingData = {
-              id: doc.id,
-              ...doc.data()
-            };
-
-            setFirebaseState("Firebase 연결 정상", "ok");
-
-            await checkDuplicateActiveTrainingForTeam();
-
-            hideFatalError();
-            renderTrainingInfo();
-            applyTimeBasedView();
-          },
-          (err) => {
-            handleFirestoreError(err, "훈련 정보 불러오기");
-          }
-        );
-      } catch (err) {
-        if (err.message !== "Firebase 연결 실패") {
-          handleFirestoreError(err, "훈련 정보 연결");
-        }
-      }
-    }
-
-    /********************************************************
-     * 9. 화면 상태
-     ********************************************************/
-    function getTrainingStatus() {
-      if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
-        return {
-          code: "invalid",
-          text: "시간 미설정"
-        };
-      }
-
-      const now = Date.now();
-      const start = trainingData.startAt.toDate().getTime();
-      const end = trainingData.endAt.toDate().getTime();
-
-      if (now < start) {
-        return {
-          code: "wait",
-          text: "출석 시작 전"
-        };
-      }
-
-      if (now >= start && now <= end) {
-        return {
-          code: "open",
-          text: "출석 가능"
-        };
-      }
-
-      return {
-        code: "closed",
-        text: "출석 종료"
-      };
-    }
-
-    function renderTrainingInfo() {
-      const trainingName = trainingData?.trainingName || "비상대응훈련";
-      const period = getPeriodText();
-
-      $("trainingNameText").textContent = trainingName;
-      $("checkTitle").textContent = teamName || "팀명";
-      $("periodText").textContent = period;
-
-      const status = getTrainingStatus();
-      const pill = $("statusPill");
-
-      if (duplicateActiveTrainingDetected) {
-        pill.textContent = "중복 훈련 감지";
-        pill.className = "status-pill error";
-        return;
-      }
-
-      pill.textContent = status.text;
-
-      if (status.code === "open") {
-        pill.className = "status-pill open";
-      } else if (status.code === "wait") {
-        pill.className = "status-pill wait";
-      } else if (status.code === "closed") {
-        pill.className = "status-pill closed";
-      } else {
-        pill.className = "status-pill error";
-      }
-    }
-
-    function applyTimeBasedView() {
-      if (!trainingData) return;
-
-      const status = getTrainingStatus();
-
-      if (duplicateActiveTrainingDetected) {
-        showNotice(
-          "중복 훈련이 감지되었습니다",
-          "동일 시간대에 이 팀이 포함된 다른 비상대응훈련이 감지되어 출석체크가 제한됩니다."
-        );
-        return;
-      }
-
-      if (status.code === "open") {
-        showCheckForm();
-        return;
-      }
-
-      if (status.code === "wait") {
-        showNotice(
-          "아직 출석 시작 전입니다",
-          "관리자가 설정한 출석 시작 시간이 되면 출석체크할 수 있습니다."
-        );
-        return;
-      }
-
-      if (status.code === "closed") {
-        showNotice(
-          "출석 시간이 종료되었습니다",
-          "관리자가 설정한 출석 가능 시간이 지나 출석체크할 수 없습니다."
-        );
-        return;
-      }
-
-      showNotice(
-        "출석 시간이 설정되지 않았습니다",
-        "관리자에게 훈련 시간 설정 상태를 확인해주세요."
-      );
-    }
-
-    function showCheckForm() {
-      $("fatalView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("checkView").classList.remove("hidden");
-
-      if (isExternal) {
-        $("internalForm").classList.add("hidden");
-        $("externalForm").classList.remove("hidden");
-      } else {
-        $("internalForm").classList.remove("hidden");
-        $("externalForm").classList.add("hidden");
-      }
-    }
-
-    function showDone(result) {
-      $("fatalView").classList.add("hidden");
-      $("checkView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("doneView").classList.remove("hidden");
-
-      $("doneTrainingName").textContent = result.trainingName || "비상대응훈련";
-      $("doneTeamLabel").textContent = result.teamLabel || "팀명";
-      $("doneTeamName").textContent = result.teamName || "-";
-      $("doneNameLabel").textContent = result.nameLabel || "성명";
-      $("doneName").textContent = result.name || "-";
-      $("doneTime").textContent = result.time || formatKst(new Date());
-    }
-
-    function showNotice(title, desc) {
-      $("fatalView").classList.add("hidden");
-      $("checkView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.remove("hidden");
-
-      $("noticeTitle").textContent = title;
-      $("noticeDesc").textContent = desc;
-      $("noticeTrainingName").textContent = trainingData?.trainingName || "비상대응훈련";
-      $("noticeTeamName").textContent = teamName || "-";
-      $("noticePeriod").textContent = getPeriodText();
-    }
-
-    function getPeriodText() {
-      if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
-        return "출석 가능 시간 미설정";
-      }
-
-      return `${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;
-    }
-
-    /********************************************************
-     * 10. 일반 팀 출석체크
-     ********************************************************/
-    async function checkInternalAttendance() {
-      if (submitLocked) return;
-
-      try {
-        ensureFirebaseReady();
-
-        const status = getTrainingStatus();
-
-        if (status.code !== "open") {
-          setMessage("현재는 출석체크 가능 시간이 아닙니다.", "error");
-          applyTimeBasedView();
-          return;
-        }
-
-        if (duplicateActiveTrainingDetected) {
-          setMessage("동일 시간대 중복 훈련이 있어 출석체크가 제한됩니다.", "error");
-          applyTimeBasedView();
-          return;
-        }
-
-        const empNo = $("empNoInput").value.trim();
-
-        if (!empNo) {
-          setMessage("사번을 입력해주세요.", "error");
-          $("empNoInput").focus();
-          return;
-        }
-
-        submitLocked = true;
-        setButtonLoading("internalSubmitBtn", true, "처리 중...");
-
-        let docRef = participantsRef().doc(makeSafeDocId(empNo));
-        let doc = await docRef.get();
-
-        if (!doc.exists) {
-          const query = await participantsRef()
-            .where("empNo", "==", empNo)
-            .limit(1)
-            .get();
-
-          if (query.empty) {
-            setMessage("등록된 참석자 명단에서 해당 사번을 찾을 수 없습니다.", "error");
-            return;
-          }
-
-          doc = query.docs[0];
-          docRef = doc.ref;
-        }
-
-        const person = doc.data();
-
-        if (normalizeTeamKey(person.team) !== normalizeTeamKey(teamName)) {
-          setMessage("입력한 사번은 현재 팀의 참석자 명단에 없습니다.", "error");
-          return;
-        }
-
-        const now = new Date();
-
-        if (person.checked === true) {
-          showDone({
-            trainingName: trainingData.trainingName,
-            teamLabel: "팀명",
-            teamName: person.team || teamName,
-            nameLabel: "성명",
-            name: person.name || "-",
-            time: person.checkTime ? formatKst(person.checkTime) : formatKst(now)
-          });
-          return;
-        }
-
-        await docRef.set({
-          checked: true,
-          checkTime: firebase.firestore.FieldValue.serverTimestamp(),
-          checkedTeam: teamName,
-          checkedTeamKey: normalizeTeamKey(teamName),
-          checkedByPage: "participant",
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        $("empNoInput").value = "";
-
-        showDone({
-          trainingName: trainingData.trainingName,
-          teamLabel: "팀명",
-          teamName: person.team || teamName,
-          nameLabel: "성명",
-          name: person.name || "-",
-          time: formatKst(now)
-        });
-      } catch (err) {
-        if (err.message === "Firebase 연결 실패") {
-          setMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.", "error");
-          return;
-        }
-
-        console.error(err);
-
-        if (err.code === "permission-denied") {
-          setMessage("출석체크 권한이 없습니다. Firestore Rules를 확인해주세요.", "error");
-        } else {
-          setMessage("출석체크 중 오류가 발생했습니다.", "error");
-        }
-      } finally {
-        submitLocked = false;
-        setButtonLoading("internalSubmitBtn", false, "출석체크");
-      }
-    }
-
-    /********************************************************
-     * 11. 협력·외주 출석체크
-     * externalCounter 트랜잭션 없음
-     ********************************************************/
-    async function checkExternalAttendance() {
-      if (submitLocked) return;
-
-      try {
-        ensureFirebaseReady();
-
-        const status = getTrainingStatus();
-
-        if (status.code !== "open") {
-          setMessage("현재는 출석체크 가능 시간이 아닙니다.", "error");
-          applyTimeBasedView();
-          return;
-        }
-
-        const affiliation = $("affiliationInput").value.trim();
-        const name = $("externalNameInput").value.trim();
-
-        if (!affiliation || !name) {
-          setMessage("소속과 성명을 모두 입력해주세요.", "error");
-
-          if (!affiliation) {
-            $("affiliationInput").focus();
-          } else {
-            $("externalNameInput").focus();
-          }
-
-          return;
-        }
-
-        submitLocked = true;
-        setButtonLoading("externalSubmitBtn", true, "처리 중...");
-
-        const now = new Date();
-
-        await externalParticipantsRef().add({
-          team: "협력·외주",
-          affiliation,
-          name,
-          checked: true,
-          checkTime: firebase.firestore.FieldValue.serverTimestamp(),
-          checkedByPage: "participant-external",
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        $("affiliationInput").value = "";
-        $("externalNameInput").value = "";
-
-        showDone({
-          trainingName: trainingData.trainingName,
-          teamLabel: "구분",
-          teamName: `협력·외주 / ${affiliation}`,
-          nameLabel: "성명",
-          name,
-          time: formatKst(now)
-        });
-      } catch (err) {
-        if (err.message === "Firebase 연결 실패") {
-          setMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.", "error");
-          return;
-        }
-
-        console.error(err);
-
-        if (err.code === "permission-denied") {
-          setMessage("출석체크 권한이 없습니다. Firestore Rules를 확인해주세요.", "error");
-        } else {
-          setMessage("출석체크 중 오류가 발생했습니다.", "error");
-        }
-      } finally {
-        submitLocked = false;
-        setButtonLoading("externalSubmitBtn", false, "출석체크");
-      }
-    }
-
-    /********************************************************
-     * 12. 동일 시간대 팀 중복 훈련 감지
-     ********************************************************/
-    async function checkDuplicateActiveTrainingForTeam() {
-      duplicateActiveTrainingDetected = false;
-
-      if (isExternal || !teamName || !trainingData) return;
-
-      try {
-        const now = new Date();
-        const nowTs = firebase.firestore.Timestamp.fromDate(now);
-        const currentTeamKey = normalizeTeamKey(teamName);
-
-        const snapshot = await db.collection("emergencyTrainings")
-          .where("startAt", "<=", nowTs)
-          .get();
-
-        const activeTrainings = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .filter((training) => {
-            if (!training.endAt) return false;
-            return training.endAt.toDate().getTime() >= now.getTime();
-          });
-
-        const matchedTrainingIds = [];
-
-        activeTrainings.forEach((training) => {
-          let keys = [];
-
-          if (Array.isArray(training.teamKeys)) {
-            keys = training.teamKeys;
-          } else if (Array.isArray(training.teams)) {
-            keys = training.teams.map((team) => normalizeTeamKey(team));
-          }
-
-          if (keys.includes(currentTeamKey)) {
-            matchedTrainingIds.push(training.id);
-          }
-        });
-
-        duplicateActiveTrainingDetected = matchedTrainingIds.length >= 2;
-      } catch (err) {
-        console.warn("중복 훈련 확인 실패:", err);
-        duplicateActiveTrainingDetected = false;
-      }
-    }
-
-    /********************************************************
-     * 13. 오류 화면
-     ********************************************************/
-    function showFatalError(message) {
-      $("fatalBox").innerHTML = message;
-      $("fatalView").classList.remove("hidden");
-      $("checkView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-    }
-
-    function hideFatalError() {
-      $("fatalView").classList.add("hidden");
-    }
-
-    /********************************************************
-     * 14. 보조 함수
-     ********************************************************/
-    function setMessage(text, type) {
-      const el = $("formMessage");
-      el.innerHTML = text || "";
-      el.className = `message ${type || ""}`;
-    }
-
-    function setButtonLoading(id, loading, text) {
-      const button = $(id);
-      if (!button) return;
-
-      button.disabled = loading;
-      button.textContent = text;
-    }
-
-    function makeSafeDocId(value) {
-      return String(value).trim().replace(/[\/\\#?]/g, "_");
-    }
-
-    function normalizeText(value) {
-      return String(value || "")
-        .trim()
-        .replace(/\s+/g, "")
-        .replaceAll("ㆍ", "·")
-        .replaceAll("/", "·")
-        .toLowerCase();
-    }
-
-    function normalizeTeamKey(value) {
-      return normalizeText(value);
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    window.addEventListener("DOMContentLoaded", init);
-  </script>
+ <div class="page">
+   <header class="top-bar">
+     <div class="brand">
+       <p class="eyebrow">EMERGENCY RESPONSE TRAINING</p>
+       <h1 class="brand-title">비상대응훈련 참석자 출석</h1>
+       <p class="brand-desc">
+         QR 접속 후 본인 출석만 체크합니다. 참석자 명단은 관리자 화면에서만 확인됩니다.
+       </p>
+     </div>
+
+     <div class="clock-card">
+       <span>현재 한국시간</span>
+       <strong id="kstClock">-</strong>
+       <div id="firebaseState" class="connection-state warn">Firebase 연결 확인 중</div>
+     </div>
+   </header>
+
+   <section id="fatalView" class="fatal hidden">
+     <div id="fatalBox" class="fatal-box"></div>
+   </section>
+
+   <section id="checkView" class="main-layout hidden">
+     <div class="check-card">
+       <div class="status-area">
+         <span id="statusPill" class="status-pill">-</span>
+       </div>
+
+       <div id="trainingNameText" class="training-name-text">-</div>
+       <h1 id="checkTitle" class="check-title">팀명</h1>
+       <div id="periodText" class="period-text">-</div>
+
+       <div id="internalForm">
+         <div class="form-row">
+           <label for="empNoInput">사번</label>
+           <input id="empNoInput" inputmode="numeric" autocomplete="off" placeholder="사번을 입력하세요" />
+         </div>
+
+         <div class="button-area">
+           <button id="internalSubmitBtn" class="red" onclick="checkInternalAttendance()">출석체크</button>
+         </div>
+       </div>
+
+       <div id="externalForm" class="hidden">
+         <div class="form-row">
+           <label for="affiliationInput">소속</label>
+           <input id="affiliationInput" autocomplete="organization" placeholder="소속을 입력하세요" />
+         </div>
+
+         <div class="form-row">
+           <label for="externalNameInput">성명</label>
+           <input id="externalNameInput" autocomplete="name" placeholder="성명을 입력하세요" />
+         </div>
+
+         <div class="button-area">
+           <button id="externalSubmitBtn" class="red" onclick="checkExternalAttendance()">출석체크</button>
+         </div>
+       </div>
+
+       <div id="formMessage" class="message"></div>
+     </div>
+   </section>
+
+   <section id="doneView" class="main-layout hidden">
+     <div class="done-card">
+       <div class="done-icon">✓</div>
+       <h2 class="done-title">출석체크가 완료되었습니다</h2>
+       <p class="done-desc">
+         정상적으로 출석 정보가 저장되었습니다.<br>
+         이 화면은 닫아도 됩니다.
+       </p>
+
+       <div class="result-box">
+         <div class="result-row">
+           <span class="result-label">훈련명</span>
+           <span id="doneTrainingName" class="result-value">-</span>
+         </div>
+         <div class="result-row">
+           <span id="doneTeamLabel" class="result-label">팀명</span>
+           <span id="doneTeamName" class="result-value">-</span>
+         </div>
+         <div class="result-row">
+           <span id="doneNameLabel" class="result-label">성명</span>
+           <span id="doneName" class="result-value">-</span>
+         </div>
+         <div class="result-row">
+           <span class="result-label">출석 시간</span>
+           <span id="doneTime" class="result-value">-</span>
+         </div>
+       </div>
+     </div>
+   </section>
+
+   <section id="noticeView" class="main-layout hidden">
+     <div class="notice-card">
+       <div class="notice-icon">!</div>
+       <h2 id="noticeTitle" class="notice-title">출석 가능 시간이 아닙니다</h2>
+       <p id="noticeDesc" class="notice-desc">관리자가 설정한 출석 가능 시간에만 출석체크할 수 있습니다.</p>
+
+       <div class="result-box">
+         <div class="result-row">
+           <span class="result-label">훈련명</span>
+           <span id="noticeTrainingName" class="result-value">-</span>
+         </div>
+         <div class="result-row">
+           <span class="result-label">팀명/구분</span>
+           <span id="noticeTeamName" class="result-value">-</span>
+         </div>
+         <div class="result-row">
+           <span class="result-label">출석 가능 시간</span>
+           <span id="noticePeriod" class="result-value">-</span>
+         </div>
+       </div>
+     </div>
+   </section>
+
+   <div class="footer-note">
+     본 문서는 현대제철의 정보자산으로 관련 법령에 의해 보호 받습니다.
+   </div>
+ </div>
+
+ <script>
+   /********************************************************
+    * 1. Firebase 설정
+    * 관리자용 admin.html과 동일한 firebaseConfig를 입력하세요.
+    ********************************************************/
+   const firebaseConfig = {
+     apiKey: "여기에 입력",
+     authDomain: "여기에 입력",
+     projectId: "여기에 입력",
+     storageBucket: "여기에 입력",
+     messagingSenderId: "여기에 입력",
+     appId: "여기에 입력"
+   };
+
+   /********************************************************
+    * 2. URL / 전역 상태
+    ********************************************************/
+   const params = new URLSearchParams(location.search);
+
+   /*
+     일반 팀:
+     participant.html?team=R%26D안전인프라팀
+
+     협력·외주:
+     participant.html?team=협력%C2%B7외주&trainingId=훈련ID&external=1
+   */
+   let trainingId = params.get("trainingId") || "";
+   const teamName = params.get("team") || "";
+
+   const isExternal =
+     params.get("external") === "1" ||
+     params.get("type") === "external" ||
+     normalizeText(teamName) === normalizeText("협력·외주") ||
+     normalizeText(teamName) === normalizeText("협력/외주");
+
+   let db = null;
+   let firebaseReady = false;
+
+   let trainingData = null;
+   let duplicateActiveTrainingDetected = false;
+   let submitLocked = false;
+   let attendanceCompleted = false;
+
+   let unsubscribeTraining = null;
+
+   const $ = (id) => document.getElementById(id);
+
+   /********************************************************
+    * 3. Firebase 안전 초기화
+    ********************************************************/
+   function initFirebaseSafely() {
+     try {
+       if (typeof firebase === "undefined") {
+         throw new Error("Firebase SDK가 로드되지 않았습니다.");
+       }
+
+       if (!firebase.apps.length) {
+         firebase.initializeApp(firebaseConfig);
+       }
+
+       db = firebase.firestore();
+       firebaseReady = true;
+
+       setFirebaseState("Firebase 연결 준비 완료", "ok");
+       return true;
+     } catch (err) {
+       console.error("Firebase 초기화 오류:", err);
+
+       db = null;
+       firebaseReady = false;
+
+       setFirebaseState("Firebase 연결 실패 · 설정값 확인 필요", "error");
+       showFatalError(
+         "Firebase 연결에 실패했습니다.<br>" +
+         "firebaseConfig 값, API Key 제한, Firestore 생성 여부를 확인해주세요.<br>" +
+         "현재 한국시간 표시는 계속 작동합니다."
+       );
+
+       return false;
+     }
+   }
+
+   function ensureFirebaseReady() {
+     if (!firebaseReady || !db) {
+       setFirebaseState("Firebase 연결 실패", "error");
+       throw new Error("Firebase 연결 실패");
+     }
+   }
+
+   function setFirebaseState(text, type) {
+     const el = $("firebaseState");
+     if (!el) return;
+
+     el.textContent = text;
+     el.className = `connection-state ${type || ""}`;
+   }
+
+   function handleFirestoreError(err, place) {
+     console.error(`${place} 오류:`, err);
+
+     let message = `${place} 중 오류가 발생했습니다.`;
+
+     if (err && err.code === "permission-denied") {
+       message =
+         `${place} 실패: Firestore 보안 규칙 권한이 없습니다.<br>` +
+         `emergencyTrainings, participants, externalParticipants 읽기/쓰기 권한을 확인해주세요.`;
+     } else if (err && err.code === "failed-precondition") {
+       message =
+         `${place} 실패: Firestore 인덱스 또는 데이터베이스 설정이 필요할 수 있습니다.`;
+     } else if (err && err.message) {
+       message = `${place} 실패: ${escapeHtml(err.message)}`;
+     }
+
+     setFirebaseState("Firebase 오류 발생", "error");
+     showFatalError(message);
+   }
+
+   /********************************************************
+    * 4. 한국시간 유틸
+    ********************************************************/
+   function pad2(value) {
+     return String(value).padStart(2, "0");
+   }
+
+   function getKstDate(date = new Date()) {
+     return new Date(date.getTime() + 9 * 60 * 60 * 1000);
+   }
+
+   function getKstParts(date = new Date()) {
+     const kst = getKstDate(date);
+
+     return {
+       year: kst.getUTCFullYear(),
+       month: kst.getUTCMonth() + 1,
+       day: kst.getUTCDate(),
+       hour: kst.getUTCHours(),
+       minute: kst.getUTCMinutes(),
+       second: kst.getUTCSeconds()
+     };
+   }
+
+   function formatKst(value, withSeconds = true) {
+     if (!value) return "";
+
+     let date;
+
+     if (typeof value.toDate === "function") {
+       date = value.toDate();
+     } else {
+       date = new Date(value);
+     }
+
+     const p = getKstParts(date);
+
+     const time = withSeconds
+       ? `${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`
+       : `${pad2(p.hour)}:${pad2(p.minute)}`;
+
+     return `${p.year}.${pad2(p.month)}.${pad2(p.day)}. ${time}`;
+   }
+
+   function formatKoreanDateTime(value) {
+     if (!value) return "";
+
+     let date;
+
+     if (typeof value.toDate === "function") {
+       date = value.toDate();
+     } else {
+       date = new Date(value);
+     }
+
+     const p = getKstParts(date);
+
+     return `${p.year}년 ${p.month}월 ${p.day}일 ${pad2(p.hour)}:${pad2(p.minute)}`;
+   }
+
+   function toMillis(value) {
+     if (!value) return 0;
+
+     if (typeof value.toMillis === "function") {
+       return value.toMillis();
+     }
+
+     if (typeof value.toDate === "function") {
+       return value.toDate().getTime();
+     }
+
+     const date = new Date(value);
+     const ms = date.getTime();
+
+     return Number.isNaN(ms) ? 0 : ms;
+   }
+
+   function updateClock() {
+     const now = new Date();
+     const p = getKstParts(now);
+
+     $("kstClock").textContent =
+       `${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;
+
+     if (trainingData) {
+       renderTrainingInfo();
+       applyTimeBasedView();
+     }
+   }
+
+   /********************************************************
+    * 5. Firestore 경로
+    ********************************************************/
+   function trainingRef() {
+     ensureFirebaseReady();
+     return db.collection("emergencyTrainings").doc(trainingId);
+   }
+
+   function participantsRef() {
+     return trainingRef().collection("participants");
+   }
+
+   function externalParticipantsRef() {
+     return trainingRef().collection("externalParticipants");
+   }
+
+   /********************************************************
+    * 6. 초기 실행
+    ********************************************************/
+   function init() {
+     $("checkTitle").textContent = teamName || "팀명";
+
+     updateClock();
+     setInterval(updateClock, 1000);
+
+     if (!teamName) {
+       showFatalError(
+         "참석자 링크가 올바르지 않습니다.<br>" +
+         "관리자용 웹앱에서 생성된 팀별 QR 링크로 접속해주세요.<br><br>" +
+         "필요 값: team"
+       );
+       setFirebaseState("링크 정보 오류", "error");
+       return;
+     }
+
+     if (isExternal && !trainingId) {
+       showFatalError(
+         "협력·외주 참석자 링크가 올바르지 않습니다.<br>" +
+         "협력·외주 링크에는 trainingId가 포함되어야 합니다.<br>" +
+         "관리자용 웹앱에서 생성된 협력·외주 QR 링크로 접속해주세요."
+       );
+       setFirebaseState("협력·외주 링크 오류", "error");
+       return;
+     }
+
+     const ok = initFirebaseSafely();
+
+     if (!ok) return;
+
+     showLoading(
+       "훈련 정보를 확인 중입니다",
+       "QR 링크의 팀명과 현재 진행 가능한 비상대응훈련을 확인하고 있습니다."
+     );
+
+     resolveTrainingByTeam()
+       .then(() => {
+         subscribeTraining();
+       })
+       .catch((err) => {
+         console.error(err);
+
+         showFatalError(
+           "해당 팀의 비상대응훈련을 찾지 못했습니다.<br><br>" +
+           "확인할 사항은 아래와 같습니다.<br>" +
+           "1. 관리자용에서 훈련이 저장되었는지<br>" +
+           "2. 참석자 명단이 반영되었는지<br>" +
+           "3. 참석자 명단에 현재 팀명이 포함되어 있는지<br>" +
+           "4. 팀명이 QR 링크의 팀명과 일치하는지"
+         );
+
+         setFirebaseState("훈련 자동 탐색 실패", "error");
+       });
+   }
+
+   /********************************************************
+    * 7. team 기준 훈련 자동 탐색
+    ********************************************************/
+   async function resolveTrainingByTeam() {
+     ensureFirebaseReady();
+
+     if (trainingId) {
+       return trainingId;
+     }
+
+     const teamKey = normalizeTeamKey(teamName);
+     const now = new Date();
+     const nowMs = now.getTime();
+
+     const snapshot = await db.collection("emergencyTrainings")
+       .where("teamKeys", "array-contains", teamKey)
+       .get();
+
+     const candidates = snapshot.docs
+       .map((doc) => ({
+         id: doc.id,
+         ...doc.data()
+       }))
+       .filter((training) => {
+         if (!training.startAt || !training.endAt) return false;
+
+         const keys = Array.isArray(training.teamKeys)
+           ? training.teamKeys
+           : Array.isArray(training.teams)
+             ? training.teams.map((team) => normalizeTeamKey(team))
+             : [];
+
+         return keys.includes(teamKey);
+       });
+
+     if (candidates.length === 0) {
+       throw new Error("해당 팀이 포함된 훈련 없음");
+     }
+
+     const activeTrainings = candidates.filter((training) => {
+       const startMs = toMillis(training.startAt);
+       const endMs = toMillis(training.endAt);
+
+       return startMs <= nowMs && nowMs <= endMs;
+     });
+
+     if (activeTrainings.length === 1) {
+       trainingId = activeTrainings[0].id;
+       return trainingId;
+     }
+
+     if (activeTrainings.length >= 2) {
+       duplicateActiveTrainingDetected = true;
+       trainingId = activeTrainings[0].id;
+       return trainingId;
+     }
+
+     const futureTrainings = candidates
+       .filter((training) => toMillis(training.startAt) > nowMs)
+       .sort((a, b) => toMillis(a.startAt) - toMillis(b.startAt));
+
+     if (futureTrainings.length > 0) {
+       trainingId = futureTrainings[0].id;
+       return trainingId;
+     }
+
+     const endedTrainings = candidates
+       .filter((training) => toMillis(training.endAt) < nowMs)
+       .sort((a, b) => toMillis(b.endAt) - toMillis(a.endAt));
+
+     if (endedTrainings.length > 0) {
+       trainingId = endedTrainings[0].id;
+       return trainingId;
+     }
+
+     throw new Error("선택 가능한 훈련 없음");
+   }
+
+   /********************************************************
+    * 8. 훈련 구독
+    ********************************************************/
+   function subscribeTraining() {
+     try {
+       ensureFirebaseReady();
+
+       if (unsubscribeTraining) unsubscribeTraining();
+
+       unsubscribeTraining = trainingRef().onSnapshot(
+         async (doc) => {
+           if (!doc.exists) {
+             showFatalError("해당 비상대응훈련 정보를 찾을 수 없습니다.");
+             return;
+           }
+
+           trainingData = {
+             id: doc.id,
+             ...doc.data()
+           };
+
+           setFirebaseState("Firebase 연결 정상", "ok");
+
+           await checkDuplicateActiveTrainingForTeam();
+
+           hideFatalError();
+           renderTrainingInfo();
+           applyTimeBasedView();
+         },
+         (err) => {
+           handleFirestoreError(err, "훈련 정보 불러오기");
+         }
+       );
+     } catch (err) {
+       if (err.message !== "Firebase 연결 실패") {
+         handleFirestoreError(err, "훈련 정보 연결");
+       }
+     }
+   }
+
+   /********************************************************
+    * 9. 화면 상태
+    ********************************************************/
+   function getTrainingStatus() {
+     if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
+       return {
+         code: "invalid",
+         text: "시간 미설정"
+       };
+     }
+
+     const now = Date.now();
+     const start = toMillis(trainingData.startAt);
+     const end = toMillis(trainingData.endAt);
+
+     if (!start || !end) {
+       return {
+         code: "invalid",
+         text: "시간 오류"
+       };
+     }
+
+     if (now < start) {
+       return {
+         code: "wait",
+         text: "출석 시작 전"
+       };
+     }
+
+     if (now >= start && now <= end) {
+       return {
+         code: "open",
+         text: "출석 가능"
+       };
+     }
+
+     return {
+       code: "closed",
+       text: "출석 종료"
+     };
+   }
+
+   function renderTrainingInfo() {
+     const trainingName = trainingData?.trainingName || "비상대응훈련";
+     const period = getPeriodText();
+
+     $("trainingNameText").textContent = trainingName;
+     $("checkTitle").textContent = teamName || "팀명";
+     $("periodText").textContent = period;
+
+     const status = getTrainingStatus();
+     const pill = $("statusPill");
+
+     if (duplicateActiveTrainingDetected) {
+       pill.textContent = "중복 훈련 감지";
+       pill.className = "status-pill error";
+       return;
+     }
+
+     pill.textContent = status.text;
+
+     if (status.code === "open") {
+       pill.className = "status-pill open";
+     } else if (status.code === "wait") {
+       pill.className = "status-pill wait";
+     } else if (status.code === "closed") {
+       pill.className = "status-pill closed";
+     } else {
+       pill.className = "status-pill error";
+     }
+   }
+
+   function applyTimeBasedView() {
+     if (!trainingData) return;
+
+     /*
+       출석 완료 후에는 자동 화면 전환을 막는다.
+       updateClock() 또는 Firestore onSnapshot이 다시 실행되어도
+       완료 화면에서 출석체크 화면으로 돌아가지 않도록 고정.
+     */
+     if (attendanceCompleted) {
+       return;
+     }
+
+     const status = getTrainingStatus();
+
+     if (duplicateActiveTrainingDetected) {
+       showNotice(
+         "중복 훈련이 감지되었습니다",
+         "동일 시간대에 이 팀이 포함된 다른 비상대응훈련이 감지되어 출석체크가 제한됩니다."
+       );
+       return;
+     }
+
+     if (status.code === "open") {
+       showCheckForm();
+       return;
+     }
+
+     if (status.code === "wait") {
+       showNotice(
+         "아직 출석 시작 전입니다",
+         "관리자가 설정한 출석 시작 시간이 되면 출석체크할 수 있습니다."
+       );
+       return;
+     }
+
+     if (status.code === "closed") {
+       showNotice(
+         "출석 시간이 종료되었습니다",
+         "관리자가 설정한 출석 가능 시간이 지나 출석체크할 수 없습니다."
+       );
+       return;
+     }
+
+     showNotice(
+       "출석 시간이 설정되지 않았습니다",
+       "관리자에게 훈련 시간 설정 상태를 확인해주세요."
+     );
+   }
+
+   function showCheckForm() {
+     $("fatalView").classList.add("hidden");
+     $("doneView").classList.add("hidden");
+     $("noticeView").classList.add("hidden");
+     $("checkView").classList.remove("hidden");
+
+     if (isExternal) {
+       $("internalForm").classList.add("hidden");
+       $("externalForm").classList.remove("hidden");
+     } else {
+       $("internalForm").classList.remove("hidden");
+       $("externalForm").classList.add("hidden");
+     }
+   }
+
+   function showDone(result) {
+     attendanceCompleted = true;
+
+     $("fatalView").classList.add("hidden");
+     $("checkView").classList.add("hidden");
+     $("noticeView").classList.add("hidden");
+     $("doneView").classList.remove("hidden");
+
+     $("doneTrainingName").textContent = result.trainingName || "비상대응훈련";
+     $("doneTeamLabel").textContent = result.teamLabel || "팀명";
+     $("doneTeamName").textContent = result.teamName || "-";
+     $("doneNameLabel").textContent = result.nameLabel || "성명";
+     $("doneName").textContent = result.name || "-";
+     $("doneTime").textContent = result.time || formatKst(new Date());
+   }
+
+   function showNotice(title, desc) {
+     $("fatalView").classList.add("hidden");
+     $("checkView").classList.add("hidden");
+     $("doneView").classList.add("hidden");
+     $("noticeView").classList.remove("hidden");
+
+     $("noticeTitle").textContent = title;
+     $("noticeDesc").textContent = desc;
+     $("noticeTrainingName").textContent = trainingData?.trainingName || "비상대응훈련";
+     $("noticeTeamName").textContent = teamName || "-";
+     $("noticePeriod").textContent = getPeriodText();
+   }
+
+   function showLoading(title, desc) {
+     $("fatalView").classList.add("hidden");
+     $("checkView").classList.add("hidden");
+     $("doneView").classList.add("hidden");
+     $("noticeView").classList.remove("hidden");
+
+     $("noticeTitle").textContent = title;
+     $("noticeDesc").textContent = desc;
+
+     $("noticeTrainingName").textContent = "확인 중";
+     $("noticeTeamName").textContent = teamName || "-";
+     $("noticePeriod").textContent = "훈련 정보를 불러오는 중입니다.";
+   }
+
+   function getPeriodText() {
+     if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
+       return "출석 가능 시간 미설정";
+     }
+
+     return `${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;
+   }
+
+   /********************************************************
+    * 10. 일반 팀 출석체크
+    ********************************************************/
+   async function checkInternalAttendance() {
+     if (submitLocked) return;
+
+     try {
+       ensureFirebaseReady();
+
+       const status = getTrainingStatus();
+
+       if (status.code !== "open") {
+         setMessage("현재는 출석체크 가능 시간이 아닙니다.", "error");
+         applyTimeBasedView();
+         return;
+       }
+
+       if (duplicateActiveTrainingDetected) {
+         setMessage("동일 시간대 중복 훈련이 있어 출석체크가 제한됩니다.", "error");
+         applyTimeBasedView();
+         return;
+       }
+
+       const empNo = $("empNoInput").value.trim();
+
+       if (!empNo) {
+         setMessage("사번을 입력해주세요.", "error");
+         $("empNoInput").focus();
+         return;
+       }
+
+       submitLocked = true;
+       setButtonLoading("internalSubmitBtn", true, "처리 중...");
+
+       let docRef = participantsRef().doc(makeSafeDocId(empNo));
+       let doc = await docRef.get();
+
+       if (!doc.exists) {
+         const query = await participantsRef()
+           .where("empNo", "==", empNo)
+           .limit(1)
+           .get();
+
+         if (query.empty) {
+           setMessage("등록된 참석자 명단에서 해당 사번을 찾을 수 없습니다.", "error");
+           return;
+         }
+
+         doc = query.docs[0];
+         docRef = doc.ref;
+       }
+
+       const person = doc.data();
+
+       if (normalizeTeamKey(person.team) !== normalizeTeamKey(teamName)) {
+         setMessage("입력한 사번은 현재 팀의 참석자 명단에 없습니다.", "error");
+         return;
+       }
+
+       const now = new Date();
+
+       if (person.checked === true) {
+         showDone({
+           trainingName: trainingData.trainingName,
+           teamLabel: "팀명",
+           teamName: person.team || teamName,
+           nameLabel: "성명",
+           name: person.name || "-",
+           time: person.checkTime ? formatKst(person.checkTime) : formatKst(now)
+         });
+         return;
+       }
+
+       await docRef.set({
+         checked: true,
+         checkTime: firebase.firestore.FieldValue.serverTimestamp(),
+         checkedTeam: teamName,
+         checkedTeamKey: normalizeTeamKey(teamName),
+         checkedByPage: "participant",
+         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+       }, { merge: true });
+
+       $("empNoInput").value = "";
+
+       showDone({
+         trainingName: trainingData.trainingName,
+         teamLabel: "팀명",
+         teamName: person.team || teamName,
+         nameLabel: "성명",
+         name: person.name || "-",
+         time: formatKst(now)
+       });
+     } catch (err) {
+       if (err.message === "Firebase 연결 실패") {
+         setMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.", "error");
+         return;
+       }
+
+       console.error(err);
+
+       if (err.code === "permission-denied") {
+         setMessage("출석체크 권한이 없습니다. Firestore Rules를 확인해주세요.", "error");
+       } else {
+         setMessage("출석체크 중 오류가 발생했습니다.", "error");
+       }
+     } finally {
+       submitLocked = false;
+       setButtonLoading("internalSubmitBtn", false, "출석체크");
+     }
+   }
+
+   /********************************************************
+    * 11. 협력·외주 출석체크
+    ********************************************************/
+   async function checkExternalAttendance() {
+     if (submitLocked) return;
+
+     try {
+       ensureFirebaseReady();
+
+       const status = getTrainingStatus();
+
+       if (status.code !== "open") {
+         setMessage("현재는 출석체크 가능 시간이 아닙니다.", "error");
+         applyTimeBasedView();
+         return;
+       }
+
+       const affiliation = $("affiliationInput").value.trim();
+       const name = $("externalNameInput").value.trim();
+
+       if (!affiliation || !name) {
+         setMessage("소속과 성명을 모두 입력해주세요.", "error");
+
+         if (!affiliation) {
+           $("affiliationInput").focus();
+         } else {
+           $("externalNameInput").focus();
+         }
+
+         return;
+       }
+
+       submitLocked = true;
+       setButtonLoading("externalSubmitBtn", true, "처리 중...");
+
+       const now = new Date();
+
+       await externalParticipantsRef().add({
+         team: "협력·외주",
+         affiliation,
+         name,
+         checked: true,
+         checkTime: firebase.firestore.FieldValue.serverTimestamp(),
+         checkedByPage: "participant-external",
+         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+       });
+
+       $("affiliationInput").value = "";
+       $("externalNameInput").value = "";
+
+       showDone({
+         trainingName: trainingData.trainingName,
+         teamLabel: "구분",
+         teamName: `협력·외주 / ${affiliation}`,
+         nameLabel: "성명",
+         name,
+         time: formatKst(now)
+       });
+     } catch (err) {
+       if (err.message === "Firebase 연결 실패") {
+         setMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.", "error");
+         return;
+       }
+
+       console.error(err);
+
+       if (err.code === "permission-denied") {
+         setMessage("출석체크 권한이 없습니다. Firestore Rules를 확인해주세요.", "error");
+       } else {
+         setMessage("출석체크 중 오류가 발생했습니다.", "error");
+       }
+     } finally {
+       submitLocked = false;
+       setButtonLoading("externalSubmitBtn", false, "출석체크");
+     }
+   }
+
+   /********************************************************
+    * 12. 동일 시간대 팀 중복 훈련 감지
+    ********************************************************/
+   async function checkDuplicateActiveTrainingForTeam() {
+     duplicateActiveTrainingDetected = false;
+
+     if (isExternal || !teamName || !trainingData) return;
+
+     try {
+       const now = new Date();
+       const nowTs = firebase.firestore.Timestamp.fromDate(now);
+       const currentTeamKey = normalizeTeamKey(teamName);
+
+       const snapshot = await db.collection("emergencyTrainings")
+         .where("startAt", "<=", nowTs)
+         .get();
+
+       const activeTrainings = snapshot.docs
+         .map((doc) => ({
+           id: doc.id,
+           ...doc.data()
+         }))
+         .filter((training) => {
+           if (!training.endAt) return false;
+           return toMillis(training.endAt) >= now.getTime();
+         });
+
+       const matchedTrainingIds = [];
+
+       activeTrainings.forEach((training) => {
+         let keys = [];
+
+         if (Array.isArray(training.teamKeys)) {
+           keys = training.teamKeys;
+         } else if (Array.isArray(training.teams)) {
+           keys = training.teams.map((team) => normalizeTeamKey(team));
+         }
+
+         if (keys.includes(currentTeamKey)) {
+           matchedTrainingIds.push(training.id);
+         }
+       });
+
+       duplicateActiveTrainingDetected = matchedTrainingIds.length >= 2;
+     } catch (err) {
+       console.warn("중복 훈련 확인 실패:", err);
+       duplicateActiveTrainingDetected = false;
+     }
+   }
+
+   /********************************************************
+    * 13. 오류 화면
+    ********************************************************/
+   function showFatalError(message) {
+     $("fatalBox").innerHTML = message;
+     $("fatalView").classList.remove("hidden");
+     $("checkView").classList.add("hidden");
+     $("doneView").classList.add("hidden");
+     $("noticeView").classList.add("hidden");
+   }
+
+   function hideFatalError() {
+     $("fatalView").classList.add("hidden");
+   }
+
+   /********************************************************
+    * 14. 보조 함수
+    ********************************************************/
+   function setMessage(text, type) {
+     const el = $("formMessage");
+     el.innerHTML = text || "";
+     el.className = `message ${type || ""}`;
+   }
+
+   function setButtonLoading(id, loading, text) {
+     const button = $(id);
+     if (!button) return;
+
+     button.disabled = loading;
+     button.textContent = text;
+   }
+
+   function makeSafeDocId(value) {
+     return String(value).trim().replace(/[\/\\#?]/g, "_");
+   }
+
+   function normalizeText(value) {
+     return String(value || "")
+       .trim()
+       .replace(/\s+/g, "")
+       .replaceAll("ㆍ", "·")
+       .replaceAll("/", "·")
+       .toLowerCase();
+   }
+
+   function normalizeTeamKey(value) {
+     return normalizeText(value);
+   }
+
+   function escapeHtml(value) {
+     return String(value)
+       .replaceAll("&", "&amp;")
+       .replaceAll("<", "&lt;")
+       .replaceAll(">", "&gt;")
+       .replaceAll('"', "&quot;")
+       .replaceAll("'", "&#039;");
+   }
+
+   window.addEventListener("DOMContentLoaded", init);
+ </script>
 </body>
 </html>
