@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>회사 PC 신호 수신 대기</title>
+  <link rel="stylesheet" href="signal.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar"><a class="back" href="index.html">← 시작 화면</a><span class="tag">OFFICE PC RECEIVER</span></header>
+    <section class="panel main">
+      <div class="receiver-head">
+        <div><p class="eyebrow">STEP 1 · OFFICE BRIDGE</p><h1>회사 PC<br>신호 수신 대기</h1><p class="subcopy">이 화면을 회사 PC에서 열어두면 스마트폰의 메일 전송 요청을 실시간으로 받습니다.</p></div>
+        <div id="receiverStatus" class="status error receiver-status" style="margin:0;min-width:250px"><span class="dot"></span><div><strong id="receiverTitle" class="status-title">연결 확인 중</strong><div class="status-detail">PC ID · office-pc-01</div></div></div>
+      </div>
+      <div id="jobCard" class="job empty">
+        <div id="jobLabel" class="job-label">WAITING</div><h2 id="jobTitle">새로운 신호를 기다리고 있습니다</h2><p id="jobDetail" class="subcopy">스마트폰에서 테스트 버튼을 누르면 이곳에 즉시 표시됩니다.</p>
+        <div class="actions"><button id="successButton" class="action success" disabled>처리 성공 회신</button><button id="failureButton" class="action failure" disabled>처리 실패 회신</button></div>
+      </div>
+      <div id="message" class="notice">실시간 수신 연결을 준비하고 있습니다.</div>
+    </section>
+    <section class="panel side" style="margin-top:18px"><h2>현재 단계의 처리 이력</h2><p class="subcopy">이 페이지를 연 뒤 처리한 최근 5건만 표시합니다.</p><div id="history" class="history"><div class="notice">아직 처리한 테스트 신호가 없습니다.</div></div></section>
+    <p class="footer">수신자와 메일 내용은 이 테스트 시스템에 저장되지 않습니다.</p>
+  </main>
+  <script src="signal-common.js"></script>
+  <script src="receiver.js"></script>
+</body>
+</html>
