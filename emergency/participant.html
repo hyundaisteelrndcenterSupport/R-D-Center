@@ -44,6 +44,8 @@ button{min-height:66px;border:0;border-radius:16px;padding:0 24px;color:#fff;fon
 .team-body{padding:22px 22px 26px}.summary-line{margin:0 0 10px;color:var(--gray-700);font-size:17px;font-weight:900;line-height:1.5}.summary-line .danger{color:var(--red)}.scroll-hint{margin:0 0 12px;color:var(--gray-500);font-size:13px;font-weight:800;line-height:1.4}
 .table-wrap{width:100%;max-height:520px;overflow:auto;-webkit-overflow-scrolling:touch;border:2px solid #333;background:#fff}.team-table{width:100%;min-width:860px;border-collapse:collapse;table-layout:fixed;font-size:20px}.team-table th,.team-table td{height:54px;border:1px solid var(--line);padding:6px 8px;text-align:center;vertical-align:middle;word-break:keep-all;overflow-wrap:anywhere}.team-table th{position:sticky;top:0;z-index:2;background:#fff;font-weight:900}.col-no{width:8%}.col-name{width:18%}.col-status{width:18%}.col-detail{width:56%}
 .status-select,.detail-input{width:100%;height:42px;border:1px solid var(--gray-300);border-radius:8px;padding:0 10px;background:#fff;color:var(--gray-900);font-size:16px;font-weight:800;outline:none}.detail-input:disabled{background:#f8fafc;color:#111;cursor:not-allowed}.empty-row{height:90px;color:var(--gray-500);font-size:16px;font-weight:900}
+.status-select.status-checking{color:var(--red);font-weight:900}
+.status-select option[value="확인중"]{color:var(--red);font-weight:900}
 .fatal{flex:1;display:flex;justify-content:center;align-items:center;padding:60px 20px;text-align:center}.fatal-box{width:min(760px,100%);padding:34px 28px;border:1px solid #fecaca;border-radius:22px;background:#fff5f5;color:var(--red);font-size:19px;font-weight:900;line-height:1.7;box-shadow:var(--shadow);word-break:keep-all}.footer-note{margin-top:auto;padding-top:24px;color:#777;font-size:14px;text-align:center}
 
 @media(max-width:760px){
@@ -58,6 +60,7 @@ button{min-height:66px;border:0;border-radius:16px;padding:0 24px;color:#fff;fon
 .button-row{width:100%;margin:20px 0 0;grid-template-columns:1fr;gap:10px}button{min-height:54px;border-radius:14px;font-size:20px}.message{margin-top:16px;font-size:15px}
 .done-icon,.notice-icon{width:62px;height:62px;font-size:34px;margin-bottom:14px}.done-title,.notice-title{font-size:25px}.done-desc,.notice-desc{font-size:14px;margin-bottom:18px}.result-row{padding:12px 14px}.result-label,.result-value{font-size:13px}
 .team-dashboard{padding:2px 0 22px}.team-panel{border-radius:20px;box-shadow:var(--mobile-shadow)}.team-hero{padding:20px 14px}.team-title{font-size:24px}.team-subtitle{font-size:14px;margin-top:8px}.team-body{padding:14px 10px 18px}.summary-line{font-size:13px}
+#teamSummaryLine{white-space:nowrap;overflow:hidden;text-overflow:clip;font-size:12px;letter-spacing:-.08em;line-height:1.4}
 .scroll-hint{display:none}
 .table-wrap{max-height:calc(100dvh - 300px);overflow-x:hidden!important;overflow-y:auto!important;border:2px solid #333}
 .team-table{min-width:0!important;width:100%!important;font-size:12px;table-layout:fixed}
@@ -140,7 +143,7 @@ button{min-height:66px;border:0;border-radius:16px;padding:0 24px;color:#fff;fon
   </div>
 </div></section>
 
-<div class="footer-note">HYUNDAI STEEL R&D CENTER</div>
+<div class="footer-note">본 문서는 현대제철의 정보자산으로 관련 법령에 의해 보호 받습니다.</div>
 </div>
 
 <script>
@@ -402,27 +405,68 @@ function renderTeamDashboardShell(){
 function renderTeamTable(){
   const tbody=$("teamTbody");
   if(teamMembers.length===0){tbody.innerHTML=`<tr><td colspan="4" class="empty-row">현재 팀에 등록된 인원이 없습니다.</td></tr>`;renderTeamSummary();return;}
+
   tbody.innerHTML=teamMembers.map((person,index)=>{
-    const status=getPersonStatus(person),detail=getPersonDetail(person),isEvacuated=status==="대피완료";
-    return `<tr><td>${index+1}</td><td>${escapeHtml(person.name||"")}</td><td><select class="status-select" data-id="${escapeAttr(person.id)}" onchange="updateMemberStatus(this)">${renderStatusOptions(status)}</select></td><td><input class="detail-input" data-id="${escapeAttr(person.id)}" value="${escapeAttr(detail)}" ${isEvacuated?"disabled":""} placeholder="${isEvacuated?"":"부재 내용 입력"}" onchange="updateMemberDetail(this)" /></td></tr>`;
+    const status=getPersonStatus(person);
+    const detail=getPersonDetail(person);
+    const isEvacuated=status==="대피완료";
+    const isChecking=status==="확인중";
+    const placeholder=getDetailPlaceholder(status);
+
+    return `<tr><td>${index+1}</td><td>${escapeHtml(person.name||"")}</td><td><select class="status-select ${isChecking?"status-checking":""}" data-id="${escapeAttr(person.id)}" onchange="updateMemberStatus(this)">${renderStatusOptions(status)}</select></td><td><input class="detail-input" data-id="${escapeAttr(person.id)}" value="${escapeAttr(detail)}" ${isEvacuated?"disabled":""} placeholder="${escapeAttr(placeholder)}" onchange="updateMemberDetail(this)" /></td></tr>`;
   }).join("");
+
   renderTeamSummary();
 }
 function renderTeamSummary(){
-  const total=teamMembers.length,evacuated=teamMembers.filter(p=>getPersonStatus(p)==="대피완료").length,absence=teamMembers.filter(p=>isAbsenceStatus(getPersonStatus(p))).length,unknown=total-evacuated-absence;
-  $("teamSummaryLine").innerHTML=`전체 상태 : 대피완료 : ${evacuated}명 / 부재 : ${absence}명 / <span class="danger">확인중 ${unknown}명</span>`;
+  const total=teamMembers.length;
+  const evacuated=teamMembers.filter(p=>getPersonStatus(p)==="대피완료").length;
+  const absence=teamMembers.filter(p=>isAbsenceStatus(getPersonStatus(p))).length;
+  const unknown=total-evacuated-absence;
+
+  $("teamSummaryLine").innerHTML=`전체 : 대피 ${evacuated}명 / 부재 ${absence}명 / <span class="danger">확인중 ${unknown}명</span>`;
 }
 function renderStatusOptions(currentStatus){
   const options=["확인중","대피완료","타 본부","휴가","출장","외출"],cur=currentStatus||"확인중";
   return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join("");
 }
+function getDetailPlaceholder(status){
+  if(status==="대피완료")return"";
+  if(status==="휴가")return"";
+  return"부재 내용 입력";
+}
 async function updateMemberStatus(selectEl){
   try{
     ensureFirebaseReady();
     const id=selectEl.dataset.id,newStatus=selectEl.value,member=teamMembers.find(p=>p.id===id);if(!member)return;
+
+    selectEl.classList.toggle("status-checking",newStatus==="확인중");
+
+    const row=selectEl.closest("tr");
+    const detailInput=row?row.querySelector(".detail-input"):null;
+    if(detailInput){
+      detailInput.placeholder=getDetailPlaceholder(newStatus);
+      detailInput.disabled=newStatus==="대피완료";
+      if(newStatus==="대피완료"||newStatus==="확인중"||newStatus==="휴가")detailInput.value="";
+    }
+
     const ref=participantsRef().doc(id);
-    if(newStatus==="대피완료"){await ref.set({status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});return;}
-    if(newStatus==="확인중"){await ref.set({status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete(),absenceUpdatedAt:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});return;}
+
+    if(newStatus==="대피완료"){
+      await ref.set({status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
+    if(newStatus==="확인중"){
+      await ref.set({status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete(),absenceUpdatedAt:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
+    if(newStatus==="휴가"){
+      await ref.set({status:"휴가",statusType:"absence",checked:false,absenceReason:"휴가",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
     await ref.set({status:newStatus,statusType:"absence",checked:false,absenceReason:newStatus,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
   }catch(err){console.error(err);alert("상태 수정 중 오류가 발생했습니다.");}
 }
