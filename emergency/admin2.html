@@ -317,17 +317,154 @@
      * 7. 참석자 입력 / 저장
      ********************************************************/
     function parsePastedText(text){
-      const lines=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
-      const result=[];
-      for(const line of lines){
-        let cols=line.split("\t"); if(cols.length<8) cols=line.split(","); cols=cols.map(v=>String(v||"").trim());
-        if(cols.length<8) continue;
-        const [orderRaw,headquarter,division,office,team,empNo,name,leaderFlag]=cols;
-        if(orderRaw.includes("순번")||headquarter.includes("본부")||division.includes("사업부")||office.includes("실")||team.includes("팀")||empNo.includes("사번")||name.includes("성명")) continue;
-        const order=Number(orderRaw); if(!order||!headquarter||!division||!office||!team||!empNo||!name) continue;
-        result.push({order,headquarter,division,office,team,teamKey:normalizeTeamKey(team),empNo:String(empNo),name,leaderFlag,isLeader:normalizeText(leaderFlag)==="해당"});
+      /*
+        엑셀 붙여넣기 인식 보강판
+        - 기존 버그: 데이터 값에 "본부", "실", "팀"이라는 글자가 들어가면 헤더로 오인해 행이 빠졌음.
+        - 수정: 헤더 행은 "여러 개의 컬럼명이 동시에 있는 행"일 때만 헤더로 판단.
+        - 헤더가 있으면 컬럼명 기준으로 읽고, 헤더가 없으면 앞 8개 열을
+          순번/본부/사업부/실/팀/사번/성명/팀장여부 순서로 읽음.
+      */
+      const rawLines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      const result = [];
+      let headerMap = null;
+      let dataRowIndex = 0;
+
+      for (const rawLine of rawLines) {
+        const cols = splitPastedRow(rawLine).map(v => String(v ?? "").trim());
+        if (cols.length === 0) continue;
+
+        if (!headerMap && isHeaderRow(cols)) {
+          headerMap = buildHeaderMap(cols);
+          continue;
+        }
+
+        let orderRaw, headquarter, division, office, team, empNo, name, leaderFlag;
+
+        if (headerMap) {
+          orderRaw = getCol(cols, headerMap.order);
+          headquarter = getCol(cols, headerMap.headquarter);
+          division = getCol(cols, headerMap.division);
+          office = getCol(cols, headerMap.office);
+          team = getCol(cols, headerMap.team);
+          empNo = getCol(cols, headerMap.empNo);
+          name = getCol(cols, headerMap.name);
+          leaderFlag = getCol(cols, headerMap.leaderFlag);
+        } else {
+          if (cols.length < 8) continue;
+          [orderRaw, headquarter, division, office, team, empNo, name, leaderFlag] = cols;
+        }
+
+        const orderNumber = Number(String(orderRaw || "").replace(/[^0-9.-]/g, ""));
+        const order = Number.isFinite(orderNumber) && orderNumber > 0 ? orderNumber : dataRowIndex + 1;
+
+        // 인원 인식 기준은 팀/사번/성명이다. 본부/사업부/실은 빈칸이어도 저장한다.
+        if (!String(team || "").trim() || !String(empNo || "").trim() || !String(name || "").trim()) {
+          continue;
+        }
+
+        dataRowIndex += 1;
+
+        result.push({
+          order,
+          headquarter: String(headquarter || "").trim(),
+          division: String(division || "").trim(),
+          office: String(office || "").trim(),
+          team: String(team || "").trim(),
+          teamKey: normalizeTeamKey(team),
+          empNo: String(empNo || "").trim(),
+          name: String(name || "").trim(),
+          leaderFlag: String(leaderFlag || "").trim(),
+          isLeader: isLeaderFlagValue(leaderFlag)
+        });
       }
-      result.sort((a,b)=>Number(a.order)-Number(b.order)); return result;
+
+      result.sort((a,b)=>Number(a.order)-Number(b.order));
+      return result;
+    }
+
+    function splitPastedRow(line){
+      if (line.includes("\t")) return line.split("\t");
+
+      // 쉼표 CSV를 간단히 지원한다. 엑셀 복붙은 보통 탭이므로 탭이 우선이다.
+      const out = [];
+      let cur = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            cur += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (ch === ',' && !inQuotes) {
+          out.push(cur);
+          cur = "";
+        } else {
+          cur += ch;
+        }
+      }
+
+      out.push(cur);
+      return out;
+    }
+
+    function headerKey(value){
+      return String(value || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/[()\[\]{}]/g, "")
+        .replace(/_/g, "")
+        .toLowerCase();
+    }
+
+    function isHeaderRow(cols){
+      const keys = cols.map(headerKey);
+      const known = new Set([
+        "순번", "no", "번호",
+        "본부", "본부명", "소속본부",
+        "사업부", "사업부명",
+        "실", "실명", "소속실",
+        "팀", "팀명", "소속팀",
+        "사번", "사원번호", "employeeid", "empno",
+        "성명", "이름", "name",
+        "팀장여부", "팀장해당여부", "팀장", "권한"
+      ]);
+
+      const hitCount = keys.filter(k => known.has(k)).length;
+      return hitCount >= 4;
+    }
+
+    function buildHeaderMap(cols){
+      const map = {};
+
+      cols.forEach((col, index) => {
+        const key = headerKey(col);
+
+        if (["순번", "no", "번호"].includes(key)) map.order = index;
+        else if (["본부", "본부명", "소속본부"].includes(key)) map.headquarter = index;
+        else if (["사업부", "사업부명"].includes(key)) map.division = index;
+        else if (["실", "실명", "소속실"].includes(key)) map.office = index;
+        else if (["팀", "팀명", "소속팀"].includes(key)) map.team = index;
+        else if (["사번", "사원번호", "employeeid", "empno"].includes(key)) map.empNo = index;
+        else if (["성명", "이름", "name"].includes(key)) map.name = index;
+        else if (["팀장여부", "팀장해당여부", "팀장", "권한"].includes(key)) map.leaderFlag = index;
+      });
+
+      return map;
+    }
+
+    function getCol(cols, index){
+      if (index === undefined || index === null || index < 0) return "";
+      return String(cols[index] ?? "").trim();
+    }
+
+    function isLeaderFlagValue(value){
+      const v = normalizeText(value);
+      return ["해당", "팀장", "y", "yes", "true", "1"].includes(v);
     }
     async function applyPastedParticipants(){
       try{
