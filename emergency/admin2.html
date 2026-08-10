@@ -101,7 +101,7 @@
       <div class="summary-card"><span>전체 인원</span><strong id="totalCount">0</strong></div>
       <div class="summary-card"><span>대피완료</span><strong id="evacuatedCount">0</strong></div>
       <div class="summary-card"><span>부재</span><strong id="absenceCount">0</strong></div>
-      <div class="summary-card"><span>소재파악 필요</span><strong id="unknownCount" class="danger">0</strong></div>
+      <div class="summary-card"><span>확인중</span><strong id="unknownCount" class="danger">0</strong></div>
       <div class="summary-card"><span>대피율</span><strong id="rateText">0%</strong></div>
       <div class="summary-card"><span>팀장 권한</span><strong id="leaderCount">0</strong></div>
       <div class="summary-card"><span>협력·외주</span><strong id="externalCount">0</strong></div>
@@ -730,7 +730,7 @@
     /********************************************************
      * 12. 상태 수정
      ********************************************************/
-    function renderStatusOptions(currentStatus){ const options=["소재파악 필요","대피완료","타 본부","휴가","출장","외출"]; const cur=currentStatus||"소재파악 필요"; return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join(""); }
+    function renderStatusOptions(currentStatus){ const options=["확인중","대피완료","타 본부","휴가","출장","외출"]; const cur=currentStatus||"확인중"; return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join(""); }
     async function updateMemberStatus(selectEl){
       try{
         ensureFirebaseReady(); requireSelectedTraining();
@@ -738,8 +738,8 @@
         if(newStatus==="대피완료"){
           await ref.set({status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"admin-dashboard"},{merge:true}); setMessage("statusMessage","상태를 대피완료로 수정했습니다.","ok"); return;
         }
-        if(newStatus==="소재파악 필요"){
-          await ref.set({status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete(),absenceUpdatedAt:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"admin-dashboard"},{merge:true}); setMessage("statusMessage","상태를 소재파악 필요로 수정했습니다.","ok"); return;
+        if(newStatus==="확인중"){
+          await ref.set({status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete(),absenceUpdatedAt:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"admin-dashboard"},{merge:true}); setMessage("statusMessage","상태를 확인중로 수정했습니다.","ok"); return;
         }
         await ref.set({status:newStatus,statusType:"absence",checked:false,absenceReason:newStatus,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"admin-dashboard"},{merge:true}); setMessage("statusMessage","부재 상태를 수정했습니다.","ok");
       }catch(err){ console.error(err); setMessage("statusMessage","상태 수정 중 오류가 발생했습니다.","error"); }
@@ -771,7 +771,7 @@
     /********************************************************
      * 14. 데이터 보조 함수
      ********************************************************/
-    function getPersonStatus(person){ if(person.status) return person.status; if(person.checked===true) return "대피완료"; if(person.absenceReason) return person.absenceReason; return "소재파악 필요"; }
+    function getPersonStatus(person){ if(person.status) return person.status; if(person.checked===true) return "대피완료"; if(person.absenceReason) return person.absenceReason; return "확인중"; }
     function getPersonDetail(person){ const status=getPersonStatus(person); if(status==="대피완료") return person.checkTime?formatKst(person.checkTime):""; return person.absenceDetail||""; }
     function isAbsenceStatus(status){ return ["타 본부","휴가","출장","외출"].includes(status); }
     function getTeamInfosFromParticipants(list){
