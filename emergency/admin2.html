@@ -318,47 +318,50 @@
      ********************************************************/
     function parsePastedText(text){
       /*
-        엑셀 붙여넣기 인식 보강판
-        - 기존 버그: 데이터 값에 "본부", "실", "팀"이라는 글자가 들어가면 헤더로 오인해 행이 빠졌음.
-        - 수정: 헤더 행은 "여러 개의 컬럼명이 동시에 있는 행"일 때만 헤더로 판단.
-        - 헤더가 있으면 컬럼명 기준으로 읽고, 헤더가 없으면 앞 8개 열을
-          순번/본부/사업부/실/팀/사번/성명/팀장여부 순서로 읽음.
+        엑셀/웹 복붙 인식 보강판 v4
+        - 탭 복사, 쉼표 복사, 공백 정렬 복사를 모두 지원한다.
+        - 실제 데이터 안에 "본부", "사업부", "실", "팀"이 들어가도 헤더로 오인하지 않는다.
+        - 8개 열 기본: 순번 / 본부 / 사업부 / 실 / 팀 / 사번 / 성명 / 팀장여부
+        - 사업부 열이 비어 있거나 누락된 7개 열도 임시 허용한다.
       */
-      const rawLines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      const rawLines = String(text || "")
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .split("\n")
+        .filter(line => line.trim().length > 0);
+
       const result = [];
+      const skippedRows = [];
       let headerMap = null;
       let dataRowIndex = 0;
 
       for (const rawLine of rawLines) {
         const cols = splitPastedRow(rawLine).map(v => String(v ?? "").trim());
-        if (cols.length === 0) continue;
+
+        if (cols.length === 0 || cols.every(v => !v)) continue;
 
         if (!headerMap && isHeaderRow(cols)) {
           headerMap = buildHeaderMap(cols);
           continue;
         }
 
-        let orderRaw, headquarter, division, office, team, empNo, name, leaderFlag;
+        const row = headerMap ? rowFromHeader(cols, headerMap) : rowFromFixedColumns(cols);
 
-        if (headerMap) {
-          orderRaw = getCol(cols, headerMap.order);
-          headquarter = getCol(cols, headerMap.headquarter);
-          division = getCol(cols, headerMap.division);
-          office = getCol(cols, headerMap.office);
-          team = getCol(cols, headerMap.team);
-          empNo = getCol(cols, headerMap.empNo);
-          name = getCol(cols, headerMap.name);
-          leaderFlag = getCol(cols, headerMap.leaderFlag);
-        } else {
-          if (cols.length < 8) continue;
-          [orderRaw, headquarter, division, office, team, empNo, name, leaderFlag] = cols;
+        if (!row) {
+          skippedRows.push(rawLine);
+          continue;
         }
 
-        const orderNumber = Number(String(orderRaw || "").replace(/[^0-9.-]/g, ""));
+        const orderNumber = Number(String(row.orderRaw || "").replace(/[^0-9.-]/g, ""));
         const order = Number.isFinite(orderNumber) && orderNumber > 0 ? orderNumber : dataRowIndex + 1;
 
-        // 인원 인식 기준은 팀/사번/성명이다. 본부/사업부/실은 빈칸이어도 저장한다.
-        if (!String(team || "").trim() || !String(empNo || "").trim() || !String(name || "").trim()) {
+        const team = String(row.team || "").trim();
+        const empNo = String(row.empNo || "").trim();
+        const name = String(row.name || "").trim();
+
+        // 인원 인식 기준은 팀/사번/성명이다. 본부/사업부/실은 빈칸이나 '-'여도 저장한다.
+        if (!team || !empNo || !name) {
+          skippedRows.push(rawLine);
           continue;
         }
 
@@ -366,50 +369,118 @@
 
         result.push({
           order,
-          headquarter: String(headquarter || "").trim(),
-          division: String(division || "").trim(),
-          office: String(office || "").trim(),
-          team: String(team || "").trim(),
+          headquarter: String(row.headquarter || "").trim(),
+          division: String(row.division || "").trim(),
+          office: String(row.office || "").trim(),
+          team,
           teamKey: normalizeTeamKey(team),
-          empNo: String(empNo || "").trim(),
-          name: String(name || "").trim(),
-          leaderFlag: String(leaderFlag || "").trim(),
-          isLeader: isLeaderFlagValue(leaderFlag)
+          empNo,
+          name,
+          leaderFlag: String(row.leaderFlag || "").trim(),
+          isLeader: isLeaderFlagValue(row.leaderFlag)
         });
+      }
+
+      if (result.length === 0) {
+        console.warn("참석자 명단 인식 실패", { rawLines, skippedRows });
+      } else if (skippedRows.length > 0) {
+        console.warn("일부 참석자 행은 인식하지 못했습니다.", skippedRows);
       }
 
       result.sort((a,b)=>Number(a.order)-Number(b.order));
       return result;
     }
 
-    function splitPastedRow(line){
-      if (line.includes("\t")) return line.split("\t");
+    function rowFromHeader(cols, headerMap){
+      return {
+        orderRaw: getCol(cols, headerMap.order),
+        headquarter: getCol(cols, headerMap.headquarter),
+        division: getCol(cols, headerMap.division),
+        office: getCol(cols, headerMap.office),
+        team: getCol(cols, headerMap.team),
+        empNo: getCol(cols, headerMap.empNo),
+        name: getCol(cols, headerMap.name),
+        leaderFlag: getCol(cols, headerMap.leaderFlag)
+      };
+    }
 
-      // 쉼표 CSV를 간단히 지원한다. 엑셀 복붙은 보통 탭이므로 탭이 우선이다.
-      const out = [];
-      let cur = "";
-      let inQuotes = false;
+    function rowFromFixedColumns(cols){
+      const compact = cols.map(v => String(v ?? "").trim());
 
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
+      // 정상 8열 이상. 공백 분리 때문에 팀명 등에 공백이 끼어 9열 이상이 되어도 뒤쪽 사번/성명/팀장여부를 기준으로 복구한다.
+      if (compact.length >= 8) {
+        const orderRaw = compact[0];
+        const leaderFlag = compact[compact.length - 1];
+        const name = compact[compact.length - 2];
+        const empNo = compact[compact.length - 3];
+        const org = compact.slice(1, compact.length - 3);
 
-        if (ch === '"') {
-          if (inQuotes && line[i + 1] === '"') {
-            cur += '"';
-            i += 1;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (ch === ',' && !inQuotes) {
-          out.push(cur);
-          cur = "";
-        } else {
-          cur += ch;
-        }
+        return {
+          orderRaw,
+          headquarter: org[0] || "",
+          division: org[1] || "",
+          office: org[2] || "",
+          team: org.length > 4 ? org.slice(3).join(" ") : (org[3] || ""),
+          empNo,
+          name,
+          leaderFlag
+        };
       }
 
-      out.push(cur);
-      return out;
+      // 사업부 열이 완전히 빠진 7열 형태도 임시 허용한다.
+      // 순번 / 본부 / 실 / 팀 / 사번 / 성명 / 팀장여부
+      if (compact.length === 7) {
+        const [orderRaw, headquarter, office, team, empNo, name, leaderFlag] = compact;
+        return { orderRaw, headquarter, division: "", office, team, empNo, name, leaderFlag };
+      }
+
+      return null;
+    }
+
+    function splitPastedRow(line){
+      const raw = String(line ?? "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\u200b/g, "");
+
+      // 엑셀 정상 복붙은 탭이다. 빈 셀 보존을 위해 trim 전에 split한다.
+      if (raw.includes("\t")) {
+        return raw.split("\t");
+      }
+
+      // CSV 형태 지원
+      if (raw.includes(",")) {
+        const out = [];
+        let cur = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < raw.length; i++) {
+          const ch = raw[i];
+
+          if (ch === '"') {
+            if (inQuotes && raw[i + 1] === '"') {
+              cur += '"';
+              i += 1;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (ch === "," && !inQuotes) {
+            out.push(cur);
+            cur = "";
+          } else {
+            cur += ch;
+          }
+        }
+
+        out.push(cur);
+        if (out.length > 1) return out;
+      }
+
+      // 웹/메신저/일부 엑셀 환경에서 탭이 여러 공백으로 바뀐 경우 지원
+      const byMultiSpace = raw.trim().split(/\s{2,}/).filter(Boolean);
+      if (byMultiSpace.length >= 7) return byMultiSpace;
+
+      // 마지막 fallback: 단일 공백 분리
+      return raw.trim().split(/\s+/).filter(Boolean);
     }
 
     function headerKey(value){
