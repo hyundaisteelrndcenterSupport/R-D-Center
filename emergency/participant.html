@@ -271,7 +271,7 @@
 
     .form-row textarea {
       width:100%;
-      min-height:88px;
+      min-height:96px;
       border:3px solid #777;
       padding:14px 16px;
       font-size:22px;
@@ -295,6 +295,10 @@
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:26px;
+    }
+
+    .button-row.single {
+      grid-template-columns:1fr;
     }
 
     button {
@@ -596,7 +600,7 @@
       text-align:center;
     }
 
-    @media (max-width: 760px) {
+    @media (max-width:760px) {
       .page {
         width:100%;
         min-height:100dvh;
@@ -705,7 +709,7 @@
       }
 
       .form-row textarea {
-        min-height:96px;
+        min-height:100px;
         border:1.5px solid var(--gray-300);
         border-radius:14px;
         padding:13px 14px;
@@ -886,6 +890,34 @@
       </div>
     </section>
 
+    <section id="externalView" class="main-layout hidden">
+      <div class="main-card">
+        <div class="status-area">
+          <span id="externalStatusPill" class="status-pill">-</span>
+        </div>
+
+        <div id="externalTrainingNameText" class="training-name-text">-</div>
+        <h2 class="main-title">협력·외주 대피자 위치 공유</h2>
+        <div id="externalPeriodText" class="period-text">-</div>
+
+        <div class="form-row">
+          <label for="externalAffiliationInput">소속</label>
+          <input id="externalAffiliationInput" autocomplete="organization" placeholder="소속을 입력하세요" />
+        </div>
+
+        <div class="form-row">
+          <label for="externalNameInput">성명</label>
+          <input id="externalNameInput" autocomplete="name" placeholder="성명을 입력하세요" />
+        </div>
+
+        <div class="button-row single">
+          <button id="externalSubmitBtn" class="red" onclick="handleExternalEvacuated()">대피 완료</button>
+        </div>
+
+        <div id="externalMessage" class="message"></div>
+      </div>
+    </section>
+
     <section id="absenceView" class="main-layout hidden">
       <div class="main-card">
         <div class="status-area">
@@ -936,7 +968,7 @@
             <span id="doneTrainingName" class="result-value">-</span>
           </div>
           <div class="result-row">
-            <span class="result-label">팀명</span>
+            <span id="doneTeamLabel" class="result-label">팀명</span>
             <span id="doneTeamName" class="result-value">-</span>
           </div>
           <div class="result-row">
@@ -967,7 +999,7 @@
             <span id="noticeTeamName" class="result-value">-</span>
           </div>
           <div class="result-row">
-            <span class="result-label">출석 가능 시간</span>
+            <span class="result-label">입력 가능 시간</span>
             <span id="noticePeriod" class="result-value">-</span>
           </div>
         </div>
@@ -1016,12 +1048,12 @@
      * 관리자용 admin.html과 동일한 firebaseConfig를 입력하세요.
      ********************************************************/
     const firebaseConfig = {
-  apiKey: "AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",
-  authDomain: "emergy-e15f5.firebaseapp.com",
-  projectId: "emergy-e15f5",
-  storageBucket: "emergy-e15f5.firebasestorage.app",
-  messagingSenderId: "123548770828",
-  appId: "1:123548770828:web:904e66916a055a52d64429"
+      apiKey: "여기에 입력",
+      authDomain: "여기에 입력",
+      projectId: "여기에 입력",
+      storageBucket: "여기에 입력",
+      messagingSenderId: "여기에 입력",
+      appId: "여기에 입력"
     };
 
     /********************************************************
@@ -1033,17 +1065,24 @@
       통합 출결:
       participant.html?trainingId=훈련ID
 
-      팀장 현황 링크:
-      participant.html?view=team&team=R%26D운영팀
-      또는
-      participant.html?view=team&teamKey=r%26d운영팀
+      협력·외주:
+      participant.html?trainingId=훈련ID&external=1
+
+      팀장 현황:
+      participant.html?view=team&team=팀명
+      participant.html?view=team&team=팀명&teamKey=팀키
     */
     let trainingId = params.get("trainingId") || "";
     const viewMode = params.get("view") || "";
     const urlTeamName = params.get("team") || "";
     const urlTeamKey = params.get("teamKey") || "";
-
     const isTeamDashboardMode = viewMode === "team";
+
+    const isExternalMode =
+      params.get("external") === "1" ||
+      params.get("type") === "external" ||
+      normalizeText(urlTeamName) === normalizeText("협력·외주") ||
+      normalizeText(urlTeamName) === normalizeText("협력/외주");
 
     let db = null;
     let firebaseReady = false;
@@ -1054,11 +1093,11 @@
 
     let currentPerson = null;
     let currentPersonRef = null;
-    let attendanceCompleted = false;
-    let submitLocked = false;
-    let duplicateActiveTrainingDetected = false;
-
     let teamMembers = [];
+
+    let attendanceCompleted = false;
+    let absenceModeOpen = false;
+    let submitLocked = false;
 
     let unsubscribeTraining = null;
     let unsubscribeTeamMembers = null;
@@ -1121,7 +1160,7 @@
       if (err && err.code === "permission-denied") {
         message =
           `${place} 실패: Firestore 보안 규칙 권한이 없습니다.<br>` +
-          `emergencyTrainings, participants 읽기/쓰기 권한을 확인해주세요.`;
+          `emergencyTrainings, participants, externalParticipants 권한을 확인해주세요.`;
       } else if (err && err.code === "failed-precondition") {
         message =
           `${place} 실패: Firestore 인덱스 또는 데이터베이스 설정이 필요할 수 있습니다.`;
@@ -1233,6 +1272,10 @@
       return trainingRef().collection("participants");
     }
 
+    function externalParticipantsRef() {
+      return trainingRef().collection("externalParticipants");
+    }
+
     /********************************************************
      * 6. 초기 실행
      ********************************************************/
@@ -1245,9 +1288,15 @@
 
       if (isTeamDashboardMode) {
         initTeamDashboardMode();
-      } else {
-        initEntryMode();
+        return;
       }
+
+      if (isExternalMode) {
+        initExternalMode();
+        return;
+      }
+
+      initEntryMode();
     }
 
     function initEntryMode() {
@@ -1268,7 +1317,29 @@
 
       showLoading(
         "훈련 정보를 확인 중입니다",
-        "비상대응훈련 정보를 불러오고 있습니다."
+        "비상상황 정보를 불러오고 있습니다."
+      );
+
+      subscribeTraining();
+    }
+
+    function initExternalMode() {
+      $("pageTitle").textContent = "협력·외주 대피자 위치 공유";
+      $("pageDesc").textContent =
+        "협력·외주 참석자는 소속과 성명을 입력하여 대피완료를 등록해주시기 바랍니다.";
+
+      if (!trainingId) {
+        showFatalError(
+          "협력·외주 링크가 올바르지 않습니다.<br><br>" +
+          "협력·외주 링크에는 trainingId가 포함되어야 합니다."
+        );
+        setFirebaseState("협력·외주 링크 오류", "error");
+        return;
+      }
+
+      showLoading(
+        "훈련 정보를 확인 중입니다",
+        "협력·외주 대피자 위치 공유 정보를 불러오고 있습니다."
       );
 
       subscribeTraining();
@@ -1281,8 +1352,7 @@
       if (!selectedTeamKey) {
         showFatalError(
           "팀장 현황 링크가 올바르지 않습니다.<br><br>" +
-          "팀장 현황 링크에는 team 또는 teamKey가 포함되어야 합니다.<br>" +
-          "예: participant.html?view=team&team=R%26D운영팀"
+          "팀장 현황 링크에는 team 또는 teamKey가 포함되어야 합니다."
         );
         setFirebaseState("팀장 링크 오류", "error");
         return;
@@ -1377,9 +1447,9 @@
         if (unsubscribeTraining) unsubscribeTraining();
 
         unsubscribeTraining = trainingRef().onSnapshot(
-          async (doc) => {
+          (doc) => {
             if (!doc.exists) {
-              showFatalError("해당 비상대응훈련 정보를 찾을 수 없습니다.");
+              showFatalError("해당 비상상황 정보를 찾을 수 없습니다.");
               return;
             }
 
@@ -1389,6 +1459,7 @@
             };
 
             setFirebaseState("Firebase 연결 정상", "ok");
+            hideFatalError();
 
             if (isTeamDashboardMode) {
               renderTeamDashboardShell();
@@ -1396,9 +1467,6 @@
               return;
             }
 
-            await checkDuplicateActiveTraining();
-
-            hideFatalError();
             renderTrainingInfo();
             applyTimeBasedView();
           },
@@ -1414,7 +1482,7 @@
     }
 
     /********************************************************
-     * 9. 출석 가능 상태
+     * 9. 입력 가능 상태
      ********************************************************/
     function getTrainingStatus() {
       if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
@@ -1438,20 +1506,20 @@
       if (now < start) {
         return {
           code: "wait",
-          text: "출석 시작 전"
+          text: "입력 시작 전"
         };
       }
 
       if (now >= start && now <= end) {
         return {
           code: "open",
-          text: "출석 가능"
+          text: "입력 가능"
         };
       }
 
       return {
         code: "closed",
-        text: "출석 종료"
+        text: "입력 종료"
       };
     }
 
@@ -1462,44 +1530,54 @@
       $("trainingNameText").textContent = trainingName;
       $("periodText").textContent = getPeriodText();
 
-      const pill = $("statusPill");
-      pill.textContent = duplicateActiveTrainingDetected ? "중복 훈련 감지" : status.text;
+      $("externalTrainingNameText").textContent = trainingName;
+      $("externalPeriodText").textContent = getPeriodText();
 
-      if (duplicateActiveTrainingDetected) {
-        pill.className = "status-pill error";
-      } else if (status.code === "open") {
-        pill.className = "status-pill open";
+      const targetPill = isExternalMode ? $("externalStatusPill") : $("statusPill");
+
+      targetPill.textContent = status.text;
+
+      if (status.code === "open") {
+        targetPill.className = "status-pill open";
       } else if (status.code === "wait") {
-        pill.className = "status-pill wait";
+        targetPill.className = "status-pill wait";
       } else if (status.code === "closed") {
-        pill.className = "status-pill closed";
+        targetPill.className = "status-pill closed";
       } else {
-        pill.className = "status-pill error";
+        targetPill.className = "status-pill error";
       }
     }
 
     function applyTimeBasedView() {
       if (!trainingData || attendanceCompleted) return;
 
-      const status = getTrainingStatus();
+      /*
+        핵심 수정:
+        부재 사유 입력 화면을 열어둔 상태에서는
+        1초마다 실행되는 updateClock()이 화면을 다시 통합 출결 화면으로
+        돌려보내지 않도록 막는다.
 
-      if (duplicateActiveTrainingDetected) {
-        showNotice(
-          "중복 훈련이 감지되었습니다",
-          "동일 시간대에 중복 훈련이 감지되어 입력이 제한됩니다."
-        );
+        저장 버튼을 누를 때 submitAbsence() 안에서 입력 가능 시간을 다시 검사한다.
+      */
+      if (absenceModeOpen) {
         return;
       }
 
+      const status = getTrainingStatus();
+
       if (status.code === "open") {
-        showEntry();
+        if (isExternalMode) {
+          showExternalEntry();
+        } else {
+          showEntry();
+        }
         return;
       }
 
       if (status.code === "wait") {
         showNotice(
-          "아직 출석 시작 전입니다",
-          "관리자가 설정한 출석 시작 시간이 되면 입력할 수 있습니다."
+          "아직 입력 시작 전입니다",
+          "관리자가 설정한 입력 시작 시간이 되면 입력할 수 있습니다."
         );
         return;
       }
@@ -1507,19 +1585,19 @@
       if (status.code === "closed") {
         showNotice(
           "입력 시간이 종료되었습니다",
-          "관리자가 설정한 출석 가능 시간이 지나 입력할 수 없습니다."
+          "관리자가 설정한 입력 가능 시간이 지나 입력할 수 없습니다."
         );
         return;
       }
 
       showNotice(
-        "출석 시간이 설정되지 않았습니다",
+        "입력 시간이 설정되지 않았습니다",
         "관리자에게 훈련 시간 설정 상태를 확인해주세요."
       );
     }
 
     /********************************************************
-     * 10. 대피완료 / 부재 입력
+     * 10. 일반 직원 대피완료 / 부재 입력
      ********************************************************/
     async function findPersonByNameAndEmpNo() {
       ensureFirebaseReady();
@@ -1624,6 +1702,7 @@
           title: "대피 공유가 완료되었습니다",
           desc: "정상적으로 출석 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.",
           trainingName: trainingData.trainingName,
+          teamLabel: "팀명",
           teamName: person.team || "-",
           name: person.name || "-",
           timeLabel: "출석 시간",
@@ -1675,6 +1754,7 @@
 
         $("absenceReasonInput").value = "";
         $("absenceDetailInput").value = "";
+        setAbsenceMessage("", "");
 
         showAbsence();
       } catch (err) {
@@ -1695,6 +1775,14 @@
         if (!currentPerson || !currentPersonRef) {
           setAbsenceMessage("입력 대상자를 다시 확인해주세요.", "error");
           backToEntry();
+          return;
+        }
+
+        const status = getTrainingStatus();
+
+        if (status.code !== "open") {
+          setAbsenceMessage("현재는 입력 가능 시간이 아닙니다.", "error");
+          applyTimeBasedView();
           return;
         }
 
@@ -1740,6 +1828,7 @@
           title: "부재 사유 입력이 완료되었습니다",
           desc: "위치가 공유되었습니다.<br>이 화면은 닫아도 됩니다.",
           trainingName: trainingData.trainingName,
+          teamLabel: "팀명",
           teamName: person.team || "-",
           name: person.name || "-",
           timeLabel: "부재 내용",
@@ -1764,8 +1853,90 @@
       }
     }
 
+    /********************************************************
+     * 11. 협력·외주 대피완료
+     ********************************************************/
+    async function handleExternalEvacuated() {
+      if (submitLocked) return;
+
+      try {
+        ensureFirebaseReady();
+
+        const status = getTrainingStatus();
+
+        if (status.code !== "open") {
+          setExternalMessage("현재는 입력 가능 시간이 아닙니다.", "error");
+          applyTimeBasedView();
+          return;
+        }
+
+        const affiliation = $("externalAffiliationInput").value.trim();
+        const name = $("externalNameInput").value.trim();
+
+        if (!affiliation) {
+          setExternalMessage("소속을 입력해주세요.", "error");
+          $("externalAffiliationInput").focus();
+          return;
+        }
+
+        if (!name) {
+          setExternalMessage("성명을 입력해주세요.", "error");
+          $("externalNameInput").focus();
+          return;
+        }
+
+        submitLocked = true;
+        setButtonLoading("externalSubmitBtn", true, "처리 중...");
+
+        const now = new Date();
+
+        await externalParticipantsRef().add({
+          team: "협력·외주",
+          affiliation,
+          name,
+          status: "대피완료",
+          statusType: "evacuated",
+          checked: true,
+          checkTime: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedByPage: "participant-external"
+        });
+
+        $("externalAffiliationInput").value = "";
+        $("externalNameInput").value = "";
+
+        showDone({
+          title: "대피 공유가 완료되었습니다",
+          desc: "정상적으로 협력·외주 대피 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.",
+          trainingName: trainingData.trainingName,
+          teamLabel: "구분",
+          teamName: `협력·외주 / ${affiliation}`,
+          name,
+          timeLabel: "출석 시간",
+          time: formatKst(now)
+        });
+      } catch (err) {
+        console.error(err);
+
+        if (err.code === "permission-denied") {
+          setExternalMessage("입력 권한이 없습니다. Firestore Rules를 확인해주세요.", "error");
+        } else {
+          setExternalMessage("협력·외주 대피 완료 처리 중 오류가 발생했습니다.", "error");
+        }
+      } finally {
+        submitLocked = false;
+        setButtonLoading("externalSubmitBtn", false, "대피 완료");
+      }
+    }
+
+    /********************************************************
+     * 12. 팀장 현황
+     ********************************************************/
     async function openLeaderDashboardAfterSubmit() {
+      absenceModeOpen = false;
       attendanceCompleted = true;
+
       showLoading("팀장 현황으로 이동 중입니다", "팀 대피자 현황을 불러오고 있습니다.");
 
       if (unsubscribeTeamMembers) unsubscribeTeamMembers();
@@ -1775,9 +1946,6 @@
       showTeamDashboard();
     }
 
-    /********************************************************
-     * 11. 팀장 현황
-     ********************************************************/
     function subscribeTeamMembers() {
       try {
         ensureFirebaseReady();
@@ -1821,7 +1989,11 @@
 
     function renderTeamDashboardShell() {
       const trainingName = trainingData?.trainingName || "비상대응훈련";
-      const teamName = selectedTeamName || getTeamNameFromTrainingSummary(selectedTeamKey) || selectedTeamKey || "-";
+      const teamName =
+        selectedTeamName ||
+        getTeamNameFromTrainingSummary(selectedTeamKey) ||
+        selectedTeamKey ||
+        "-";
 
       $("teamDashboardTitle").textContent = "비상상황 대피자 현황_팀장";
       $("teamDashboardSubtitle").textContent = teamName;
@@ -1887,7 +2059,6 @@
 
     function renderStatusOptions(currentStatus) {
       const options = ["소재파악 필요", "대피완료", "타 본부", "휴가", "출장", "외출"];
-
       const normalizedCurrent = currentStatus || "소재파악 필요";
 
       return options.map((option) => {
@@ -1979,6 +2150,163 @@
       }
     }
 
+    /********************************************************
+     * 13. 화면 전환
+     ********************************************************/
+    function showEntry() {
+      absenceModeOpen = false;
+
+      $("fatalView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("entryView").classList.remove("hidden");
+    }
+
+    function showExternalEntry() {
+      absenceModeOpen = false;
+
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("externalView").classList.remove("hidden");
+    }
+
+    function showAbsence() {
+      absenceModeOpen = true;
+
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("absenceView").classList.remove("hidden");
+
+      setTimeout(() => {
+        $("absenceReasonInput").focus();
+      }, 150);
+    }
+
+    function backToEntry() {
+      absenceModeOpen = false;
+
+      $("absenceView").classList.add("hidden");
+      $("entryView").classList.remove("hidden");
+    }
+
+    function showDone(result) {
+      absenceModeOpen = false;
+      attendanceCompleted = true;
+
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("doneView").classList.remove("hidden");
+
+      $("pageDesc").textContent =
+        result.title && result.title.includes("부재")
+          ? "부재 사유 입력이 완료되었습니다."
+          : "대피 공유가 완료되었습니다.";
+
+      $("doneTitle").textContent = result.title || "입력이 완료되었습니다";
+      $("doneDesc").innerHTML = result.desc || "정상적으로 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.";
+      $("doneTrainingName").textContent = result.trainingName || "비상대응훈련";
+      $("doneTeamLabel").textContent = result.teamLabel || "팀명";
+      $("doneTeamName").textContent = result.teamName || "-";
+      $("doneName").textContent = result.name || "-";
+      $("doneTimeLabel").textContent = result.timeLabel || "출석 시간";
+      $("doneTime").textContent = result.time || "-";
+    }
+
+    function showNotice(title, desc) {
+      absenceModeOpen = false;
+
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("noticeView").classList.remove("hidden");
+
+      $("noticeTitle").textContent = title;
+      $("noticeDesc").textContent = desc;
+      $("noticeTrainingName").textContent = trainingData?.trainingName || "비상대응훈련";
+      $("noticeTeamName").textContent =
+        isExternalMode
+          ? "협력·외주"
+          : selectedTeamName || selectedTeamKey || "통합 출결";
+      $("noticePeriod").textContent = getPeriodText();
+    }
+
+    function showLoading(title, desc) {
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+      $("noticeView").classList.remove("hidden");
+
+      $("noticeTitle").textContent = title;
+      $("noticeDesc").textContent = desc;
+      $("noticeTrainingName").textContent = "확인 중";
+      $("noticeTeamName").textContent =
+        isExternalMode
+          ? "협력·외주"
+          : selectedTeamName || selectedTeamKey || "통합 출결";
+      $("noticePeriod").textContent = "훈련 정보를 불러오는 중입니다.";
+    }
+
+    function showTeamDashboard() {
+      absenceModeOpen = false;
+
+      $("fatalView").classList.add("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.remove("hidden");
+    }
+
+    function showFatalError(message) {
+      absenceModeOpen = false;
+
+      $("fatalBox").innerHTML = message;
+      $("fatalView").classList.remove("hidden");
+      $("entryView").classList.add("hidden");
+      $("externalView").classList.add("hidden");
+      $("absenceView").classList.add("hidden");
+      $("doneView").classList.add("hidden");
+      $("noticeView").classList.add("hidden");
+      $("teamView").classList.add("hidden");
+    }
+
+    function hideFatalError() {
+      $("fatalView").classList.add("hidden");
+    }
+
+    /********************************************************
+     * 14. 보조 함수
+     ********************************************************/
+    function getPeriodText() {
+      if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
+        return "입력 가능 시간 미설정";
+      }
+
+      return `${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;
+    }
+
     function getPersonStatus(person) {
       if (person.status) return person.status;
       if (person.checked === true) return "대피완료";
@@ -1993,10 +2321,6 @@
         return person.checkTime ? formatKst(person.checkTime) : "";
       }
 
-      if (status === "소재파악 필요") {
-        return person.absenceDetail || "";
-      }
-
       return person.absenceDetail || "";
     }
 
@@ -2004,155 +2328,47 @@
       return ["타 본부", "휴가", "출장", "외출"].includes(status);
     }
 
-    /********************************************************
-     * 12. 화면 전환
-     ********************************************************/
-    function showEntry() {
-      $("fatalView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-      $("entryView").classList.remove("hidden");
+    function isLeaderPerson(person) {
+      if (!person) return false;
+      if (person.isLeader === true) return true;
+
+      const values = [
+        person.leaderFlag,
+        person.leader,
+        person.leaderYn,
+        person.teamLeader,
+        person.teamLeaderYn,
+        person.role,
+        person.position
+      ];
+
+      return values
+        .map((v) => normalizeText(v))
+        .some((v) =>
+          v === "해당" ||
+          v === "팀장" ||
+          v === "y" ||
+          v === "yes" ||
+          v === "true"
+        );
     }
 
-    function showAbsence() {
-      $("fatalView").classList.add("hidden");
-      $("entryView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-      $("absenceView").classList.remove("hidden");
-    }
+    function getTeamNameFromTrainingSummary(teamKey) {
+      if (!trainingData || !Array.isArray(trainingData.teamSummary)) return "";
 
-    function backToEntry() {
-      $("absenceView").classList.add("hidden");
-      $("entryView").classList.remove("hidden");
-    }
+      const found = trainingData.teamSummary.find((item) => item.teamKey === teamKey);
 
-    function showDone(result) {
-      attendanceCompleted = true;
-
-      $("fatalView").classList.add("hidden");
-      $("entryView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-      $("doneView").classList.remove("hidden");
-
-      $("pageDesc").textContent =
-        result.title && result.title.includes("부재")
-          ? "부재 사유 입력이 완료되었습니다."
-          : "대피 공유가 완료되었습니다.";
-
-      $("doneTitle").textContent = result.title || "입력이 완료되었습니다";
-      $("doneDesc").innerHTML = result.desc || "정상적으로 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.";
-      $("doneTrainingName").textContent = result.trainingName || "비상대응훈련";
-      $("doneTeamName").textContent = result.teamName || "-";
-      $("doneName").textContent = result.name || "-";
-      $("doneTimeLabel").textContent = result.timeLabel || "출석 시간";
-      $("doneTime").textContent = result.time || "-";
-    }
-
-    function showNotice(title, desc) {
-      $("fatalView").classList.add("hidden");
-      $("entryView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-      $("noticeView").classList.remove("hidden");
-
-      $("noticeTitle").textContent = title;
-      $("noticeDesc").textContent = desc;
-      $("noticeTrainingName").textContent = trainingData?.trainingName || "비상대응훈련";
-      $("noticeTeamName").textContent = selectedTeamName || selectedTeamKey || "통합 출결";
-      $("noticePeriod").textContent = getPeriodText();
-    }
-
-    function showLoading(title, desc) {
-      $("fatalView").classList.add("hidden");
-      $("entryView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-      $("noticeView").classList.remove("hidden");
-
-      $("noticeTitle").textContent = title;
-      $("noticeDesc").textContent = desc;
-      $("noticeTrainingName").textContent = "확인 중";
-      $("noticeTeamName").textContent = selectedTeamName || selectedTeamKey || "통합 출결";
-      $("noticePeriod").textContent = "훈련 정보를 불러오는 중입니다.";
-    }
-
-    function showTeamDashboard() {
-      $("fatalView").classList.add("hidden");
-      $("entryView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("teamView").classList.remove("hidden");
-    }
-
-    function showFatalError(message) {
-      $("fatalBox").innerHTML = message;
-      $("fatalView").classList.remove("hidden");
-      $("entryView").classList.add("hidden");
-      $("absenceView").classList.add("hidden");
-      $("doneView").classList.add("hidden");
-      $("noticeView").classList.add("hidden");
-      $("teamView").classList.add("hidden");
-    }
-
-    function hideFatalError() {
-      $("fatalView").classList.add("hidden");
-    }
-
-    /********************************************************
-     * 13. 중복 훈련 확인
-     ********************************************************/
-    async function checkDuplicateActiveTraining() {
-      duplicateActiveTrainingDetected = false;
-
-      try {
-        if (!trainingData || !trainingData.startAt || !trainingData.endAt) return;
-
-        const now = new Date();
-        const nowTs = firebase.firestore.Timestamp.fromDate(now);
-
-        const snapshot = await db.collection("emergencyTrainings")
-          .where("startAt", "<=", nowTs)
-          .get();
-
-        const activeTrainings = snapshot.docs
-          .map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          .filter((training) => {
-            if (!training.endAt) return false;
-            return toMillis(training.endAt) >= now.getTime();
-          });
-
-        duplicateActiveTrainingDetected = activeTrainings.length >= 2;
-      } catch (err) {
-        console.warn("중복 훈련 확인 실패:", err);
-        duplicateActiveTrainingDetected = false;
-      }
-    }
-
-    /********************************************************
-     * 14. 보조 함수
-     ********************************************************/
-    function getPeriodText() {
-      if (!trainingData || !trainingData.startAt || !trainingData.endAt) {
-        return "출석 가능 시간 미설정";
-      }
-
-      return `${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;
+      return found ? found.team : "";
     }
 
     function setEntryMessage(text, type) {
       const el = $("entryMessage");
+      el.innerHTML = text || "";
+      el.className = `message ${type || ""}`;
+    }
+
+    function setExternalMessage(text, type) {
+      const el = $("externalMessage");
       el.innerHTML = text || "";
       el.className = `message ${type || ""}`;
     }
@@ -2186,32 +2402,6 @@
 
     function normalizeTeamKey(value) {
       return normalizeText(value);
-    }
-
-    function isLeaderPerson(person) {
-      const values = [
-        person.isLeader,
-        person.leader,
-        person.leaderYn,
-        person.teamLeader,
-        person.teamLeaderYn,
-        person.role,
-        person.position
-      ];
-
-      if (person.isLeader === true) return true;
-
-      return values
-        .map((v) => normalizeText(v))
-        .some((v) => v === "팀장" || v === "y" || v === "yes" || v === "true");
-    }
-
-    function getTeamNameFromTrainingSummary(teamKey) {
-      if (!trainingData || !Array.isArray(trainingData.teamSummary)) return "";
-
-      const found = trainingData.teamSummary.find((item) => item.teamKey === teamKey);
-
-      return found ? found.team : "";
     }
 
     function escapeHtml(value) {
