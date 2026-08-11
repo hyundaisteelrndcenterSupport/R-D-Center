@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비상대응훈련 대시보드</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+  <style>
+    :root{
+      --red:#d71920;--navy:#101a33;--blue:#2563eb;--green:#07966f;--orange:#b45309;
+      --purple:#5b5bd6;--gray-50:#f7f9fc;--gray-100:#eef2f7;--gray-200:#dde4ed;
+      --gray-300:#cbd5e1;--gray-500:#64748b;--gray-600:#475569;--gray-700:#334155;
+      --gray-900:#0f172a;--line:#dce3eb;--shadow:0 18px 48px rgba(15,23,42,.09);
+      --soft-shadow:0 10px 28px rgba(15,23,42,.07);--radius:24px;--row-height:46px;--head-height:52px;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html{min-height:100%;background:#f4f7fb}
+    body{margin:0;min-height:100%;color:var(--gray-900);background:radial-gradient(circle at 4% 0%,rgba(59,130,246,.08),transparent 29%),radial-gradient(circle at 100% 20%,rgba(215,25,32,.055),transparent 25%),linear-gradient(180deg,#f4f7fb 0%,#fbfcfe 46%,#f7f9fc 100%);font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif}
+    .app{max-width:1480px;margin:0 auto;padding:26px 24px 36px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 2px 17px;color:var(--gray-500);font-size:12px;font-weight:900}.brand-dot{display:inline-flex;align-items:center;gap:8px}.brand-dot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 4px rgba(215,25,32,.09)}
+    .hero,.section,.summary-card{position:relative;overflow:hidden;border:1px solid var(--gray-200);background:#fff;box-shadow:var(--soft-shadow)}
+    .hero,.section{border-radius:var(--radius)}.hero::before,.section::before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--red),#ef4444 38%,#f59e0b)}
+    .hero{display:flex;justify-content:space-between;align-items:center;gap:28px;padding:30px 34px;box-shadow:var(--shadow)}
+    .eyebrow{margin:0 0 9px;color:var(--red);font-size:12px;font-weight:900;letter-spacing:.14em}h1{margin:0;color:#070b18;font-size:38px;font-weight:900;letter-spacing:-.052em;line-height:1.16;word-break:keep-all}.desc{margin:11px 0 0;color:var(--gray-600);font-size:14px;font-weight:800;line-height:1.65;word-break:keep-all}
+    .identity{min-width:305px;padding:17px 19px;border-radius:18px;background:linear-gradient(145deg,#17223b,#0d152a);color:#fff;text-align:right}.identity span{display:block;color:#cbd5e1;font-size:12px;font-weight:900}.identity strong{display:block;margin:6px 0 10px;font-size:18px}.live{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#86efac;font-size:11px;font-weight:900}.live::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(134,239,172,.12)}.live.warn{color:#fde68a}.live.error{color:#fca5a5}
+    .summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:13px;margin:20px 0}.summary-card{--metric:#334155;min-height:104px;padding:18px;border-radius:19px}.summary-card::before{content:"";position:absolute;left:0;top:17px;bottom:17px;width:5px;border-radius:0 5px 5px 0;background:var(--metric)}.summary-card:nth-child(2){--metric:var(--green)}.summary-card:nth-child(3){--metric:var(--orange)}.summary-card:nth-child(4){--metric:var(--red)}.summary-card:nth-child(5){--metric:var(--blue)}.summary-card span{display:block;margin-bottom:8px;color:var(--gray-500);font-size:13px;font-weight:900}.summary-card strong{color:var(--metric);font-size:31px;font-weight:900;letter-spacing:-.04em}
+    .section{margin-top:20px}.section-header{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:21px 23px 19px;border-bottom:1px solid var(--gray-200);background:linear-gradient(180deg,#fff,#fbfcfe)}.section-body{padding:21px 23px 24px}.section h2{margin:0;font-size:21px;font-weight:900;letter-spacing:-.03em}.sub{margin:6px 0 0;color:var(--gray-500);font-size:13px;font-weight:800;line-height:1.55}.tools{display:flex;align-items:center;gap:9px}.tools input{width:310px;height:42px;border:1.5px solid var(--gray-300);border-radius:11px;padding:0 13px;font-family:inherit;font-weight:800;outline:none}.tools input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.09)}
+    button{min-height:40px;border:1px solid var(--gray-300);border-radius:10px;padding:8px 14px;background:#fff;color:var(--gray-900);font-family:inherit;font-size:13px;font-weight:900;cursor:pointer}.logout{border-color:#fecaca;background:#fff7f7;color:var(--red)}
+    .notice{display:none;margin-bottom:14px;padding:13px 15px;border-radius:12px;font-size:13px;font-weight:900;line-height:1.55}.notice.show{display:block}.notice.ok{background:#ecfdf5;color:#047857}.notice.warn{background:#fff7ed;color:#b45309}.notice.error{background:#fef2f2;color:var(--red)}
+    .table-wrap{overflow:auto;border:1px solid var(--gray-200);border-radius:16px;background:#fff;-webkit-overflow-scrolling:touch}.table-wrap.checking{max-height:calc(var(--head-height) + var(--row-height)*10 + 3px)}.table-wrap.all{max-height:calc(var(--head-height) + var(--row-height)*20 + 3px)}table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:14px}th,td{height:var(--row-height);border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 8px;text-align:center;vertical-align:middle;word-break:keep-all;overflow-wrap:anywhere}th:last-child,td:last-child{border-right:0}tbody tr:last-child td{border-bottom:0}th{position:sticky;top:0;z-index:2;height:var(--head-height);background:#f5f8fb;color:var(--gray-700);font-size:13px;font-weight:900}tbody tr:nth-child(even) td{background:#fbfcfe}.empty{height:90px!important;color:var(--gray-500);font-weight:900}
+    .status-select,.detail-input{width:100%;height:35px;border:1px solid var(--gray-300);border-radius:8px;padding:0 8px;background:#fff;color:var(--gray-900);font-family:inherit;font-size:13px;font-weight:800;outline:none}.status-select.checking-status{color:var(--red);font-weight:900}.detail-input:disabled{background:#f1f5f9;color:var(--gray-500)}.status-pill{display:inline-flex;align-items:center;justify-content:center;min-width:72px;height:27px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:900}.status-pill.checking{background:#fef2f2;color:var(--red)}.status-pill.done{background:#ecfdf5;color:#047857}.status-pill.absence{background:#fff7ed;color:#b45309}
+    .access-denied{display:none;margin-top:20px;padding:40px 25px;text-align:center}.access-denied.show{display:block}.access-denied h2{font-size:25px}.access-denied p{color:var(--gray-600);font-weight:800;line-height:1.7}.access-denied a{display:inline-flex;margin-top:10px;border-radius:12px;padding:12px 18px;background:var(--red);color:#fff;font-weight:900;text-decoration:none}.footer{margin-top:25px;color:#7b8493;font-size:11px;font-weight:800;text-align:center}
+    .col-no{width:6%}.col-org{width:24%}.col-team{width:14%}.col-name{width:11%}.col-time{width:23%}.all-no{width:5%}.all-org{width:18%}.all-team{width:12%}.all-name{width:9%}.all-status{width:14%}.all-detail{width:26%}.all-time{width:16%}
+    [hidden]{display:none!important}
+    @media(max-width:1050px){.summary-grid{grid-template-columns:repeat(3,1fr)}.hero{align-items:stretch;flex-direction:column}.identity{text-align:left}.live{justify-content:flex-start}}
+    @media(max-width:700px){.app{padding:13px 12px 26px}.hero{padding:24px 20px;border-radius:22px}h1{font-size:30px}.desc{font-size:12px}.identity{min-width:0;padding:16px}.summary-grid{grid-template-columns:repeat(2,1fr);gap:10px}.summary-card{min-height:91px;padding:15px}.summary-card strong{font-size:27px}.section{border-radius:21px}.section-header{align-items:stretch;flex-direction:column;padding:19px 17px 16px}.section-body{padding:17px 15px 20px}.tools{align-items:stretch;flex-direction:column}.tools input,.tools button{width:100%}.table-wrap table{min-width:820px}.table-wrap{border-radius:13px}table{font-size:12px}th{font-size:12px}.footer{line-height:1.6}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar"><span>비상대응 현황</span><span class="brand-dot">ROLE DASHBOARD</span></div>
+    <section id="mainView">
+      <header class="hero">
+        <div><p class="eyebrow" id="roleEyebrow">EMERGENCY DASHBOARD</p><h1 id="dashboardTitle">대피 현황 대시보드</h1><p class="desc" id="dashboardDesc">관리자 허브가 발행한 조직별 현황을 실시간으로 표시합니다.</p></div>
+        <div class="identity"><span id="trainingName">비상대응훈련</span><strong id="viewerName">-</strong><div id="liveState" class="live warn">데이터 연결 중</div></div>
+      </header>
+
+      <div class="summary-grid">
+        <div class="summary-card"><span>대상 인원</span><strong id="totalCount">0</strong></div>
+        <div class="summary-card"><span>대피완료</span><strong id="evacuatedCount">0</strong></div>
+        <div class="summary-card"><span>부재</span><strong id="absenceCount">0</strong></div>
+        <div class="summary-card"><span>확인중</span><strong id="checkingCount">0</strong></div>
+        <div class="summary-card"><span>대피율</span><strong id="rateText">0%</strong></div>
+      </div>
+
+      <section class="section">
+        <div class="section-header"><div><h2>확인중 인원</h2><p class="sub">최대 10명 높이로 표시되며 초과 인원은 상하 스크롤됩니다.</p></div><button class="logout" onclick="logoutDashboard()">대시보드 나가기</button></div>
+        <div class="section-body"><div id="dashboardNotice" class="notice"></div><div class="table-wrap checking"><table><thead><tr><th class="col-no">순번</th><th class="col-org">본부 / 사업부 / 실</th><th class="col-team">팀</th><th class="col-name">성명</th><th class="col-time">현재 상태</th></tr></thead><tbody id="checkingTbody"><tr><td colspan="5" class="empty">데이터를 기다리고 있습니다.</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="section">
+        <div class="section-header"><div><h2>전체 대피자 현황</h2><p class="sub">상태를 수정하면 관리자 앱이 실시간으로 수신한 뒤 4초 이내 대시보드에 다시 반영합니다.</p></div><div class="tools"><input id="keyword" oninput="renderTables()" placeholder="팀, 사번, 성명 검색" /></div></div>
+        <div class="section-body"><div class="table-wrap all"><table><thead><tr><th class="all-no">순번</th><th class="all-org">조직</th><th class="all-team">팀</th><th class="all-name">성명</th><th class="all-status">상태</th><th class="all-detail">출석 시간 / 부재내용</th><th class="all-time">사번</th></tr></thead><tbody id="allTbody"><tr><td colspan="7" class="empty">데이터를 기다리고 있습니다.</td></tr></tbody></table></div></div>
+      </section>
+    </section>
+
+    <section id="accessDenied" class="section access-denied"><h2>대시보드 접근 확인이 필요합니다.</h2><p id="deniedMessage">통합 참여 링크에서 성명과 사번을 입력한 뒤 다시 접속해주세요.</p><a id="backLink" href="participant.html">참여 화면으로 돌아가기</a></section>
+    <div class="footer">HYUNDAI STEEL R&amp;D CENTER · 현재 한국시간 <span id="kstClock">-</span></div>
+  </main>
+
+  <script>
+    const firebaseConfig={apiKey:"AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",authDomain:"emergy-e15f5.firebaseapp.com",projectId:"emergy-e15f5",storageBucket:"emergy-e15f5.firebasestorage.app",messagingSenderId:"123548770828",appId:"1:123548770828:web:904e66916a055a52d64429"};
+    const $=id=>document.getElementById(id);
+    const trainingId=String(new URLSearchParams(location.search).get("trainingId")||"").trim();
+    let db=null,session=null,summary=null,unsubscribeSummary=null,lastPublishedAt=0,pendingWriteAt=0;
+
+    async function init(){
+      updateClock(); setInterval(updateClock,1000); setInterval(checkPendingWrite,5000);
+      $("backLink").href=`participant.html?trainingId=${encodeURIComponent(trainingId)}`;
+      try{
+        session=JSON.parse(sessionStorage.getItem("emergencyDashboardSession")||"null");
+        if(!session||!trainingId||session.trainingId!==trainingId) throw new Error("통합 참여 화면에서 본인 확인을 먼저 완료해주세요.");
+        if(!session.participantDocId||!session.dashboardRole||!session.scopeKey) throw new Error("대시보드 세션 정보가 올바르지 않습니다.");
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig); db=firebase.firestore();
+        await verifyRoleOnce();
+        renderIdentity(); subscribeOwnSummary();
+      }catch(err){ console.error(err); showDenied(err.message||"접근 정보를 확인할 수 없습니다."); }
+    }
+    async function verifyRoleOnce(){
+      const snap=await db.collection("emergencyTrainings").doc(trainingId).collection("participants").doc(session.participantDocId).get();
+      if(!snap.exists) throw new Error("참석자 명단에서 본인 정보를 찾을 수 없습니다.");
+      const person=snap.data();
+      const role=normalizeDashboardRole(person.dashboardRole||person.role||person.leaderFlag||(person.isLeader?"팀장":"일반"));
+      const scope=buildRoleScope(role,person);
+      if(role==="PARTICIPANT"||role!==session.dashboardRole||scope.scopeKey!==session.scopeKey) throw new Error("현재 명단의 대시보드 권한과 일치하지 않습니다.");
+      session={...session,name:person.name||session.name,empNo:person.empNo||session.empNo,roleLabel:getRoleLabel(role),scopeName:scope.scopeName,scopeKey:scope.scopeKey};
+      sessionStorage.setItem("emergencyDashboardSession",JSON.stringify(session));
+    }
+    function subscribeOwnSummary(){
+      setLiveState("요약 문서 연결 중","warn");
+      const docId=makeDashboardDocId(session.dashboardRole,session.scopeKey);
+      unsubscribeSummary=db.collection("emergencyTrainings").doc(trainingId).collection("dashboardViews").doc(docId).onSnapshot(snap=>{
+        if(!snap.exists){ summary=null; renderSummary(); setNotice("관리자 앱에서 첫 요약 데이터를 발행하기를 기다리고 있습니다.","warn"); setLiveState("관리자 허브 발행 대기","warn"); return; }
+        summary={id:snap.id,...snap.data()};
+        if(summary.active===false){ showDenied("현재 조직의 대시보드 권한자가 아닙니다."); return; }
+        lastPublishedAt=toMillis(summary.publishedAt); pendingWriteAt=0; renderSummary(); renderTables();
+        setNotice("",""); setLiveState(`실시간 연결됨 · ${lastPublishedAt?formatKst(summary.publishedAt):"발행 시각 확인 중"}`,"ok");
+      },err=>{ console.error(err); setNotice(`대시보드 연결 실패: ${err.message||err.code}`,"error"); setLiveState("연결 오류","error"); });
+    }
+    function renderIdentity(){
+      $("roleEyebrow").textContent=`${session.roleLabel} · ${session.scopeName}`;
+      $("dashboardTitle").textContent=`${session.scopeName} 대피 현황`;
+      $("dashboardDesc").textContent=`${session.roleLabel} 권한으로 담당 조직의 현황을 확인하고 수정할 수 있습니다.`;
+      $("trainingName").textContent=session.trainingName||"비상대응훈련"; $("viewerName").textContent=`${session.name} ${session.roleLabel}`;
+    }
+    function renderSummary(){
+      $("totalCount").textContent=Number(summary?.totalCount||0); $("evacuatedCount").textContent=Number(summary?.evacuatedCount||0);
+      $("absenceCount").textContent=Number(summary?.absenceCount||0); $("checkingCount").textContent=Number(summary?.checkingCount||0); $("rateText").textContent=`${Number(summary?.rate||0)}%`;
+    }
+    function getFilteredMembers(){
+      const list=Array.isArray(summary?.members)?summary.members:[]; const keyword=$("keyword").value.trim().toLowerCase();
+      if(!keyword) return list; return list.filter(p=>[p.headquarter,p.division,p.office,p.team,p.empNo,p.name,p.status].join(" ").toLowerCase().includes(keyword));
+    }
+    function renderTables(){
+      const all=getFilteredMembers(); const checking=(Array.isArray(summary?.members)?summary.members:[]).filter(p=>getStatus(p)==="확인중");
+      $("checkingTbody").innerHTML=checking.length?checking.map((p,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(orgText(p))}</td><td>${escapeHtml(p.team||"")}</td><td>${escapeHtml(p.name||"")}</td><td><span class="status-pill checking">확인중</span></td></tr>`).join(""):`<tr><td colspan="5" class="empty">확인중 인원이 없습니다.</td></tr>`;
+      $("allTbody").innerHTML=all.length?all.map((p,i)=>{
+        const status=getStatus(p),evacuated=status==="대피완료",checkingStatus=status==="확인중";
+        const detail=evacuated&&p.checkTime?formatKst(p.checkTime):String(p.absenceDetail||"");
+        return `<tr><td>${i+1}</td><td>${escapeHtml(orgText(p))}</td><td>${escapeHtml(p.team||"")}</td><td>${escapeHtml(p.name||"")}</td><td><select class="status-select ${checkingStatus?"checking-status":""}" data-id="${escapeAttr(p.id)}" onchange="updateStatus(this)">${statusOptions(status)}</select></td><td><input class="detail-input" data-id="${escapeAttr(p.id)}" value="${escapeAttr(detail)}" ${evacuated?"disabled":""} placeholder="${checkingStatus?"":"부재 내용 입력"}" onchange="updateDetail(this)" /></td><td>${escapeHtml(p.empNo||"")}</td></tr>`;
+      }).join(""):`<tr><td colspan="7" class="empty">표시할 인원이 없습니다.</td></tr>`;
+    }
+    async function updateStatus(select){
+      const id=select.dataset.id,status=select.value; if(!id) return;
+      select.disabled=true;
+      try{
+        const ref=db.collection("emergencyTrainings").doc(trainingId).collection("participants").doc(id);
+        let payload={updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"role-dashboard"};
+        if(status==="대피완료") payload={...payload,status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:""};
+        else if(status==="확인중") payload={...payload,status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete()};
+        else payload={...payload,status,statusType:"absence",checked:false,absenceReason:status,checkTime:firebase.firestore.FieldValue.delete(),...(status==="휴가"?{absenceDetail:""}:{})};
+        await ref.set(payload,{merge:true}); pendingWriteAt=Date.now(); setNotice("수정 내용을 전송했습니다. 관리자 허브 반영을 기다리고 있습니다.","ok");
+      }catch(err){ console.error(err); setNotice(`상태 수정 실패: ${err.message||err.code}`,"error"); }
+      finally{select.disabled=false;}
+    }
+    async function updateDetail(input){
+      const id=input.dataset.id;if(!id||input.disabled)return; input.disabled=true;
+      try{await db.collection("emergencyTrainings").doc(trainingId).collection("participants").doc(id).set({absenceDetail:input.value.trim(),absenceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"role-dashboard"},{merge:true});pendingWriteAt=Date.now();setNotice("부재내용을 전송했습니다. 관리자 허브 반영을 기다리고 있습니다.","ok");}
+      catch(err){console.error(err);setNotice(`부재내용 수정 실패: ${err.message||err.code}`,"error");}finally{input.disabled=false;}
+    }
+    function statusOptions(current){return ["확인중","대피완료","타 본부","휴가","출장","외출"].map(v=>`<option value="${escapeAttr(v)}" ${v===current?"selected":""}>${escapeHtml(v)}</option>`).join("");}
+    function getStatus(person){if(person.status)return person.status;if(person.checked===true)return "대피완료";if(person.absenceReason)return person.absenceReason;return "확인중";}
+    function orgText(p){return [p.headquarter,p.division,p.office].filter(Boolean).join(" / ");}
+    function setNotice(text,type){const el=$("dashboardNotice");el.textContent=text||"";el.className=`notice ${text?"show":""} ${type||""}`;}
+    function setLiveState(text,type){const el=$("liveState");el.textContent=text;el.className=`live ${type||""}`;}
+    function checkPendingWrite(){if(pendingWriteAt&&Date.now()-pendingWriteAt>15000)setLiveState("수정 전송 완료 · 관리자 허브 반영 지연","warn");}
+    function showDenied(message){if(unsubscribeSummary)unsubscribeSummary();$("mainView").hidden=true;$("accessDenied").classList.add("show");$("deniedMessage").textContent=message;}
+    function logoutDashboard(){sessionStorage.removeItem("emergencyDashboardSession");location.replace(`participant.html?trainingId=${encodeURIComponent(trainingId)}`);}
+    function normalizeDashboardRole(value){const v=normalizeText(value).replaceAll("_","").replaceAll("-","");if(["headmanager","headquartersmanager","본부장"].includes(v))return "HEAD_MANAGER";if(["divisionmanager","사업부장"].includes(v))return "DIVISION_MANAGER";if(["officemanager","실장"].includes(v))return "OFFICE_MANAGER";if(["teammanager","teamleader","팀장","해당","y","yes","true","1"].includes(v))return "TEAM_MANAGER";return "PARTICIPANT";}
+    function getRoleLabel(role){return({HEAD_MANAGER:"본부장",DIVISION_MANAGER:"사업부장",OFFICE_MANAGER:"실장",TEAM_MANAGER:"팀장",PARTICIPANT:"일반"})[role]||"일반";}
+    function buildRoleScope(role,p){let scopeName="";if(role==="HEAD_MANAGER")scopeName=p.headquarter||p.headquarters||"";if(role==="DIVISION_MANAGER")scopeName=p.division||"";if(role==="OFFICE_MANAGER")scopeName=p.office||"";if(role==="TEAM_MANAGER")scopeName=p.team||"";return{scopeName:String(scopeName).trim(),scopeKey:normalizeText(scopeName)};}
+    function makeDashboardDocId(role,scopeKey){return `${role.toLowerCase()}_${makeSafeDocId(scopeKey)}`;}
+    function normalizeText(value){return String(value||"").trim().replace(/\s+/g,"").replaceAll("ㆍ","·").replaceAll("/","·").toLowerCase();}
+    function makeSafeDocId(value){return String(value||"").trim().replace(/[\/\\#?]/g,"_");}
+    function toMillis(value){if(!value)return 0;if(typeof value.toMillis==="function")return value.toMillis();if(typeof value.toDate==="function")return value.toDate().getTime();return new Date(value).getTime()||0;}
+    function pad2(v){return String(v).padStart(2,"0");}function getKstParts(date=new Date()){const k=new Date(date.getTime()+9*60*60*1000);return{year:k.getUTCFullYear(),month:k.getUTCMonth()+1,day:k.getUTCDate(),hour:k.getUTCHours(),minute:k.getUTCMinutes(),second:k.getUTCSeconds()};}
+    function formatKst(value){const date=typeof value?.toDate==="function"?value.toDate():new Date(value);const p=getKstParts(date);return `${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;}
+    function updateClock(){const p=getKstParts();$("kstClock").textContent=`${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;}
+    function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}function escapeAttr(value){return escapeHtml(value).replaceAll("`","&#096;");}
+    window.addEventListener("beforeunload",()=>{if(unsubscribeSummary)unsubscribeSummary();});window.addEventListener("DOMContentLoaded",init);
+  </script>
+</body>
+</html>
