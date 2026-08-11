@@ -150,8 +150,8 @@
         <p class="eyebrow">EMERGENCY SYSTEM</p>
         <h1>비상상황 대피자 위치 공유 관리자</h1>
         <p class="hero-desc">
-          훈련 ID가 포함된 통합 참여 링크 하나로 출석을 기록합니다.<br>
-          참여자 변경은 실시간으로 받고, 변경된 조직의 대시보드 문서만 4초 단위로 묶어 발행합니다.
+          통합 출결 링크는 훈련 ID를 포함합니다. 협력·외주 링크도 훈련 ID를 포함합니다.<br>
+          팀장 현황파악 링크와 임원 대시보드 링크도 현재 훈련 ID를 포함하며, 관리자 허브 요약 데이터를 사용합니다.
         </p>
       </div>
       <div class="clock-card">
@@ -185,7 +185,6 @@
             <div class="info-line"><span class="info-label">훈련 ID</span><span class="info-value" id="selectedTrainingId">-</span></div>
             <div class="info-line"><span class="info-label">입력 가능 시간</span><span class="info-value" id="selectedTrainingPeriod">-</span></div>
             <div class="info-line"><span class="info-label">상태</span><span class="info-value"><span id="trainingStatusBadge" class="badge empty">미선택</span></span></div>
-            <div class="info-line"><span class="info-label">대시보드 허브</span><span class="info-value" id="hubState">훈련 선택 대기</span></div>
           </div>
         </div>
       </section>
@@ -197,30 +196,30 @@
       <div class="summary-card"><span>부재</span><strong id="absenceCount">0</strong></div>
       <div class="summary-card"><span>확인중</span><strong id="unknownCount" class="danger">0</strong></div>
       <div class="summary-card"><span>대피율</span><strong id="rateText">0%</strong></div>
-      <div class="summary-card"><span>대시보드 권한</span><strong id="leaderCount">0</strong></div>
+      <div class="summary-card"><span>팀장 권한</span><strong id="leaderCount">0</strong></div>
       <div class="summary-card"><span>협력·외주</span><strong id="externalCount">0</strong></div>
     </div>
 
     <section class="section">
       <div class="section-header">
-        <div><div class="red-title">참석자 명단 복붙 입력</div><p class="card-subtitle">엑셀의 순번 / 본부 / 사업부 / 실 / 팀 / 사번 / 성명 / 대시보드 권한 8개 열을 그대로 복사해서 붙여넣으세요.</p></div>
+        <div><div class="red-title">참석자 명단 복붙 입력</div><p class="card-subtitle">엑셀의 순번 / 본부 / 사업부 / 실 / 팀 / 사번 / 성명 / 팀장여부 8개 열을 그대로 복사해서 붙여넣으세요.</p></div>
         <div class="button-row" style="margin-top:0;"><button onclick="addParticipantManually()">참석자 1명 추가</button><button class="ghost-red" onclick="deleteAllParticipants()">참석자 전체 삭제</button><button class="ghost-red" onclick="resetAllStatuses()">상태 전체 초기화</button><button class="ghost-red" onclick="deleteAllExternalParticipants()">협력·외주 기록 삭제</button></div>
       </div>
       <div class="section-body">
-        <p class="hint">권한 입력값: 일반 / 팀장 / 실장 / 사업부장 / 본부장 · 기존 해당/미해당도 자동 호환됩니다.</p>
-        <textarea id="pasteBox" placeholder="엑셀에서 8개 열을 복사한 뒤 여기에 붙여넣으세요.&#10;1&#9;연구개발본부&#9;철강사업부&#9;R&D안전인프라실&#9;R&D운영팀&#9;2023001&#9;김지수&#9;팀장&#10;2&#9;연구개발본부&#9;철강사업부&#9;R&D안전인프라실&#9;R&D운영팀&#9;2023002&#9;이승우&#9;일반"></textarea>
+        <p class="hint">예시: 1 &nbsp; 연구개발본부 &nbsp; 철강사업부 &nbsp; R&D안전인프라실 &nbsp; R&D운영팀 &nbsp; 2023001 &nbsp; 김지수 &nbsp; 해당</p>
+        <textarea id="pasteBox" placeholder="엑셀에서 8개 열을 복사한 뒤 여기에 붙여넣으세요.&#10;1&#9;연구개발본부&#9;철강사업부&#9;R&D안전인프라실&#9;R&D운영팀&#9;2023001&#9;김지수&#9;해당&#10;2&#9;연구개발본부&#9;철강사업부&#9;R&D안전인프라실&#9;R&D운영팀&#9;2023002&#9;이승우&#9;미해당"></textarea>
         <div class="button-row"><button class="primary" onclick="applyPastedParticipants()">참석자 명단 반영</button><button onclick="clearPasteBox()">입력창 비우기</button></div>
         <div id="memberMessage" class="message"></div>
         <div class="tool-row"><div><strong>등록 참석자 명단</strong> <span class="hint">등록된 인원을 확인합니다.</span></div><div class="search-box"><input id="keyword" oninput="renderAll()" placeholder="본부, 사업부, 실, 팀, 사번, 성명 검색" /></div></div>
         <div class="table-wrap members">
-          <table><thead><tr><th class="member-col-no">순번</th><th class="member-col-hq">본부</th><th class="member-col-div">사업부</th><th class="member-col-office">실</th><th class="member-col-team">팀</th><th class="member-col-emp">사번</th><th class="member-col-name">성명</th><th class="member-col-leader">권한</th></tr></thead><tbody id="memberTbody"><tr><td colspan="8" class="empty-row">훈련을 선택하거나 새 훈련을 저장해주세요.</td></tr></tbody></table>
+          <table><thead><tr><th class="member-col-no">순번</th><th class="member-col-hq">본부</th><th class="member-col-div">사업부</th><th class="member-col-office">실</th><th class="member-col-team">팀</th><th class="member-col-emp">사번</th><th class="member-col-name">성명</th><th class="member-col-leader">팀장여부</th></tr></thead><tbody id="memberTbody"><tr><td colspan="8" class="empty-row">훈련을 선택하거나 새 훈련을 저장해주세요.</td></tr></tbody></table>
         </div>
       </div>
     </section>
 
     <section class="section">
       <div class="section-header">
-        <div><h2 class="plain-title">통합 참여 / 협력·외주 링크</h2><p class="card-subtitle">내부 임직원은 훈련 ID가 포함된 통합 링크 하나를 사용하며, 권한 대상자는 출석 후 자신의 대시보드로 자동 이동합니다.</p></div>
+        <div><h2 class="plain-title">통합 출결 / 협력·외주 / 팀장 현황파악 링크</h2><p class="card-subtitle">모든 링크에 현재 훈련 ID를 포함하여 다른 훈련을 다시 검색하지 않습니다.</p></div>
         <button class="green" onclick="copyAllLinks()">전체 링크 복사</button>
       </div>
       <div class="section-body">
@@ -229,9 +228,38 @@
     </section>
 
     <section class="section">
-      <div class="section-header"><div><h2 class="plain-title">전체 대피자 현황</h2><p class="card-subtitle">참여자 입력과 각 권한 대시보드의 수정 내용이 관리자 앱에 실시간으로 반영됩니다.</p></div><button class="red" onclick="downloadStatusExcel()">엑셀로 다운받기</button></div>
+      <div class="section-header">
+        <div>
+          <h2 class="plain-title">실장 / 사업부장 / 본부장 대시보드 링크</h2>
+          <p class="card-subtitle">현재 훈련 ID와 조직 범위가 포함된 임원용 직접 링크입니다. 본부/사업부/실 정보가 있으면 자동 생성됩니다.</p>
+        </div>
+        <button class="green" onclick="copyAllDashboardLinks()">전체 대시보드 링크 복사</button>
+      </div>
       <div class="section-body">
-        <div class="table-wrap status"><table><thead><tr><th class="status-col-no">순번</th><th class="status-col-org">본부 / 사업부 / 실</th><th class="status-col-team">팀/소속</th><th class="status-col-emp">사번</th><th class="status-col-name">성명</th><th class="status-col-leader">권한</th><th class="status-col-status">상태</th><th class="status-col-detail">출석 시간 / 부재내용</th><th class="status-col-source">구분</th></tr></thead><tbody id="statusTbody"><tr><td colspan="9" class="empty-row">대피자 현황 데이터가 없습니다.</td></tr></tbody></table></div>
+        <div class="table-wrap links">
+          <table>
+            <thead>
+              <tr>
+                <th class="dash-col-type">구분</th>
+                <th class="dash-col-target">대상 조직</th>
+                <th class="dash-col-count">인원</th>
+                <th class="dash-col-link">대시보드 링크</th>
+                <th class="dash-col-qr">QR</th>
+                <th class="dash-col-action">복사</th>
+              </tr>
+            </thead>
+            <tbody id="dashboardLinkTbody">
+              <tr><td colspan="6" class="empty-row">본부/사업부/실 정보가 있는 참석자 명단을 반영하면 대시보드 링크가 생성됩니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header"><div><h2 class="plain-title">전체 대피자 현황</h2><p class="card-subtitle">참여자 입력, 협력·외주 입력, 팀장/관리자 수정 내용이 실시간으로 반영됩니다.</p></div><button class="red" onclick="downloadStatusExcel()">엑셀로 다운받기</button></div>
+      <div class="section-body">
+        <div class="table-wrap status"><table><thead><tr><th class="status-col-no">순번</th><th class="status-col-org">본부 / 사업부 / 실</th><th class="status-col-team">팀/소속</th><th class="status-col-emp">사번</th><th class="status-col-name">성명</th><th class="status-col-leader">팀장</th><th class="status-col-status">상태</th><th class="status-col-detail">출석 시간 / 부재내용</th><th class="status-col-source">구분</th></tr></thead><tbody id="statusTbody"><tr><td colspan="9" class="empty-row">대피자 현황 데이터가 없습니다.</td></tr></tbody></table></div>
         <div id="statusMessage" class="message"></div>
       </div>
     </section>
@@ -265,10 +293,10 @@
     let unsubscribeTrainings = null;
     let unsubscribeParticipants = null;
     let unsubscribeExternalParticipants = null;
-    const DASHBOARD_PUBLISH_DELAY_MS = 4000;
-    const dirtyDashboardScopes = new Map();
     let dashboardPublishTimer = null;
-    let dashboardPublishing = false;
+    let dashboardPublishRunning = false;
+    const dirtyDashboardScopes = new Map();
+    const DASHBOARD_PUBLISH_DELAY_MS = 4000;
     const $ = (id) => document.getElementById(id);
 
     /********************************************************
@@ -337,14 +365,16 @@
     function selectedTrainingRef(){ ensureFirebaseReady(); return db.collection("emergencyTrainings").doc(requireSelectedTraining()); }
     function participantsRef(){ return selectedTrainingRef().collection("participants"); }
     function externalParticipantsRef(){ return selectedTrainingRef().collection("externalParticipants"); }
+    function dashboardViewsRef(){ return selectedTrainingRef().collection("dashboardViews"); }
 
     /********************************************************
      * 6. 훈련 생성 / 저장 / 불러오기
      ********************************************************/
     function startNewTraining(){
-      selectedTrainingId=""; currentTraining=null; participants=[]; externalParticipants=[]; clearDashboardPublishState();
+      selectedTrainingId=""; currentTraining=null; participants=[]; externalParticipants=[];
       if(unsubscribeParticipants) unsubscribeParticipants();
       if(unsubscribeExternalParticipants) unsubscribeExternalParticipants();
+      clearDashboardPublishState();
       $("trainingName").value=""; setDefaultDateTime(); renderSelectedTrainingInfo(null); renderTrainingSelect(); renderAll();
       setMessage("trainingMessage","새로운 훈련 정보를 입력한 뒤 [훈련 저장]을 누르세요.","warn"); setMessage("memberMessage","","");
     }
@@ -383,12 +413,12 @@
       try{
         ensureFirebaseReady(); const doc=await db.collection("emergencyTrainings").doc(id).get();
         if(!doc.exists){ alert("해당 훈련을 찾을 수 없습니다."); return; }
-        if(selectedTrainingId && selectedTrainingId!==id) clearDashboardPublishState();
+        clearDashboardPublishState();
         selectedTrainingId=id; currentTraining={id:doc.id,...doc.data()};
         $("trainingName").value=currentTraining.trainingName||"";
         if(currentTraining.startAt) $("startAt").value=toKstDateTimeLocalValue(currentTraining.startAt.toDate());
         if(currentTraining.endAt) $("endAt").value=toKstDateTimeLocalValue(currentTraining.endAt.toDate());
-        renderTrainingSelect(); renderSelectedTrainingInfo(currentTraining); setHubState("참여자 실시간 연결 준비"); subscribeParticipants(); subscribeExternalParticipants();
+        renderTrainingSelect(); renderSelectedTrainingInfo(currentTraining); subscribeParticipants(); subscribeExternalParticipants();
         setMessage("trainingMessage","훈련 정보를 불러왔습니다.","ok");
       }catch(err){ if(err.message==="Firebase 연결 실패") return; handleFirestoreError(err,"훈련 정보 불러오기"); }
     }
@@ -421,7 +451,7 @@
         엑셀/웹 복붙 인식 보강판 v4
         - 탭 복사, 쉼표 복사, 공백 정렬 복사를 모두 지원한다.
         - 실제 데이터 안에 "본부", "사업부", "실", "팀"이 들어가도 헤더로 오인하지 않는다.
-        - 8개 열 기본: 순번 / 본부 / 사업부 / 실 / 팀 / 사번 / 성명 / 대시보드 권한
+        - 8개 열 기본: 순번 / 본부 / 사업부 / 실 / 팀 / 사번 / 성명 / 팀장여부
         - 사업부 열이 비어 있거나 누락된 7개 열도 임시 허용한다.
       */
       const rawLines = String(text || "")
@@ -467,14 +497,6 @@
 
         dataRowIndex += 1;
 
-        const dashboardRole = normalizeDashboardRole(row.leaderFlag);
-        const roleInfo = buildRoleInfo(dashboardRole, {
-          headquarter: String(row.headquarter || "").trim(),
-          division: String(row.division || "").trim(),
-          office: String(row.office || "").trim(),
-          team
-        });
-
         result.push({
           order,
           headquarter: String(row.headquarter || "").trim(),
@@ -485,11 +507,7 @@
           empNo,
           name,
           leaderFlag: String(row.leaderFlag || "").trim(),
-          dashboardRole,
-          dashboardScopeName: roleInfo.scopeName,
-          dashboardScopeKey: roleInfo.scopeKey,
-          canViewDashboard: dashboardRole !== "PARTICIPANT",
-          isLeader: dashboardRole !== "PARTICIPANT"
+          isLeader: isLeaderFlagValue(row.leaderFlag)
         });
       }
 
@@ -614,7 +632,7 @@
         "팀", "팀명", "소속팀",
         "사번", "사원번호", "employeeid", "empno",
         "성명", "이름", "name",
-        "팀장여부", "팀장해당여부", "팀장", "권한", "대시보드권한", "역할"
+        "팀장여부", "팀장해당여부", "팀장", "권한"
       ]);
 
       const hitCount = keys.filter(k => known.has(k)).length;
@@ -634,7 +652,7 @@
         else if (["팀", "팀명", "소속팀"].includes(key)) map.team = index;
         else if (["사번", "사원번호", "employeeid", "empno"].includes(key)) map.empNo = index;
         else if (["성명", "이름", "name"].includes(key)) map.name = index;
-        else if (["팀장여부", "팀장해당여부", "팀장", "권한", "대시보드권한", "역할"].includes(key)) map.leaderFlag = index;
+        else if (["팀장여부", "팀장해당여부", "팀장", "권한"].includes(key)) map.leaderFlag = index;
       });
 
       return map;
@@ -645,7 +663,10 @@
       return String(cols[index] ?? "").trim();
     }
 
-    function isLeaderFlagValue(value){ return normalizeDashboardRole(value) !== "PARTICIPANT"; }
+    function isLeaderFlagValue(value){
+      const v = normalizeText(value);
+      return ["해당", "팀장", "y", "yes", "true", "1"].includes(v);
+    }
     async function applyPastedParticipants(){
       try{
         ensureFirebaseReady(); requireSelectedTraining();
@@ -655,7 +676,7 @@
         const finalParticipants=mergeParticipantLists(participants,list); const teamInfos=getTeamInfosFromParticipants(finalParticipants);
         const conflicts=await findDuplicateTeamConflicts({excludeTrainingId:selectedTrainingId,startDate,endDate,teamInfos});
         if(conflicts.length>0){ alert(buildConflictMessage(conflicts)); return; }
-        const ok=confirm(`${list.length}명의 참석자 명단을 현재 선택된 훈련에 저장할까요?\n\n동일한 사번이 이미 있으면 본부/사업부/실/팀/성명/대시보드 권한은 갱신됩니다.\n기존 대피/부재 상태는 유지됩니다.`);
+        const ok=confirm(`${list.length}명의 참석자 명단을 현재 선택된 훈련에 저장할까요?\n\n동일한 사번이 이미 있으면 본부/사업부/실/팀/성명/팀장여부는 갱신됩니다.\n기존 대피/부재 상태는 유지됩니다.`);
         if(!ok) return;
         await saveParticipantsInBatches(list); await updateTrainingTeamInfo(finalParticipants);
         $("pasteBox").value=""; setMessage("memberMessage",`${list.length}명의 참석자 명단을 저장했습니다. 링크와 현황도 갱신되었습니다.`, "ok");
@@ -667,8 +688,7 @@
         const batch=db.batch();
         list.slice(i,i+chunkSize).forEach(person=>{
           const ref=participantsRef().doc(makeSafeDocId(person.empNo));
-          const normalized=applyRoleFields(person);
-          batch.set(ref,{order:normalized.order,headquarter:normalized.headquarter,headquarters:normalized.headquarter,division:normalized.division,office:normalized.office,team:normalized.team,teamKey:normalizeTeamKey(normalized.team),empNo:normalized.empNo,name:normalized.name,leaderFlag:normalized.leaderFlag||getRoleLabel(normalized.dashboardRole),dashboardRole:normalized.dashboardRole,dashboardScopeName:normalized.dashboardScopeName,dashboardScopeKey:normalized.dashboardScopeKey,canViewDashboard:normalized.canViewDashboard===true,isLeader:normalized.isLeader===true,trainingId:selectedTrainingId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+          batch.set(ref,{order:person.order,headquarter:person.headquarter,headquarters:person.headquarter,division:person.division,office:person.office,team:person.team,teamKey:normalizeTeamKey(person.team),empNo:person.empNo,name:person.name,leaderFlag:person.leaderFlag||"",isLeader:person.isLeader===true,trainingId:selectedTrainingId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
         });
         await batch.commit();
       }
@@ -683,9 +703,9 @@
         const team=prompt("팀명을 입력하세요."); if(!team) return;
         const empNo=prompt("사번을 입력하세요."); if(!empNo) return;
         const name=prompt("성명을 입력하세요."); if(!name) return;
-        const leaderFlag=prompt("대시보드 권한을 입력하세요. 일반 / 팀장 / 실장 / 사업부장 / 본부장")||"일반";
+        const leaderFlag=prompt("팀장여부를 입력하세요. 팀장 권한이면 '해당', 아니면 '미해당'으로 입력하세요.")||"미해당";
         const startDate=kstDateTimeLocalToDate($("startAt").value); const endDate=kstDateTimeLocalToDate($("endAt").value);
-        const newPerson=applyRoleFields({order:nextOrder,headquarter,headquarters:headquarter,division,office,team,teamKey:normalizeTeamKey(team),empNo:String(empNo),name,leaderFlag,dashboardRole:normalizeDashboardRole(leaderFlag)});
+        const newPerson={order:nextOrder,headquarter,headquarters:headquarter,division,office,team,teamKey:normalizeTeamKey(team),empNo:String(empNo),name,leaderFlag,isLeader:normalizeText(leaderFlag)==="해당"};
         const finalParticipants=mergeParticipantLists(participants,[newPerson]); const teamInfos=getTeamInfosFromParticipants(finalParticipants);
         const conflicts=await findDuplicateTeamConflicts({excludeTrainingId:selectedTrainingId,startDate,endDate,teamInfos}); if(conflicts.length>0){ alert(buildConflictMessage(conflicts)); return; }
         await participantsRef().doc(makeSafeDocId(empNo)).set({...newPerson,trainingId:selectedTrainingId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
@@ -750,7 +770,7 @@
       return conflicts;
     }
     function buildConflictMessage(conflicts){
-      const lines=["동일 시간대에 같은 팀이 포함된 다른 비상대응훈련이 있습니다.","","출석 데이터가 잘못 연결되지 않도록 같은 팀의 중복 훈련을 차단합니다.",""];
+      const lines=["동일 시간대에 같은 팀이 포함된 다른 비상대응훈련이 있습니다.","","운영상 한 팀이 동일 시간대에 2개 이상의 훈련에 포함되지 않도록 설정되어 있습니다.",""];
       conflicts.slice(0,8).forEach((c,i)=>lines.push(`${i+1}. ${c.trainingName}`,`   시간: ${c.period}`,`   중복 팀: ${c.teams.join(", ")}`,""));
       if(conflicts.length>8) lines.push(`외 ${conflicts.length-8}건의 중복 훈련이 더 있습니다.`);
       return lines.join("\n");
@@ -762,23 +782,18 @@
     function subscribeParticipants(){
       try{
         ensureFirebaseReady(); if(unsubscribeParticipants) unsubscribeParticipants();
-        setHubState("참여자 실시간 연결 중");
         unsubscribeParticipants=participantsRef().onSnapshot(snapshot=>{
           const previousById=new Map(participants.map(person=>[person.id,person]));
-          const nextParticipants=snapshot.docs.map(doc=>applyRoleFields({id:doc.id,...doc.data()}));
-          const nextById=new Map(nextParticipants.map(person=>[person.id,person]));
-
           snapshot.docChanges().forEach(change=>{
-            const oldPerson=previousById.get(change.doc.id);
-            const newPerson=nextById.get(change.doc.id);
-            if(oldPerson) markDashboardScopesForPerson(oldPerson);
-            if(newPerson) markDashboardScopesForPerson(newPerson);
+            const previous=previousById.get(change.doc.id);
+            const next=change.type==="removed"?null:{id:change.doc.id,...change.doc.data()};
+            if(previous) markDashboardScopesForPerson(previous);
+            if(next) markDashboardScopesForPerson(next);
           });
-
-          participants=nextParticipants.sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+          participants=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+          participants.sort((a,b)=>Number(a.order||0)-Number(b.order||0));
           renderAll();
-          if(dirtyDashboardScopes.size>0) scheduleDashboardPublish();
-          else setHubState("실시간 수신 중 · 변경 대기");
+          scheduleDashboardPublish();
         },err=>handleFirestoreError(err,"참석자 명단 불러오기"));
       }catch(err){ if(err.message!=="Firebase 연결 실패") handleFirestoreError(err,"참석자 명단 연결"); }
     }
@@ -790,18 +805,137 @@
     }
 
     /********************************************************
+     * 9-1. 대시보드 허브 문서 발행
+     * 관리자만 원본 participants를 구독하고, 변경된 조직 범위만
+     * 4초 단위로 dashboardViews에 묶어서 저장합니다.
+     ********************************************************/
+    function clearDashboardPublishState(){
+      if(dashboardPublishTimer) clearTimeout(dashboardPublishTimer);
+      dashboardPublishTimer=null;
+      dirtyDashboardScopes.clear();
+      dashboardPublishRunning=false;
+    }
+    function getPersonDashboardScopes(person){
+      if(!person) return [];
+      const values=[
+        {view:"team",name:String(person.team||"").trim()},
+        {view:"office",name:String(person.office||"").trim()},
+        {view:"division",name:String(person.division||"").trim()},
+        {view:"headquarters",name:String(person.headquarter||person.headquarters||"").trim()}
+      ];
+      return values.filter(item=>item.name&&item.name!=="-").map(item=>({...item,key:normalizeText(item.name)}));
+    }
+    function markDashboardScopesForPerson(person){
+      getPersonDashboardScopes(person).forEach(scope=>dirtyDashboardScopes.set(`${scope.view}|${scope.key}`,scope));
+    }
+    function scheduleDashboardPublish(){
+      if(!selectedTrainingId||dirtyDashboardScopes.size===0) return;
+      if(dashboardPublishTimer) clearTimeout(dashboardPublishTimer);
+      dashboardPublishTimer=setTimeout(()=>{
+        dashboardPublishTimer=null;
+        flushDashboardViews();
+      },DASHBOARD_PUBLISH_DELAY_MS);
+    }
+    function makeDashboardDocId(view,scopeName){
+      return `${view}__${makeSafeDocId(normalizeText(scopeName))}`;
+    }
+    function getScopeValue(person,view){
+      if(view==="headquarters") return person.headquarter||person.headquarters||"";
+      if(view==="division") return person.division||"";
+      if(view==="office") return person.office||"";
+      if(view==="team") return person.team||"";
+      return "";
+    }
+    function serializeDashboardMember(person){
+      return {
+        id:person.id||makeSafeDocId(person.empNo||""),
+        order:Number(person.order||0),
+        headquarter:person.headquarter||person.headquarters||"",
+        headquarters:person.headquarter||person.headquarters||"",
+        division:person.division||"",
+        office:person.office||"",
+        team:person.team||"",
+        teamKey:person.teamKey||normalizeTeamKey(person.team),
+        empNo:person.empNo||"",
+        name:person.name||"",
+        isLeader:isLeaderPerson(person),
+        leaderFlag:person.leaderFlag||"",
+        status:getPersonStatus(person),
+        statusType:person.statusType||"",
+        checked:person.checked===true,
+        checkTime:person.checkTime||null,
+        absenceReason:person.absenceReason||"",
+        absenceDetail:person.absenceDetail||""
+      };
+    }
+    function buildDashboardViewPayload(scope){
+      const members=participants
+        .filter(person=>normalizeText(getScopeValue(person,scope.view))===scope.key)
+        .sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+      const evacuated=members.filter(person=>getPersonStatus(person)==="대피완료").length;
+      const absent=members.filter(person=>isAbsenceStatus(getPersonStatus(person))).length;
+      return {
+        schemaVersion:2,
+        trainingId:selectedTrainingId,
+        trainingName:currentTraining?.trainingName||$("trainingName").value.trim()||"비상대응훈련",
+        startAt:currentTraining?.startAt||null,
+        endAt:currentTraining?.endAt||null,
+        view:scope.view,
+        scopeName:scope.name,
+        scopeKey:scope.key,
+        active:members.length>0,
+        totalCount:members.length,
+        evacuatedCount:evacuated,
+        absenceCount:absent,
+        checkingCount:members.length-evacuated-absent,
+        members:members.map(serializeDashboardMember),
+        publishedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        publishedBy:"admin-hub"
+      };
+    }
+    async function flushDashboardViews(){
+      if(dashboardPublishRunning||!selectedTrainingId||dirtyDashboardScopes.size===0) return;
+      dashboardPublishRunning=true;
+      let publishSucceeded=false;
+      const scopes=Array.from(dirtyDashboardScopes.values());
+      dirtyDashboardScopes.clear();
+      const trainingIdAtStart=selectedTrainingId;
+      try{
+        for(let i=0;i<scopes.length;i+=400){
+          if(selectedTrainingId!==trainingIdAtStart) return;
+          const batch=db.batch();
+          scopes.slice(i,i+400).forEach(scope=>{
+            const ref=db.collection("emergencyTrainings").doc(trainingIdAtStart).collection("dashboardViews").doc(makeDashboardDocId(scope.view,scope.name));
+            batch.set(ref,buildDashboardViewPayload(scope),{merge:true});
+          });
+          await batch.commit();
+        }
+        publishSucceeded=true;
+        setFirebaseState(`Firebase 연결 정상 · 대시보드 ${scopes.length}개 갱신`,`ok`);
+      }catch(err){
+        console.error("대시보드 허브 발행 오류:",err);
+        scopes.forEach(scope=>dirtyDashboardScopes.set(`${scope.view}|${scope.key}`,scope));
+        setFirebaseState("대시보드 허브 갱신 실패","error");
+        setMessage("statusMessage","대시보드 요약 저장에 실패했습니다. Firestore Rules의 dashboardViews 쓰기 권한과 할당량을 확인해주세요.","error");
+      }finally{
+        dashboardPublishRunning=false;
+        if(publishSucceeded&&dirtyDashboardScopes.size>0) scheduleDashboardPublish();
+      }
+    }
+
+    /********************************************************
      * 10. 렌더링
      ********************************************************/
-    function renderAll(){ renderMemberTable(); renderLinkTable(); renderStatusTable(); renderSummary(); }
+    function renderAll(){ renderMemberTable(); renderLinkTable(); renderDashboardLinkTable(); renderStatusTable(); renderSummary(); }
     function getFilteredParticipants(){
       const keyword=$("keyword").value.trim().toLowerCase(); if(!keyword) return participants;
-      return participants.filter(p=>[p.order,p.headquarter,p.headquarters,p.division,p.office,p.team,p.empNo,p.name,p.leaderFlag,getRoleLabel(p.dashboardRole)].join(" ").toLowerCase().includes(keyword));
+      return participants.filter(p=>[p.order,p.headquarter,p.headquarters,p.division,p.office,p.team,p.empNo,p.name,p.leaderFlag].join(" ").toLowerCase().includes(keyword));
     }
     function renderMemberTable(){
       const tbody=$("memberTbody"); const list=getFilteredParticipants();
       if(!selectedTrainingId){ tbody.innerHTML=`<tr><td colspan="8" class="empty-row">훈련을 선택하거나 새 훈련을 저장해주세요.</td></tr>`; return; }
       if(list.length===0){ tbody.innerHTML=`<tr><td colspan="8" class="empty-row">등록된 참석자 명단이 없습니다.</td></tr>`; return; }
-      tbody.innerHTML=list.map(p=>`<tr><td>${escapeHtml(p.order??"")}</td><td>${escapeHtml(p.headquarter||p.headquarters||"")}</td><td>${escapeHtml(p.division??"")}</td><td>${escapeHtml(p.office??"")}</td><td>${escapeHtml(p.team??"")}</td><td>${escapeHtml(p.empNo??"")}</td><td>${escapeHtml(p.name??"")}</td><td>${isLeaderPerson(p)?`<span class="leader-tag">${escapeHtml(getRoleLabel(p.dashboardRole))}</span>`:"일반"}</td></tr>`).join("");
+      tbody.innerHTML=list.map(p=>`<tr><td>${escapeHtml(p.order??"")}</td><td>${escapeHtml(p.headquarter||p.headquarters||"")}</td><td>${escapeHtml(p.division??"")}</td><td>${escapeHtml(p.office??"")}</td><td>${escapeHtml(p.team??"")}</td><td>${escapeHtml(p.empNo??"")}</td><td>${escapeHtml(p.name??"")}</td><td>${isLeaderPerson(p)?`<span class="leader-tag">해당</span>`:"미해당"}</td></tr>`).join("");
     }
     function renderLinkTable(){
       const tbody=$("linkTbody");
@@ -811,6 +945,15 @@
       tbody.innerHTML=rows.map(row=>`<tr><td>${escapeHtml(row.type)}<div class="link-type ${row.kind}">${escapeHtml(row.badge)}</div></td><td>${escapeHtml(row.target)}</td><td><div class="link-text">${escapeHtml(row.url)}</div></td><td><canvas class="qr-canvas" data-qr-url="${escapeAttr(row.url)}"></canvas></td><td><button class="primary" data-url="${escapeAttr(row.url)}" onclick="copyLinkFromButton(this)">복사</button></td></tr>`).join("");
       drawQRCodes();
     }
+    function renderDashboardLinkTable(){
+      const tbody=$("dashboardLinkTbody");
+      if(!tbody) return;
+      if(!selectedTrainingId){ tbody.innerHTML=`<tr><td colspan="6" class="empty-row">훈련을 선택하거나 새 훈련을 저장해주세요.</td></tr>`; return; }
+      const rows=getDashboardLinkRows();
+      if(rows.length===0){ tbody.innerHTML=`<tr><td colspan="6" class="empty-row">본부/사업부/실 정보가 있는 참석자 명단을 반영하면 대시보드 링크가 생성됩니다.</td></tr>`; return; }
+      tbody.innerHTML=rows.map(row=>`<tr><td>${escapeHtml(row.type)}<div class="link-type dashboard">${escapeHtml(row.badge)}</div></td><td>${escapeHtml(row.target)}</td><td>${escapeHtml(row.count)}</td><td><div class="link-text">${escapeHtml(row.url)}</div></td><td><canvas class="qr-canvas" data-qr-url="${escapeAttr(row.url)}"></canvas></td><td><button class="primary" data-url="${escapeAttr(row.url)}" onclick="copyLinkFromButton(this)">복사</button></td></tr>`).join("");
+      drawQRCodes();
+    }
     function drawQRCodes(){ if(typeof QRCode==="undefined") return; document.querySelectorAll("canvas[data-qr-url]").forEach(canvas=>{ QRCode.toCanvas(canvas,canvas.dataset.qrUrl,{width:78,margin:1},err=>{ if(err) console.error(err); }); }); }
     function renderStatusTable(){
       const tbody=$("statusTbody"); const internalRows=getFilteredParticipants().map(p=>({source:"internal",...p})); const externalRows=getFilteredExternalRows(); const list=[...internalRows,...externalRows];
@@ -818,7 +961,7 @@
       if(list.length===0){ tbody.innerHTML=`<tr><td colspan="9" class="empty-row">대피자 현황 데이터가 없습니다.</td></tr>`; return; }
       tbody.innerHTML=list.map((p,index)=>{
         const status=getPersonStatus(p); const detail=getPersonDetail(p); const isEvacuated=status==="대피완료"; const isChecking=status==="확인중"; const isInternal=p.source==="internal"; const placeholder=getDetailPlaceholder(status);
-        return `<tr><td>${index+1}</td><td>${escapeHtml(isInternal?`${p.headquarter||p.headquarters||""} / ${p.division||""} / ${p.office||""}`:"협력·외주")}</td><td>${escapeHtml(isInternal?(p.team||""):(p.affiliation||"협력·외주"))}</td><td>${escapeHtml(isInternal?(p.empNo||""):"")}</td><td>${escapeHtml(p.name||"")}</td><td>${isInternal && isLeaderPerson(p)?`<span class="leader-tag">${escapeHtml(getRoleLabel(p.dashboardRole))}</span>`:""}</td><td>${isInternal?`<select class="status-select ${isChecking?"status-checking":""}" data-id="${escapeAttr(p.id)}" onchange="updateMemberStatus(this)">${renderStatusOptions(status)}</select>`:escapeHtml(status)}</td><td>${isInternal?`<input class="detail-input" data-id="${escapeAttr(p.id)}" value="${escapeAttr(detail)}" ${isEvacuated?"disabled":""} placeholder="${escapeAttr(placeholder)}" onchange="updateMemberDetail(this)" />`:escapeHtml(detail)}</td><td>${isInternal?"내부":"협력·외주"}</td></tr>`;
+        return `<tr><td>${index+1}</td><td>${escapeHtml(isInternal?`${p.headquarter||p.headquarters||""} / ${p.division||""} / ${p.office||""}`:"협력·외주")}</td><td>${escapeHtml(isInternal?(p.team||""):(p.affiliation||"협력·외주"))}</td><td>${escapeHtml(isInternal?(p.empNo||""):"")}</td><td>${escapeHtml(p.name||"")}</td><td>${isInternal && isLeaderPerson(p)?`<span class="leader-tag">해당</span>`:""}</td><td>${isInternal?`<select class="status-select ${isChecking?"status-checking":""}" data-id="${escapeAttr(p.id)}" onchange="updateMemberStatus(this)">${renderStatusOptions(status)}</select>`:escapeHtml(status)}</td><td>${isInternal?`<input class="detail-input" data-id="${escapeAttr(p.id)}" value="${escapeAttr(detail)}" ${isEvacuated?"disabled":""} placeholder="${escapeAttr(placeholder)}" onchange="updateMemberDetail(this)" />`:escapeHtml(detail)}</td><td>${isInternal?"내부":"협력·외주"}</td></tr>`;
       }).join("");
     }
     function getFilteredExternalRows(){
@@ -840,11 +983,43 @@
       const rows=[];
       rows.push({type:"통합 출결 링크",target:"전체 내부직원",kind:"main",badge:"훈련 ID 포함",url:buildUnifiedAttendanceUrl()});
       rows.push({type:"협력·외주용 링크",target:"협력·외주",kind:"external",badge:"훈련 ID 포함",url:buildExternalUrl()});
+      getTeamInfosFromParticipants(participants).forEach(info=>rows.push({type:"팀장 현황파악 링크",target:info.team,kind:"leader",badge:"훈련 ID 포함",url:buildTeamDashboardUrl(info.team,info.teamKey)}));
       return rows;
     }
     function buildParticipantBaseUrl(){ const url=new URL(location.href); url.pathname=url.pathname.replace(/[^/]*$/, "participant.html"); url.hash=""; return url; }
     function buildUnifiedAttendanceUrl(){ const url=buildParticipantBaseUrl(); const search=new URLSearchParams(); search.set("trainingId",selectedTrainingId); url.search=search.toString(); return url.toString(); }
     function buildExternalUrl(){ const url=buildParticipantBaseUrl(); const search=new URLSearchParams(); search.set("trainingId",selectedTrainingId); search.set("team","협력·외주"); search.set("external","1"); url.search=search.toString(); return url.toString(); }
+    function buildTeamDashboardUrl(team,teamKey){ const url=buildParticipantBaseUrl(); const search=new URLSearchParams(); search.set("trainingId",selectedTrainingId); search.set("view","team"); search.set("team",team); search.set("teamKey",teamKey); url.search=search.toString(); return url.toString(); }
+    function getDashboardLinkRows(){
+      const rows=[];
+      getUniqueOrgInfos("headquarter").forEach(item=>rows.push({type:"본부장",target:item.name,count:item.count,badge:"본부",url:buildDashboardUrl("headquarters",item.name)}));
+      getUniqueOrgInfos("division").forEach(item=>rows.push({type:"사업부장",target:item.name,count:item.count,badge:"사업부",url:buildDashboardUrl("division",item.name)}));
+      getUniqueOrgInfos("office").forEach(item=>rows.push({type:"실장",target:item.name,count:item.count,badge:"실",url:buildDashboardUrl("office",item.name)}));
+      return rows;
+    }
+    function getUniqueOrgInfos(field){
+      const map=new Map();
+      participants.forEach(p=>{
+        const name=String(field==="headquarter"?(p.headquarter||p.headquarters||""):(p[field]||"")).trim();
+        if(!name||name==="-") return;
+        const key=normalizeText(name);
+        if(!map.has(key)) map.set(key,{name,count:0});
+        map.get(key).count+=1;
+      });
+      return Array.from(map.values()).sort((a,b)=>a.name.localeCompare(b.name,"ko"));
+    }
+    function buildDashboardUrl(view,name){
+      const url=new URL(location.href);
+      url.pathname=url.pathname.replace(/[^/]*$/,"dashboard.html");
+      const search=new URLSearchParams();
+      search.set("trainingId",selectedTrainingId);
+      search.set("view",view);
+      if(view==="headquarters") search.set("headquarters",name);
+      if(view==="division") search.set("division",name);
+      if(view==="office") search.set("office",name);
+      url.search=search.toString(); url.hash="";
+      return url.toString();
+    }
     async function copyLinkFromButton(button){ try{ await navigator.clipboard.writeText(button.dataset.url); alert("링크를 복사했습니다.\n\n"+button.dataset.url); }catch(err){ alert("링크 복사에 실패했습니다."); } }
     async function copyAllLinks(){
       try{
@@ -852,6 +1027,15 @@
         const text=rows.map(row=>`${row.type} / ${row.target} [${row.badge}]\n${row.url}`).join("\n\n"); await navigator.clipboard.writeText(text); alert("전체 링크를 복사했습니다.");
       }catch(err){ if(err.message!=="훈련 미선택") alert("전체 링크 복사에 실패했습니다."); }
     }
+    async function copyAllDashboardLinks(){
+      try{
+        requireSelectedTraining(); const rows=getDashboardLinkRows();
+        if(rows.length===0){ alert("복사할 대시보드 링크가 없습니다."); return; }
+        const text=rows.map(row=>`${row.type} / ${row.target} [${row.badge}]\n${row.url}`).join("\n\n");
+        await navigator.clipboard.writeText(text); alert("전체 대시보드 링크를 복사했습니다.");
+      }catch(err){ if(err.message!=="훈련 미선택") alert("전체 대시보드 링크 복사에 실패했습니다."); }
+    }
+
     /********************************************************
      * 12. 상태 수정
      ********************************************************/
@@ -896,8 +1080,8 @@
       try{
         requireSelectedTraining(); if(participants.length===0 && externalParticipants.length===0){ alert("다운로드할 데이터가 없습니다."); return; }
         const trainingName=$("trainingName").value.trim()||"비상대응훈련";
-        const excelRows=[["순번","본부","사업부","실","팀/소속","사번","성명","대시보드 권한","구분","상태","출석시간","부재사유","부재내용"]];
-        participants.forEach((p,index)=>{ const status=getPersonStatus(p); const evacuated=status==="대피완료"; excelRows.push([index+1,p.headquarter||p.headquarters||"",p.division||"",p.office||"",p.team||"",p.empNo||"",p.name||"",getRoleLabel(p.dashboardRole),"내부",status,evacuated&&p.checkTime?formatKst(p.checkTime):"",isAbsenceStatus(status)?status:"",p.absenceDetail||""]); });
+        const excelRows=[["순번","본부","사업부","실","팀/소속","사번","성명","팀장여부","구분","상태","출석시간","부재사유","부재내용"]];
+        participants.forEach((p,index)=>{ const status=getPersonStatus(p); const evacuated=status==="대피완료"; excelRows.push([index+1,p.headquarter||p.headquarters||"",p.division||"",p.office||"",p.team||"",p.empNo||"",p.name||"",isLeaderPerson(p)?"해당":"미해당","내부",status,evacuated&&p.checkTime?formatKst(p.checkTime):"",isAbsenceStatus(status)?status:"",p.absenceDetail||""]); });
         externalParticipants.forEach((p,index)=>{ excelRows.push([participants.length+index+1,"협력·외주","","",p.affiliation||"협력·외주","",p.name||"","","협력·외주",p.status||"대피완료",p.checkTime?formatKst(p.checkTime):"","",p.absenceDetail||""]); });
         const ws=XLSX.utils.aoa_to_sheet(excelRows); ws["!cols"]=[{wch:8},{wch:18},{wch:18},{wch:24},{wch:22},{wch:14},{wch:12},{wch:12},{wch:12},{wch:16},{wch:24},{wch:16},{wch:36}];
         const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"대피자현황"); const safeName=trainingName.replace(/[\\/:*?"<>|]/g,"_"); XLSX.writeFile(wb,`${safeName}_대피자현황.xlsx`);
@@ -905,120 +1089,7 @@
     }
 
     /********************************************************
-     * 14. 관리자 데이터 허브 · 4초 묶음 발행
-     ********************************************************/
-    function setHubState(text){ const el=$("hubState"); if(el) el.textContent=text; }
-    function clearDashboardPublishState(){
-      if(dashboardPublishTimer) clearTimeout(dashboardPublishTimer);
-      dashboardPublishTimer=null; dashboardPublishing=false; dirtyDashboardScopes.clear();
-      setHubState("훈련 선택 대기");
-    }
-    function getDashboardScopeDefinitions(person){
-      if(!person) return [];
-      const definitions=[
-        {role:"TEAM_MANAGER",scopeName:String(person.team||"").trim()},
-        {role:"OFFICE_MANAGER",scopeName:String(person.office||"").trim()},
-        {role:"DIVISION_MANAGER",scopeName:String(person.division||"").trim()},
-        {role:"HEAD_MANAGER",scopeName:String(person.headquarter||person.headquarters||"").trim()}
-      ];
-      return definitions
-        .filter(item=>item.scopeName && item.scopeName!=="-")
-        .map(item=>({...item,scopeKey:normalizeText(item.scopeName)}));
-    }
-    function markDashboardScopesForPerson(person){
-      getDashboardScopeDefinitions(person).forEach(scope=>{
-        dirtyDashboardScopes.set(`${scope.role}|${scope.scopeKey}`,scope);
-      });
-    }
-    function scheduleDashboardPublish(){
-      if(!selectedTrainingId || dirtyDashboardScopes.size===0 || dashboardPublishTimer || dashboardPublishing) return;
-      setHubState(`${dirtyDashboardScopes.size}개 조직 변경 수집 중`);
-      dashboardPublishTimer=setTimeout(()=>{
-        dashboardPublishTimer=null;
-        flushDashboardViews();
-      },DASHBOARD_PUBLISH_DELAY_MS);
-    }
-    async function flushDashboardViews(){
-      if(dashboardPublishing || !selectedTrainingId || dirtyDashboardScopes.size===0) return;
-      dashboardPublishing=true;
-      const publishingTrainingId=selectedTrainingId;
-      const pending=Array.from(dirtyDashboardScopes.values());
-      dirtyDashboardScopes.clear();
-      setHubState(`${pending.length}개 조직 대시보드 발행 중`);
-
-      try{
-        for(let i=0;i<pending.length;i+=430){
-          const batch=db.batch();
-          pending.slice(i,i+430).forEach(scope=>{
-            const ref=db.collection("emergencyTrainings").doc(publishingTrainingId)
-              .collection("dashboardViews").doc(makeDashboardDocId(scope.role,scope.scopeKey));
-            batch.set(ref,buildDashboardSummary(scope),{merge:false});
-          });
-          await batch.commit();
-        }
-        setHubState(`실시간 수신 · 최근 발행 ${formatKst(new Date())}`);
-      }catch(err){
-        console.error("대시보드 문서 발행 오류:",err);
-        if(selectedTrainingId===publishingTrainingId) setHubState("대시보드 발행 실패 · 다음 변경 시 재시도");
-      }finally{
-        dashboardPublishing=false;
-        if(dirtyDashboardScopes.size>0) scheduleDashboardPublish();
-      }
-    }
-    function buildDashboardSummary(scope){
-      const members=participants.filter(person=>personMatchesScope(person,scope));
-      const owners=participants.filter(person=>person.dashboardRole===scope.role && person.dashboardScopeKey===scope.scopeKey);
-      const evacuated=members.filter(person=>getPersonStatus(person)==="대피완료").length;
-      const absence=members.filter(person=>isAbsenceStatus(getPersonStatus(person))).length;
-      const checking=members.length-evacuated-absence;
-      const rate=members.length?Math.round((evacuated/members.length)*1000)/10:0;
-
-      return {
-        schemaVersion:1,
-        trainingId:selectedTrainingId,
-        trainingName:currentTraining?.trainingName||"비상대응훈련",
-        role:scope.role,
-        roleLabel:getRoleLabel(scope.role),
-        scopeName:scope.scopeName,
-        scopeKey:scope.scopeKey,
-        active:owners.length>0,
-        ownerCount:owners.length,
-        totalCount:members.length,
-        evacuatedCount:evacuated,
-        absenceCount:absence,
-        checkingCount:checking,
-        rate,
-        members:members.map(person=>({
-          id:person.id||makeSafeDocId(person.empNo||""),
-          order:Number(person.order||0),
-          headquarter:String(person.headquarter||person.headquarters||""),
-          division:String(person.division||""),
-          office:String(person.office||""),
-          team:String(person.team||""),
-          empNo:String(person.empNo||""),
-          name:String(person.name||""),
-          dashboardRole:String(person.dashboardRole||"PARTICIPANT"),
-          status:getPersonStatus(person),
-          checked:person.checked===true,
-          checkTime:person.checkTime||null,
-          absenceReason:String(person.absenceReason||""),
-          absenceDetail:String(person.absenceDetail||"")
-        })),
-        publishedAt:firebase.firestore.FieldValue.serverTimestamp(),
-        publishedBy:"admin-hub"
-      };
-    }
-    function personMatchesScope(person,scope){
-      if(scope.role==="TEAM_MANAGER") return normalizeText(person.team)===scope.scopeKey;
-      if(scope.role==="OFFICE_MANAGER") return normalizeText(person.office)===scope.scopeKey;
-      if(scope.role==="DIVISION_MANAGER") return normalizeText(person.division)===scope.scopeKey;
-      if(scope.role==="HEAD_MANAGER") return normalizeText(person.headquarter||person.headquarters)===scope.scopeKey;
-      return false;
-    }
-    function makeDashboardDocId(role,scopeKey){ return `${role.toLowerCase()}_${makeSafeDocId(scopeKey)}`; }
-
-    /********************************************************
-     * 15. 데이터 보조 함수
+     * 14. 데이터 보조 함수
      ********************************************************/
     function getPersonStatus(person){ if(person.status) return person.status; if(person.checked===true) return "대피완료"; if(person.absenceReason) return person.absenceReason; return "확인중"; }
     function getPersonDetail(person){ const status=getPersonStatus(person); if(status==="대피완료") return person.checkTime?formatKst(person.checkTime):""; return person.absenceDetail||""; }
@@ -1045,37 +1116,11 @@
       return Array.from(map.values()).sort((a,b)=>a.localeCompare(b,"ko"));
     }
     function mergeParticipantLists(oldList,newList){
-      const map=new Map(); oldList.forEach(p=>{ if(!p.empNo) return; map.set(String(p.empNo),applyRoleFields({...p,headquarter:p.headquarter||p.headquarters||"",headquarters:p.headquarter||p.headquarters||"",teamKey:normalizeTeamKey(p.team)})); });
-      newList.forEach(p=>{ map.set(String(p.empNo),applyRoleFields({...map.get(String(p.empNo)),...p,headquarter:p.headquarter||p.headquarters||"",headquarters:p.headquarter||p.headquarters||"",teamKey:normalizeTeamKey(p.team)})); });
+      const map=new Map(); oldList.forEach(p=>{ if(!p.empNo) return; map.set(String(p.empNo),{...p,headquarter:p.headquarter||p.headquarters||"",headquarters:p.headquarter||p.headquarters||"",teamKey:normalizeTeamKey(p.team)}); });
+      newList.forEach(p=>{ map.set(String(p.empNo),{...map.get(String(p.empNo)),...p,headquarter:p.headquarter||p.headquarters||"",headquarters:p.headquarter||p.headquarters||"",teamKey:normalizeTeamKey(p.team)}); });
       return Array.from(map.values()).sort((a,b)=>Number(a.order||0)-Number(b.order||0));
     }
-    function normalizeDashboardRole(value){
-      const v=normalizeText(value).replaceAll("_","").replaceAll("-","");
-      if(["headmanager","headquartersmanager","본부장"].includes(v)) return "HEAD_MANAGER";
-      if(["divisionmanager","사업부장"].includes(v)) return "DIVISION_MANAGER";
-      if(["officemanager","실장"].includes(v)) return "OFFICE_MANAGER";
-      if(["teammanager","teamleader","팀장","해당","y","yes","true","1"].includes(v)) return "TEAM_MANAGER";
-      return "PARTICIPANT";
-    }
-    function getRoleLabel(role){
-      return ({HEAD_MANAGER:"본부장",DIVISION_MANAGER:"사업부장",OFFICE_MANAGER:"실장",TEAM_MANAGER:"팀장",PARTICIPANT:"일반"})[role]||"일반";
-    }
-    function buildRoleInfo(role,person){
-      let scopeName="";
-      if(role==="HEAD_MANAGER") scopeName=person.headquarter||person.headquarters||"";
-      if(role==="DIVISION_MANAGER") scopeName=person.division||"";
-      if(role==="OFFICE_MANAGER") scopeName=person.office||"";
-      if(role==="TEAM_MANAGER") scopeName=person.team||"";
-      return {scopeName:String(scopeName||"").trim(),scopeKey:normalizeText(scopeName)};
-    }
-    function applyRoleFields(person){
-      const headquarter=String(person.headquarter||person.headquarters||"").trim();
-      const role=normalizeDashboardRole(person.dashboardRole||person.role||person.leaderFlag||(person.isLeader===true?"팀장":"일반"));
-      const normalized={...person,headquarter,headquarters:headquarter,division:String(person.division||"").trim(),office:String(person.office||"").trim(),team:String(person.team||"").trim(),dashboardRole:role};
-      const roleInfo=buildRoleInfo(role,normalized);
-      return {...normalized,dashboardScopeName:roleInfo.scopeName,dashboardScopeKey:roleInfo.scopeKey,canViewDashboard:role!=="PARTICIPANT",isLeader:role!=="PARTICIPANT"};
-    }
-    function isLeaderPerson(person){ return applyRoleFields(person||{}).dashboardRole!=="PARTICIPANT"; }
+    function isLeaderPerson(person){ if(!person) return false; if(person.isLeader===true) return true; const values=[person.leaderFlag,person.leader,person.leaderYn,person.teamLeader,person.teamLeaderYn,person.role,person.position]; return values.map(v=>normalizeText(v)).some(v=>v==="해당"||v==="팀장"||v==="y"||v==="yes"||v==="true"); }
     function normalizeText(value){ return String(value||"").trim().replace(/\s+/g,"").replaceAll("ㆍ","·").replaceAll("/","·").toLowerCase(); }
     function normalizeTeamKey(value){ return normalizeText(value); }
     function makeSafeDocId(value){ return String(value).trim().replace(/[\/\\#?]/g,"_"); }
@@ -1092,12 +1137,6 @@
         renderSelectedTrainingInfo(null); renderAll();
         const ok=initFirebaseSafely(); if(ok) subscribeTrainingList();
       }catch(err){ console.error("초기 실행 오류:",err); setFirebaseState("초기 실행 오류","error"); setMessage("trainingMessage","초기 화면 실행 중 오류가 발생했습니다. F12 콘솔을 확인해주세요.","error"); }
-    });
-    window.addEventListener("beforeunload",()=>{
-      if(unsubscribeTrainings) unsubscribeTrainings();
-      if(unsubscribeParticipants) unsubscribeParticipants();
-      if(unsubscribeExternalParticipants) unsubscribeExternalParticipants();
-      if(dashboardPublishTimer) clearTimeout(dashboardPublishTimer);
     });
   </script>
 </body>
