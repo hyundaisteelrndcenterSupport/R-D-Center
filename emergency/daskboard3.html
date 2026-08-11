@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f4f7fb" />
+<title>비상상황 대피자 현황 Dashboard</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+
+<style>
+:root{
+  --red:#dc2626;
+  --red-dark:#b91c1c;
+  --red-soft:#fff1f2;
+  --green:#059669;
+  --green-soft:#ecfdf5;
+  --amber:#b45309;
+  --amber-soft:#fffbeb;
+  --navy:#0f172a;
+  --gray-50:#f8fafc;
+  --gray-100:#f1f5f9;
+  --gray-200:#e2e8f0;
+  --gray-300:#cbd5e1;
+  --gray-400:#94a3b8;
+  --gray-500:#64748b;
+  --gray-600:#475569;
+  --gray-700:#334155;
+  --gray-900:#0f172a;
+  --shadow:0 18px 45px rgba(15,23,42,.08);
+  --shadow-soft:0 8px 24px rgba(15,23,42,.06);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:#f4f7fb}
+
+body{
+  margin:0;
+  min-height:100%;
+  color:#111827;
+  background:
+    radial-gradient(circle at 8% 0%,rgba(37,99,235,.05),transparent 26rem),
+    linear-gradient(180deg,#f4f7fb 0%,#fff 54%);
+  font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;
+}
+
+.hidden{display:none!important}
+.page{width:min(1220px,100%);min-height:100vh;margin:0 auto;padding:28px 28px 24px}
+
+.top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:24px;
+  padding:26px 30px;
+  border:1px solid var(--gray-200);
+  border-radius:20px;
+  background:rgba(255,255,255,.96);
+  box-shadow:var(--shadow);
+}
+
+.title-area{min-width:0}
+.eyebrow{display:block;margin-bottom:9px;color:var(--red-dark);font-size:12px;font-weight:900;letter-spacing:.14em}
+
+.page-title{
+  margin:0;
+  color:#050816;
+  font-size:42px;
+  font-weight:900;
+  letter-spacing:-.06em;
+  line-height:1.15;
+  word-break:keep-all;
+}
+
+.scope-title{
+  display:inline-flex;
+  align-items:center;
+  min-height:34px;
+  margin:12px 0 0;
+  padding:6px 12px;
+  border:1px solid var(--gray-200);
+  border-radius:999px;
+  color:var(--gray-700);
+  background:var(--gray-50);
+  font-size:17px;
+  font-weight:900;
+  line-height:1.3;
+  word-break:keep-all;
+}
+
+.clock-card{
+  width:270px;
+  flex:0 0 auto;
+  padding:18px 20px;
+  border-radius:16px;
+  background:linear-gradient(145deg,#17233b,#0f172a);
+  color:#fff;
+  text-align:right;
+  box-shadow:0 12px 24px rgba(15,23,42,.18);
+}
+
+.clock-label{display:block;margin-bottom:8px;color:#cbd5e1;font-size:12px;font-weight:900}
+.clock-time{display:block;font-size:18px;font-weight:900;letter-spacing:-.02em}
+
+.firebase-state{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:9px;
+  font-size:12px;
+  font-weight:900;
+  color:#86efac;
+}
+
+.firebase-state::before{
+  content:"";
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 0 3px rgba(134,239,172,.13);
+}
+
+.firebase-state.warn{color:#fde68a}
+.firebase-state.error{color:#fca5a5}
+.dashboard-main{padding:34px 28px 18px}
+
+.training-title{
+  margin:0 0 24px;
+  text-align:center;
+  color:var(--gray-900);
+  font-size:36px;
+  font-weight:900;
+  letter-spacing:-.04em;
+  line-height:1.25;
+  word-break:keep-all;
+}
+
+.metric-strip{
+  width:min(1060px,100%);
+  margin:0 auto 22px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+}
+
+.metric-card{
+  position:relative;
+  min-height:88px;
+  padding:14px 16px;
+  overflow:hidden;
+  border:1px solid var(--gray-200);
+  border-radius:17px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+  text-align:center;
+}
+
+.metric-card::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--gray-300)}
+.metric-card.evacuated::before{background:var(--green)}
+.metric-card.absent::before{background:#f59e0b}
+.metric-card.checking::before{background:var(--red)}
+.metric-card span{display:block;margin-bottom:5px;color:var(--gray-500);font-size:14px;font-weight:900}
+.metric-card strong{display:block;color:var(--gray-900);font-size:31px;font-weight:900;letter-spacing:-.04em}
+.metric-card.evacuated strong{color:var(--green)}
+.metric-card.absent strong{color:var(--amber)}
+.metric-card.checking strong{color:var(--red)}
+
+/* PC용 상세 표 */
+.desktop-table-shell{
+  width:min(1060px,100%);
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid var(--gray-400);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+
+.dashboard-table{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff}
+
+.dashboard-table th,
+.dashboard-table td{
+  height:58px;
+  padding:7px 10px;
+  border:1px solid var(--gray-300);
+  text-align:center;
+  vertical-align:middle;
+  font-size:21px;
+  font-weight:650;
+  line-height:1.15;
+  white-space:nowrap;
+  overflow:hidden;
+}
+
+.dashboard-table th{height:60px;color:var(--gray-700);background:var(--gray-50);font-weight:900}
+.dashboard-table tbody tr:nth-child(even):not(.total-row) td{background:#fbfdff}
+.dashboard-table tbody tr:hover td{background:#f8fafc}
+.dashboard-table .num{font-weight:900}
+.dashboard-table .evacuated{color:var(--green);font-weight:900}
+.dashboard-table .checking{color:var(--red);font-weight:900}
+.dashboard-table .org-name{font-weight:800}
+.dashboard-table .total-row td{height:62px;color:var(--gray-900);background:var(--gray-100);font-weight:900}
+
+.office-table .col-no{width:8%}.office-table .col-team{width:40%}.office-table .col-total{width:14%}
+.office-table .col-evac{width:14%}.office-table .col-absent{width:12%}.office-table .col-checking{width:12%}
+.division-table .col-no{width:6%}.division-table .col-office{width:27%}.division-table .col-team{width:25%}
+.division-table .col-total{width:10%}.division-table .col-evac{width:11%}.division-table .col-absent{width:10%}.division-table .col-checking{width:11%}
+.headquarters-table .col-no{width:6%}.headquarters-table .col-division{width:27%}.headquarters-table .col-office{width:29%}
+.headquarters-table .col-total{width:10%}.headquarters-table .col-evac{width:10%}.headquarters-table .col-absent{width:9%}.headquarters-table .col-checking{width:9%}
+
+/* 모바일 전용 표: PC에서는 숨김 */
+.mobile-summary-shell{display:none}
+
+.unknown-section{width:min(1060px,100%);margin:30px auto 0}
+.unknown-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.unknown-title{margin:0;color:var(--red-dark);font-size:21px;font-weight:900}
+.unknown-help{color:var(--gray-500);font-size:12px;font-weight:800}
+
+.unknown-wrap{
+  max-height:calc(52px + 52px * 10 + 4px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  border:1px solid var(--gray-400);
+  border-radius:14px;
+  background:#fff;
+  box-shadow:var(--shadow-soft);
+}
+
+.unknown-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.unknown-table th,.unknown-table td{height:52px;padding:6px 8px;border:1px solid var(--gray-300);text-align:center;font-size:21px;font-weight:650;white-space:nowrap;overflow:hidden}
+.unknown-table th{position:sticky;top:0;z-index:2;color:var(--gray-700);background:var(--gray-50);font-weight:900}
+.unknown-table tbody tr:nth-child(even) td{background:#fffafa}
+.unknown-table .col-u-no{width:9%}.unknown-table .col-u-team{width:43%}.unknown-table .col-u-name{width:48%}
+
+.notice{width:min(760px,100%);margin:60px auto;padding:32px 28px;border:1px solid var(--gray-200);border-radius:20px;background:#fff;box-shadow:var(--shadow);text-align:center}
+.notice-title{margin:0 0 12px;font-size:28px;font-weight:900}
+.notice-desc{margin:0;color:var(--gray-600);font-size:17px;font-weight:800;line-height:1.7;word-break:keep-all}
+.footer-note{margin-top:26px;color:var(--gray-400);font-size:12px;font-weight:900;letter-spacing:.08em;text-align:center}
+
+@media(max-width:760px){
+  .page{width:100%;min-height:100dvh;padding:10px 10px calc(18px + var(--safe-bottom))}
+  .top-bar{display:block;padding:18px;border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.07)}
+  .eyebrow{margin-bottom:7px;font-size:10px;letter-spacing:.13em}
+  .page-title{font-size:28px;line-height:1.18;letter-spacing:-.065em}
+  .scope-title{min-height:30px;margin-top:10px;padding:5px 10px;font-size:15px}
+  .clock-card{width:100%;margin-top:16px;padding:13px 14px;border-radius:14px;text-align:left}
+  .clock-label{margin-bottom:4px;font-size:11px}.clock-time{font-size:18px}.firebase-state{margin-top:8px;font-size:11px}
+  .dashboard-main{padding:22px 0 8px}
+  .training-title{margin:0 5px 16px;font-size:24px;line-height:1.25}
+
+  /* 4칸을 억지로 한 줄에 넣지 않고 2×2로 표시 */
+  .metric-strip{width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px}
+  .metric-card{display:flex;align-items:center;justify-content:space-between;min-height:68px;padding:13px 14px;border-radius:14px;text-align:left}
+  .metric-card::before{top:12px;bottom:12px;left:0;right:auto;width:4px;height:auto;border-radius:0 4px 4px 0}
+  .metric-card span{margin:0;font-size:12px}.metric-card strong{font-size:27px}
+
+  /* 기존 6~7열 PC 표 대신 모바일 전용 5열 표 사용 */
+  .desktop-table-shell{display:none}
+  .mobile-summary-shell{display:block;width:100%;overflow:hidden;border:1px solid var(--gray-200);border-radius:18px;background:#fff;box-shadow:0 12px 32px rgba(15,23,42,.08)}
+  .mobile-summary-caption{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 14px 11px;border-bottom:1px solid var(--gray-200);background:linear-gradient(180deg,#fff,#fbfdff)}
+  .mobile-summary-caption strong{color:var(--gray-900);font-size:14px;font-weight:900}
+  .mobile-summary-caption span{color:var(--gray-500);font-size:10px;font-weight:800}
+
+  .mobile-table-head,.mobile-org-row{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,42px);align-items:stretch}
+  .mobile-table-head{min-height:38px;border-bottom:1px solid var(--gray-200);color:var(--gray-500);background:var(--gray-50);font-size:10px;font-weight:900}
+  .mobile-table-head>span,.mobile-org-row>.mobile-stat{display:flex;align-items:center;justify-content:center;min-width:0;border-left:1px solid var(--gray-200)}
+  .mobile-table-head>span:first-child{justify-content:flex-start;padding-left:14px;border-left:0}
+  .mobile-table-head .head-evacuated{color:var(--green)}.mobile-table-head .head-absent{color:var(--amber)}.mobile-table-head .head-checking{color:var(--red)}
+
+  .mobile-org-row{min-height:66px;border-bottom:1px solid var(--gray-200);background:#fff}
+  .mobile-org-row:last-child{border-bottom:0}.mobile-org-row:nth-child(even){background:#fcfdff}
+  .mobile-org-cell{display:flex;align-items:center;gap:9px;min-width:0;padding:10px 8px 10px 12px}
+  .mobile-row-no{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 24px;border-radius:8px;color:var(--gray-600);background:var(--gray-100);font-size:10px;font-weight:900}
+  .mobile-org-text{min-width:0}
+  .mobile-parent-name{display:block;margin-bottom:3px;overflow:hidden;color:var(--gray-500);font-size:9px;font-weight:900;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}
+  .mobile-child-name{display:-webkit-box;overflow:hidden;color:var(--gray-900);font-size:13px;font-weight:900;letter-spacing:-.04em;line-height:1.22;word-break:keep-all;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .mobile-stat{color:var(--gray-700);font-size:15px;font-weight:900}
+  .mobile-stat.evacuated{color:var(--green);background:rgba(236,253,245,.62)}
+  .mobile-stat.absent{color:var(--amber);background:rgba(255,251,235,.7)}
+  .mobile-stat.checking{color:var(--red);background:var(--red-soft)}
+  .mobile-stat.checking.has-value{box-shadow:inset 0 0 0 1px rgba(220,38,38,.08)}
+
+  .mobile-total-row{color:#fff;background:var(--navy)!important}
+  .mobile-total-row .mobile-row-no{color:#fff;background:rgba(255,255,255,.14)}
+  .mobile-total-row .mobile-child-name{color:#fff}.mobile-total-row .mobile-parent-name{color:#cbd5e1}
+  .mobile-total-row .mobile-stat{color:#fff;background:transparent;border-color:rgba(255,255,255,.13)}
+  .mobile-total-row .mobile-stat.checking{color:#fecaca;background:rgba(220,38,38,.2)}
+  .mobile-empty{padding:26px 16px;color:var(--gray-500);font-size:13px;font-weight:800;text-align:center}
+
+  .unknown-section{width:100%;margin-top:20px}.unknown-title-row{align-items:flex-end;margin:0 2px 9px}
+  .unknown-title{font-size:17px}.unknown-help{font-size:10px}
+  .unknown-wrap{max-height:calc(42px + 48px * 10 + 2px);border-color:var(--gray-200);border-radius:16px}
+  .unknown-table th,.unknown-table td{height:48px;padding:5px;border-color:var(--gray-200);font-size:13px}
+  .unknown-table th{height:42px;color:var(--gray-600);font-size:11px}
+  .unknown-table td:first-child{color:var(--gray-500);font-size:11px;font-weight:900}
+  .unknown-table td:nth-child(2),.unknown-table td:nth-child(3){font-weight:850}
+  .unknown-table .col-u-no{width:14%}.unknown-table .col-u-team{width:44%}.unknown-table .col-u-name{width:42%}
+  .notice{margin:28px auto;padding:24px 18px;border-radius:18px}.notice-title{font-size:22px}.notice-desc{font-size:14px}
+  .footer-note{margin-top:20px;font-size:10px}
+}
+
+@media(max-width:370px){
+  .page{padding-left:7px;padding-right:7px}.top-bar{padding:16px}.page-title{font-size:26px}.training-title{font-size:22px}
+  .mobile-table-head,.mobile-org-row{grid-template-columns:minmax(0,1fr) repeat(4,38px)}
+  .mobile-org-cell{gap:6px;padding-left:9px;padding-right:5px}.mobile-row-no{width:21px;height:21px;flex-basis:21px;font-size:9px}
+  .mobile-child-name{font-size:12px}.mobile-stat{font-size:14px}
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+  <header class="top-bar">
+    <div class="title-area">
+      <span class="eyebrow">EMERGENCY EVACUATION STATUS</span>
+      <h1 id="pageTitle" class="page-title">비상상황 대피자 현황</h1>
+      <p id="scopeTitle" class="scope-title">-</p>
+    </div>
+
+    <div class="clock-card">
+      <span class="clock-label">현재 한국시간</span>
+      <strong id="kstClock" class="clock-time">-</strong>
+      <div id="firebaseState" class="firebase-state warn">Firebase 연결 확인 중</div>
+    </div>
+  </header>
+
+  <main id="dashboardView" class="dashboard-main hidden">
+    <h2 id="trainingTitle" class="training-title">“비상대응훈련”</h2>
+
+    <div id="metricStrip" class="metric-strip" aria-label="전체 대피 현황">
+      <div class="metric-card total"><span>총원</span><strong id="metricTotal">0</strong></div>
+      <div class="metric-card evacuated"><span>대피</span><strong id="metricEvacuated">0</strong></div>
+      <div class="metric-card absent"><span>부재</span><strong id="metricAbsent">0</strong></div>
+      <div class="metric-card checking"><span>확인중</span><strong id="metricChecking">0</strong></div>
+    </div>
+
+    <!-- PC용 상세 표 -->
+    <div class="desktop-table-shell">
+      <table id="summaryTable" class="dashboard-table">
+        <thead id="summaryHead"></thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 모바일용 가독성 강화 표 -->
+    <section id="mobileSummaryShell" class="mobile-summary-shell" aria-label="조직별 대피 현황">
+      <div class="mobile-summary-caption">
+        <strong id="mobileSummaryTitle">조직별 현황</strong>
+        <span>확인중 인원은 빨간색 표시</span>
+      </div>
+      <div class="mobile-table-head" role="row">
+        <span role="columnheader">조직</span>
+        <span role="columnheader">총원</span>
+        <span class="head-evacuated" role="columnheader">대피</span>
+        <span class="head-absent" role="columnheader">부재</span>
+        <span class="head-checking" role="columnheader">확인</span>
+      </div>
+      <div id="mobileSummaryBody" role="rowgroup"></div>
+    </section>
+
+    <section id="unknownSection" class="unknown-section hidden">
+      <div class="unknown-title-row">
+        <h3 id="unknownTitle" class="unknown-title">확인중 인원 0명</h3>
+        <span class="unknown-help">최대 10명 높이 · 상하 스크롤</span>
+      </div>
+      <div class="unknown-wrap">
+        <table class="unknown-table">
+          <thead><tr><th class="col-u-no">순번</th><th class="col-u-team">팀</th><th class="col-u-name">성명</th></tr></thead>
+          <tbody id="unknownBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <section id="noticeView" class="notice">
+    <h2 id="noticeTitle" class="notice-title">확인 중입니다</h2>
+    <p id="noticeDesc" class="notice-desc">대시보드 정보를 불러오고 있습니다.</p>
+  </section>
+
+  <div class="footer-note">HYUNDAI STEEL R&amp;D CENTER</div>
+</div>
+
+<script>
+/********************************************************
+ * 1. Firebase 설정
+ ********************************************************/
+const firebaseConfig={
+  apiKey:"AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",
+  authDomain:"emergy-e15f5.firebaseapp.com",
+  projectId:"emergy-e15f5",
+  storageBucket:"emergy-e15f5.firebasestorage.app",
+  messagingSenderId:"123548770828",
+  appId:"1:123548770828:web:904e66916a055a52d64429"
+};
+
+const params=new URLSearchParams(location.search);
+let trainingId=params.get("trainingId")||"";
+const viewMode=params.get("view")||"";
+const scopeName=params.get("office")||params.get("division")||params.get("headquarters")||params.get("scope")||params.get("name")||"";
+
+let db=null;
+let firebaseReady=false;
+let trainingData=null;
+let allMembers=[];
+let filteredMembers=[];
+let unsubscribeTraining=null;
+let unsubscribeParticipants=null;
+
+const $=(id)=>document.getElementById(id);
+
+const viewConfigMap={
+  office:{suffix:"실장",scopeField:"office",scopeLabel:"실",tableType:"office"},
+  division:{suffix:"사업부장",scopeField:"division",scopeLabel:"사업부",tableType:"division"},
+  headquarters:{suffix:"본부장",scopeField:"headquarters",scopeLabel:"본부",tableType:"headquarters"}
+};
+
+const viewConfig=viewConfigMap[viewMode]||null;
+
+function init(){
+  updateClock();
+  setInterval(updateClock,1000);
+
+  if(!viewConfig){
+    showNotice("대시보드 링크 오류","view 값이 올바르지 않습니다. view=office, view=division, view=headquarters 중 하나를 사용해주세요.",true);
+    return;
+  }
+
+  if(!scopeName){
+    showNotice("대시보드 링크 오류","조회할 조직명이 없습니다. office, division, headquarters 파라미터를 확인해주세요.",true);
+    return;
+  }
+
+  setHeaderByMode();
+  if(!initFirebaseSafely())return;
+  showNotice("대시보드 연결 중","현재 비상상황 정보를 찾고 있습니다.");
+
+  resolveTrainingForDashboard()
+    .then(()=>{subscribeTraining();subscribeParticipants()})
+    .catch((err)=>{
+      console.error(err);
+      showNotice("대시보드 정보를 찾지 못했습니다","현재 링크에 해당하는 비상상황 데이터를 찾지 못했습니다.<br>관리자 페이지에서 훈련이 저장되었는지, 참석자 명단의 본부/사업부/실 명칭이 링크와 일치하는지 확인해주세요.",true);
+      setFirebaseState("대시보드 탐색 실패","error");
+    });
+}
+
+function initFirebaseSafely(){
+  try{
+    if(typeof firebase==="undefined")throw new Error("Firebase SDK가 로드되지 않았습니다.");
+    if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    db=firebase.firestore();
+    firebaseReady=true;
+    setFirebaseState("Firebase 연결 준비 완료","ok");
+    return true;
+  }catch(err){
+    console.error(err);
+    firebaseReady=false;
+    setFirebaseState("Firebase 연결 실패","error");
+    showNotice("Firebase 연결 실패","firebaseConfig 값, Firestore 생성 여부, API Key 제한을 확인해주세요.",true);
+    return false;
+  }
+}
+
+function ensureFirebaseReady(){if(!firebaseReady||!db)throw new Error("Firebase 연결 실패")}
+function setHeaderByMode(){$("pageTitle").textContent=`비상상황 대피자 현황_${viewConfig.suffix}`;$("scopeTitle").textContent=scopeName}
+
+function setFirebaseState(text,type){
+  const el=$("firebaseState");
+  if(!el)return;
+  el.textContent=text;
+  el.className=`firebase-state ${type||""}`;
+}
+
+function showNotice(title,desc,isError=false){
+  $("dashboardView").classList.add("hidden");
+  $("noticeView").classList.remove("hidden");
+  $("noticeTitle").textContent=title;
+  $("noticeDesc").innerHTML=desc;
+  $("noticeTitle").style.color=isError?"var(--red)":"#111827";
+}
+
+function showDashboard(){$("noticeView").classList.add("hidden");$("dashboardView").classList.remove("hidden")}
+function pad2(v){return String(v).padStart(2,"0")}
+function getKstDate(date=new Date()){return new Date(date.getTime()+9*60*60*1000)}
+
+function getKstParts(date=new Date()){
+  const k=getKstDate(date);
+  return{year:k.getUTCFullYear(),month:k.getUTCMonth()+1,day:k.getUTCDate(),hour:k.getUTCHours(),minute:k.getUTCMinutes(),second:k.getUTCSeconds()};
+}
+
+function updateClock(){
+  const p=getKstParts();
+  $("kstClock").textContent=`${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;
+}
+
+function toMillis(value){
+  if(!value)return 0;
+  if(typeof value.toMillis==="function")return value.toMillis();
+  if(typeof value.toDate==="function")return value.toDate().getTime();
+  const ms=new Date(value).getTime();
+  return Number.isNaN(ms)?0:ms;
+}
+
+function trainingRef(){ensureFirebaseReady();return db.collection("emergencyTrainings").doc(trainingId)}
+function participantsRef(){return trainingRef().collection("participants")}
+
+/********************************************************
+ * 2. trainingId 없이 조직명으로 현재 훈련 찾기
+ ********************************************************/
+async function resolveTrainingForDashboard(){
+  ensureFirebaseReady();
+  if(trainingId)return trainingId;
+
+  const snapshot=await db.collection("emergencyTrainings").get();
+  const trainings=snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).filter(t=>t.startAt&&t.endAt);
+  if(trainings.length===0)throw new Error("훈련 문서 없음");
+
+  const nowMs=Date.now();
+  const active=trainings.filter(t=>toMillis(t.startAt)<=nowMs&&nowMs<=toMillis(t.endAt)).sort((a,b)=>toMillis(b.startAt)-toMillis(a.startAt));
+  const future=trainings.filter(t=>toMillis(t.startAt)>nowMs).sort((a,b)=>toMillis(a.startAt)-toMillis(b.startAt));
+  const ended=trainings.filter(t=>toMillis(t.endAt)<nowMs).sort((a,b)=>toMillis(b.endAt)-toMillis(a.endAt));
+  const candidates=[...active,...future,...ended];
+
+  for(const training of candidates){
+    if(trainingScopeArrayMatches(training)){trainingId=training.id;return trainingId}
+  }
+
+  for(const training of candidates){
+    if(await trainingHasScope(training.id)){trainingId=training.id;return trainingId}
+  }
+
+  throw new Error("해당 조직이 포함된 훈련 없음");
+}
+
+function trainingScopeArrayMatches(training){
+  const scopeKey=normalizeText(scopeName);
+  if(viewConfig.scopeField==="headquarters")return Array.isArray(training.headquartersKeys)&&training.headquartersKeys.includes(scopeKey);
+  if(viewConfig.scopeField==="division")return Array.isArray(training.divisionKeys)&&training.divisionKeys.includes(scopeKey);
+  if(viewConfig.scopeField==="office")return Array.isArray(training.officeKeys)&&training.officeKeys.includes(scopeKey);
+  return false;
+}
+
+async function trainingHasScope(candidateTrainingId){
+  const snap=await db.collection("emergencyTrainings").doc(candidateTrainingId).collection("participants").limit(1500).get();
+  return snap.docs.some(doc=>normalizeText(getScopeValue(doc.data(),viewConfig.scopeField))===normalizeText(scopeName));
+}
+
+/********************************************************
+ * 3. 실시간 구독
+ ********************************************************/
+function subscribeTraining(){
+  try{
+    if(unsubscribeTraining)unsubscribeTraining();
+    unsubscribeTraining=trainingRef().onSnapshot(doc=>{
+      if(!doc.exists){showNotice("훈련 정보 없음","해당 비상상황 정보를 찾을 수 없습니다.",true);return}
+      trainingData={id:doc.id,...doc.data()};
+      $("trainingTitle").textContent=`“${trainingData.trainingName||"비상대응훈련"}”`;
+      setFirebaseState("Firebase 연결 정상","ok");
+      renderDashboard();
+    },err=>{
+      console.error(err);
+      setFirebaseState("Firebase 오류 발생","error");
+      showNotice("훈련 정보 불러오기 실패","Firestore 권한 또는 네트워크 상태를 확인해주세요.",true);
+    });
+  }catch(err){console.error(err)}
+}
+
+function subscribeParticipants(){
+  try{
+    if(unsubscribeParticipants)unsubscribeParticipants();
+    unsubscribeParticipants=participantsRef().onSnapshot(snapshot=>{
+      allMembers=snapshot.docs.map(doc=>({id:doc.id,ref:doc.ref,...doc.data()}));
+      allMembers.sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+      filteredMembers=allMembers.filter(p=>normalizeText(getScopeValue(p,viewConfig.scopeField))===normalizeText(scopeName));
+      setFirebaseState("Firebase 연결 정상","ok");
+      renderDashboard();
+    },err=>{
+      console.error(err);
+      setFirebaseState("Firebase 오류 발생","error");
+      showNotice("참석자 정보 불러오기 실패","Firestore 권한 또는 네트워크 상태를 확인해주세요.",true);
+    });
+  }catch(err){console.error(err)}
+}
+
+/********************************************************
+ * 4. 화면 렌더링
+ ********************************************************/
+function renderDashboard(){
+  if(!trainingData)return;
+  showDashboard();
+  renderMetricStrip();
+  renderMobileSummary();
+
+  if(viewConfig.tableType==="office"){
+    renderOfficeDashboard();
+    renderUnknownList();
+    return;
+  }
+
+  $("unknownSection").classList.add("hidden");
+  if(viewConfig.tableType==="division"){renderDivisionDashboard();return}
+  if(viewConfig.tableType==="headquarters")renderHeadquartersDashboard();
+}
+
+function renderMetricStrip(){
+  const total=countMembers(filteredMembers);
+  $("metricTotal").textContent=total.total;
+  $("metricEvacuated").textContent=total.evacuated;
+  $("metricAbsent").textContent=total.absent;
+  $("metricChecking").textContent=total.checking;
+}
+
+/* 모바일 전용 표: 조직명 1열 + 핵심 수치 4열 */
+function renderMobileSummary(){
+  let rows=[];
+  let title="조직별 현황";
+
+  if(viewConfig.tableType==="office"){
+    title="팀별 대피 현황";
+    const groups=groupBy(filteredMembers,p=>getScopeValue(p,"team")||"-");
+    rows=Object.keys(groups).map(team=>({parent:"",child:team,order:getMinOrder(groups[team]),...countMembers(groups[team])})).sort((a,b)=>a.order-b.order);
+  }
+
+  if(viewConfig.tableType==="division"){
+    title="실 · 팀별 대피 현황";
+    const officeGroups=groupBy(filteredMembers,p=>getScopeValue(p,"office")||"-");
+    const offices=Object.keys(officeGroups).map(office=>({office,members:officeGroups[office],order:getMinOrder(officeGroups[office])})).sort((a,b)=>a.order-b.order);
+
+    offices.forEach(officeObj=>{
+      const teamGroups=groupBy(officeObj.members,p=>getScopeValue(p,"team")||"-");
+      Object.keys(teamGroups)
+        .map(team=>({team,members:teamGroups[team],order:getMinOrder(teamGroups[team])}))
+        .sort((a,b)=>a.order-b.order)
+        .forEach(teamObj=>rows.push({parent:officeObj.office,child:teamObj.team,order:teamObj.order,...countMembers(teamObj.members)}));
+    });
+  }
+
+  if(viewConfig.tableType==="headquarters"){
+    title="사업부 · 실별 대피 현황";
+    const divisionGroups=groupBy(filteredMembers,p=>getScopeValue(p,"division")||"-");
+    const divisions=Object.keys(divisionGroups).map(division=>({division,members:divisionGroups[division],order:getMinOrder(divisionGroups[division])})).sort((a,b)=>a.order-b.order);
+
+    divisions.forEach(divisionObj=>{
+      const officeGroups=groupBy(divisionObj.members,p=>getScopeValue(p,"office")||"-");
+      Object.keys(officeGroups)
+        .map(office=>({office,members:officeGroups[office],order:getMinOrder(officeGroups[office])}))
+        .sort((a,b)=>a.order-b.order)
+        .forEach(officeObj=>rows.push({parent:divisionObj.division,child:officeObj.office,order:officeObj.order,...countMembers(officeObj.members)}));
+    });
+  }
+
+  $("mobileSummaryTitle").textContent=title;
+
+  if(rows.length===0){
+    $("mobileSummaryBody").innerHTML='<div class="mobile-empty">표시할 데이터가 없습니다.</div>';
+    return;
+  }
+
+  const total=countMembers(filteredMembers);
+  $("mobileSummaryBody").innerHTML=rows.map((r,i)=>mobileRowHtml(r,i+1,false)).join("")+mobileRowHtml({parent:"전체 조직",child:"합계",...total},"Σ",true);
+}
+
+function mobileRowHtml(row,index,isTotal){
+  const parent=row.parent?`<span class="mobile-parent-name">${escapeHtml(row.parent)}</span>`:"";
+  const checkingClass=Number(row.checking)>0?" has-value":"";
+  return`
+    <div class="mobile-org-row${isTotal?" mobile-total-row":""}" role="row">
+      <div class="mobile-org-cell" role="rowheader">
+        <span class="mobile-row-no">${index}</span>
+        <span class="mobile-org-text">${parent}<span class="mobile-child-name">${escapeHtml(row.child||"-")}</span></span>
+      </div>
+      <span class="mobile-stat total" role="cell">${row.total}</span>
+      <span class="mobile-stat evacuated" role="cell">${row.evacuated}</span>
+      <span class="mobile-stat absent" role="cell">${row.absent}</span>
+      <span class="mobile-stat checking${checkingClass}" role="cell">${row.checking}</span>
+    </div>`;
+}
+
+function renderOfficeDashboard(){
+  $("summaryTable").className="dashboard-table office-table";
+  $("summaryHead").innerHTML=`<tr><th class="col-no">구분</th><th class="col-team">팀</th><th class="col-total">총원</th><th class="col-evac">대피</th><th class="col-absent">부재</th><th class="col-checking checking">확인</th></tr>`;
+
+  const groups=groupBy(filteredMembers,p=>getScopeValue(p,"team")||"-");
+  const rows=Object.keys(groups).map(team=>({team,...countMembers(groups[team]),order:getMinOrder(groups[team])})).sort((a,b)=>a.order-b.order);
+  const total=countMembers(filteredMembers);
+
+  $("summaryBody").innerHTML=rows.map((r,i)=>`
+    <tr><td>${i+1}</td><td class="org-name">${escapeHtml(r.team)}</td><td class="num">${r.total}</td><td class="evacuated">${r.evacuated}</td><td>${r.absent}</td><td class="checking">${r.checking}</td></tr>`).join("")+`
+    <tr class="total-row"><td colspan="2">계</td><td>${total.total}</td><td class="evacuated">${total.evacuated}</td><td>${total.absent}</td><td class="checking">${total.checking}</td></tr>`;
+}
+
+function renderDivisionDashboard(){
+  $("summaryTable").className="dashboard-table division-table";
+  $("summaryHead").innerHTML=`<tr><th class="col-no">구분</th><th class="col-office">실</th><th class="col-team">팀</th><th class="col-total">총원</th><th class="col-evac">대피</th><th class="col-absent">부재</th><th class="col-checking checking">확인</th></tr>`;
+
+  const officeGroups=groupBy(filteredMembers,p=>getScopeValue(p,"office")||"-");
+  const offices=Object.keys(officeGroups).map(office=>({office,members:officeGroups[office],order:getMinOrder(officeGroups[office])})).sort((a,b)=>a.order-b.order);
+  let html="";
+
+  offices.forEach((officeObj,officeIndex)=>{
+    const teamGroups=groupBy(officeObj.members,p=>getScopeValue(p,"team")||"-");
+    const teams=Object.keys(teamGroups).map(team=>({team,members:teamGroups[team],order:getMinOrder(teamGroups[team])})).sort((a,b)=>a.order-b.order);
+    teams.forEach((teamObj,teamIndex)=>{
+      const c=countMembers(teamObj.members);
+      html+=`<tr>
+        ${teamIndex===0?`<td rowspan="${teams.length}">${officeIndex+1}</td>`:""}
+        ${teamIndex===0?`<td rowspan="${teams.length}" class="org-name">${escapeHtml(officeObj.office)}</td>`:""}
+        <td class="org-name">${escapeHtml(teamObj.team)}</td><td class="num">${c.total}</td><td class="evacuated">${c.evacuated}</td><td>${c.absent}</td><td class="checking">${c.checking}</td></tr>`;
+    });
+  });
+
+  const total=countMembers(filteredMembers);
+  html+=`<tr class="total-row"><td colspan="3">계</td><td>${total.total}</td><td class="evacuated">${total.evacuated}</td><td>${total.absent}</td><td class="checking">${total.checking}</td></tr>`;
+  $("summaryBody").innerHTML=html||'<tr><td colspan="7">표시할 데이터가 없습니다.</td></tr>';
+}
+
+function renderHeadquartersDashboard(){
+  $("summaryTable").className="dashboard-table headquarters-table";
+  $("summaryHead").innerHTML=`<tr><th class="col-no">구분</th><th class="col-division">사업부</th><th class="col-office">실</th><th class="col-total">총원</th><th class="col-evac">대피</th><th class="col-absent">부재</th><th class="col-checking checking">확인</th></tr>`;
+
+  const divisionGroups=groupBy(filteredMembers,p=>getScopeValue(p,"division")||"-");
+  const divisions=Object.keys(divisionGroups).map(division=>({division,members:divisionGroups[division],order:getMinOrder(divisionGroups[division])})).sort((a,b)=>a.order-b.order);
+  let html="";
+
+  divisions.forEach((divisionObj,divisionIndex)=>{
+    const officeGroups=groupBy(divisionObj.members,p=>getScopeValue(p,"office")||"-");
+    const offices=Object.keys(officeGroups).map(office=>({office,members:officeGroups[office],order:getMinOrder(officeGroups[office])})).sort((a,b)=>a.order-b.order);
+    offices.forEach((officeObj,officeIndex)=>{
+      const c=countMembers(officeObj.members);
+      html+=`<tr>
+        ${officeIndex===0?`<td rowspan="${offices.length}">${divisionIndex+1}</td>`:""}
+        ${officeIndex===0?`<td rowspan="${offices.length}" class="org-name">${escapeHtml(divisionObj.division)}</td>`:""}
+        <td class="org-name">${escapeHtml(officeObj.office)}</td><td class="num">${c.total}</td><td class="evacuated">${c.evacuated}</td><td>${c.absent}</td><td class="checking">${c.checking}</td></tr>`;
+    });
+  });
+
+  const total=countMembers(filteredMembers);
+  html+=`<tr class="total-row"><td colspan="3">계</td><td>${total.total}</td><td class="evacuated">${total.evacuated}</td><td>${total.absent}</td><td class="checking">${total.checking}</td></tr>`;
+  $("summaryBody").innerHTML=html||'<tr><td colspan="7">표시할 데이터가 없습니다.</td></tr>';
+}
+
+function renderUnknownList(){
+  const unknown=filteredMembers.filter(p=>getPersonStatus(p)==="확인중").sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+  $("unknownSection").classList.remove("hidden");
+  $("unknownTitle").textContent=`확인중 인원 ${unknown.length}명`;
+
+  if(unknown.length===0){
+    $("unknownBody").innerHTML='<tr><td colspan="3">확인중 인원이 없습니다.</td></tr>';
+    return;
+  }
+
+  $("unknownBody").innerHTML=unknown.map((p,i)=>`
+    <tr><td>${i+1}</td><td class="org-name">${escapeHtml(getScopeValue(p,"team")||"-")}</td><td class="org-name">${escapeHtml(p.name||"-")}</td></tr>`).join("");
+}
+
+/********************************************************
+ * 5. 집계 함수
+ ********************************************************/
+function countMembers(members){
+  const total=members.length;
+  const evacuated=members.filter(p=>getPersonStatus(p)==="대피완료").length;
+  const absent=members.filter(p=>isAbsentStatus(getPersonStatus(p))).length;
+  return{total,evacuated,absent,checking:total-evacuated-absent};
+}
+
+function getPersonStatus(person){
+  if(person.status)return person.status;
+  if(person.checked===true)return"대피완료";
+  if(person.absenceReason)return person.absenceReason;
+  return"확인중";
+}
+
+function isAbsentStatus(status){return["타 본부","휴가","출장","외출"].includes(status)}
+
+function groupBy(array,getKey){
+  return array.reduce((acc,item)=>{
+    const key=getKey(item)||"-";
+    if(!acc[key])acc[key]=[];
+    acc[key].push(item);
+    return acc;
+  },{});
+}
+
+function getMinOrder(members){
+  const values=members.map(m=>Number(m.order||999999)).filter(v=>!Number.isNaN(v));
+  return values.length?Math.min(...values):999999;
+}
+
+function getScopeValue(person,field){
+  if(field==="headquarters")return person.headquarters||person.headquarter||person.hq||person.bonbu||person["본부"]||"";
+  if(field==="division")return person.division||person.businessDivision||person.bizDivision||person.saupbu||person["사업부"]||"";
+  if(field==="office")return person.office||person.officeName||person.sil||person["실"]||"";
+  if(field==="team")return person.team||person.teamName||person.teamNm||person["팀"]||"";
+  return person[field]||"";
+}
+
+function normalizeText(value){
+  return String(value||"").trim().replace(/\s+/g,"").replaceAll("ㆍ","·").replaceAll("/","·").toLowerCase();
+}
+
+function escapeHtml(value){
+  return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+window.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
