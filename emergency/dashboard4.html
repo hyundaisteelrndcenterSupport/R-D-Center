@@ -202,7 +202,13 @@ body{
 .dashboard-table .evacuated{color:var(--green);font-weight:900}
 .dashboard-table .checking{color:var(--red);font-weight:900}
 .dashboard-table .org-name{font-weight:800}
-.dashboard-table .subtotal-row td{height:54px;background:#eef2f7;font-weight:900}
+.dashboard-table .subtotal-row td{
+  height:54px;
+  border-top:2px solid var(--gray-400);
+  border-bottom:2px solid var(--gray-400);
+  background:#d8e1ec;
+  font-weight:900;
+}
 .dashboard-table .subtotal-row .subtotal-label{color:var(--gray-700)}
 .dashboard-table .total-row td{height:62px;color:var(--gray-900);background:var(--gray-100);font-weight:900}
 
@@ -266,13 +272,13 @@ body{
   .mobile-summary-caption strong{color:var(--gray-900);font-size:14px;font-weight:900}
 
   .mobile-summary-table{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff}
-  .mobile-summary-table col.col-no{width:7%}
-  .mobile-summary-table col.col-parent{width:21%}
-  .mobile-summary-table col.col-child{width:24%}
-  .mobile-summary-table col.col-stat{width:12%}
+  .mobile-summary-table col.col-no{width:6%}
+  .mobile-summary-table col.col-parent{width:25%}
+  .mobile-summary-table col.col-child{width:27%}
+  .mobile-summary-table col.col-stat{width:10.5%}
   .mobile-summary-table.office col.col-no{width:9%}
-  .mobile-summary-table.office col.col-child{width:43%}
-  .mobile-summary-table.office col.col-stat{width:12%}
+  .mobile-summary-table.office col.col-child{width:49%}
+  .mobile-summary-table.office col.col-stat{width:10.5%}
 
   .mobile-summary-table th,
   .mobile-summary-table td{
@@ -301,20 +307,27 @@ body{
     font-size:9.5px;
     font-weight:900;
     letter-spacing:-.04em;
+    white-space:nowrap;
+    overflow:hidden;
   }
 
   .mobile-summary-table thead .head-evacuated{color:var(--green)}
   .mobile-summary-table thead .head-absent{color:var(--amber)}
   .mobile-summary-table thead .head-checking{color:var(--red);font-size:9px}
   .mobile-index-cell{color:var(--gray-500);background:#fbfdff;font-size:11px;font-weight:900}
-  .mobile-group-cell{color:var(--gray-700);background:#f8fafc;font-size:11.5px;font-weight:900;letter-spacing:-.04em}
-  .mobile-org-name{color:var(--gray-900);font-size:12px;font-weight:900;letter-spacing:-.05em}
+  .mobile-group-cell{overflow:hidden;color:var(--gray-700);background:#f8fafc;font-size:11.5px;font-weight:900;letter-spacing:-.07em;white-space:nowrap}
+  .mobile-org-name{overflow:hidden;color:var(--gray-900);font-size:12px;font-weight:900;letter-spacing:-.07em;white-space:nowrap}
+  .mobile-fit-text{display:inline-block;max-width:none;line-height:1.15;white-space:nowrap;transform-origin:center center}
   .mobile-number{color:var(--gray-700);font-size:14px;font-weight:900}
   .mobile-number.evacuated{color:var(--green);background:rgba(236,253,245,.64)}
   .mobile-number.absent{color:var(--amber);background:rgba(255,251,235,.72)}
   .mobile-number.checking{color:var(--red);background:var(--red-soft)}
 
-  .mobile-subtotal-row td{height:48px;background:#eef2f7;font-weight:900}
+  .mobile-summary-table .mobile-subtotal-row td{
+    height:48px;
+    background:#dfe6ef;
+    font-weight:900;
+  }
   .mobile-subtotal-label{color:var(--gray-700);font-size:11.5px;letter-spacing:.08em}
   .mobile-total-row td{height:52px;color:#fff;background:var(--navy);border-color:rgba(255,255,255,.13);font-size:13px;font-weight:900}
   .mobile-total-row td.checking{color:#fecaca;background:#3a1721}
@@ -661,7 +674,7 @@ function renderMobileSummary(){
     teams.forEach((teamObj,index)=>{
       html+=`<tr>
         <td class="mobile-index-cell">${index+1}</td>
-        <th class="mobile-org-name">${escapeHtml(teamObj.team)}</th>
+        <th class="mobile-org-name"><span class="mobile-fit-text">${escapeHtml(teamObj.team)}</span></th>
         ${mobileStatsHtml(countMembers(teamObj.members))}
       </tr>`;
     });
@@ -693,8 +706,8 @@ function renderMobileSummary(){
       teams.forEach((teamObj,teamIndex)=>{
         html+=`<tr>
           ${teamIndex===0?`<td rowspan="${rowSpan}" class="mobile-index-cell">${officeIndex+1}</td>`:""}
-          ${teamIndex===0?`<th rowspan="${rowSpan}" class="mobile-group-cell">${escapeHtml(officeObj.office)}</th>`:""}
-          <td class="mobile-org-name">${escapeHtml(teamObj.team)}</td>
+          ${teamIndex===0?`<th rowspan="${rowSpan}" class="mobile-group-cell"><span class="mobile-fit-text">${escapeHtml(officeObj.office)}</span></th>`:""}
+          <td class="mobile-org-name"><span class="mobile-fit-text">${escapeHtml(teamObj.team)}</span></td>
           ${mobileStatsHtml(countMembers(teamObj.members))}
         </tr>`;
       });
@@ -732,8 +745,8 @@ function renderMobileSummary(){
       offices.forEach((officeObj,officeIndex)=>{
         html+=`<tr>
           ${officeIndex===0?`<td rowspan="${rowSpan}" class="mobile-index-cell">${divisionIndex+1}</td>`:""}
-          ${officeIndex===0?`<th rowspan="${rowSpan}" class="mobile-group-cell">${escapeHtml(divisionObj.division)}</th>`:""}
-          <td class="mobile-org-name">${escapeHtml(officeObj.office)}</td>
+          ${officeIndex===0?`<th rowspan="${rowSpan}" class="mobile-group-cell"><span class="mobile-fit-text">${escapeHtml(divisionObj.division)}</span></th>`:""}
+          <td class="mobile-org-name"><span class="mobile-fit-text">${escapeHtml(officeObj.office)}</span></td>
           ${mobileStatsHtml(countMembers(officeObj.members))}
         </tr>`;
       });
@@ -750,6 +763,29 @@ function renderMobileSummary(){
   }
 
   $("mobileSummaryBody").innerHTML=html||`<tr><td colspan="${columnCount}" class="mobile-empty">표시할 데이터가 없습니다.</td></tr>`;
+  fitMobileTableText();
+}
+
+let mobileFitFrame=0;
+
+function fitMobileTableText(){
+  if(typeof requestAnimationFrame!=="function")return;
+
+  if(mobileFitFrame)cancelAnimationFrame(mobileFitFrame);
+  mobileFitFrame=requestAnimationFrame(()=>{
+    document.querySelectorAll("#mobileSummaryBody .mobile-fit-text").forEach(el=>{
+      el.style.transform="";
+
+      const cell=el.parentElement;
+      const available=Math.max(0,cell.clientWidth-6);
+      const natural=el.scrollWidth;
+
+      if(available>0&&natural>available){
+        const scale=Math.max(.58,Math.min(1,available/natural));
+        el.style.transform=`scaleX(${scale})`;
+      }
+    });
+  });
 }
 
 function mobileStatsHtml(count){
@@ -905,6 +941,7 @@ function escapeHtml(value){
 }
 
 window.addEventListener("DOMContentLoaded",init);
+window.addEventListener("resize",fitMobileTableText);
 </script>
 </body>
 </html>
