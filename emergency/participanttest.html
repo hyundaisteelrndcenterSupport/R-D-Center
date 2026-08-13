@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>비상상황 대피자 위치 공유</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+<style>
+:root{
+  --red:#d71920;
+  --red-dark:#aa1117;
+  --navy:#101a33;
+  --blue:#2563eb;
+  --green:#07966f;
+  --orange:#b45309;
+  --amber:#f59e0b;
+  --gray-25:#fbfcfe;
+  --gray-50:#f7f9fc;
+  --gray-100:#eef2f7;
+  --gray-200:#dde4ed;
+  --gray-300:#cbd5e1;
+  --gray-500:#64748b;
+  --gray-600:#475569;
+  --gray-700:#334155;
+  --gray-900:#0f172a;
+  --line:#dce3eb;
+  --shadow:0 18px 48px rgba(15,23,42,.09);
+  --soft-shadow:0 10px 28px rgba(15,23,42,.07);
+  --mobile-shadow:0 10px 24px rgba(15,23,42,.08);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:#f4f7fb}
+body{
+  margin:0;
+  min-height:100%;
+  color:#111827;
+  background:
+    radial-gradient(circle at 5% 0%,rgba(59,130,246,.08),transparent 30%),
+    radial-gradient(circle at 100% 24%,rgba(215,25,32,.055),transparent 26%),
+    linear-gradient(180deg,#f4f7fb 0%,#fbfcfe 46%,#f7f9fc 100%);
+  font-family:"Malgun Gothic","Apple SD Gothic Neo",Arial,sans-serif;
+}
+button,input,select,textarea{font-family:inherit}
+.hidden{display:none!important}
+
+.page{
+  width:min(1160px,100%);
+  min-height:100vh;
+  margin:0 auto;
+  padding:26px 24px 24px;
+  display:flex;
+  flex-direction:column;
+}
+
+.top-bar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:24px;
+  margin-bottom:28px;
+  padding:26px 30px;
+  border:1px solid rgba(221,228,237,.95);
+  border-radius:24px;
+  background:rgba(255,255,255,.96);
+  box-shadow:var(--shadow);
+}
+.brand{min-width:0}
+.eyebrow{margin:0 0 8px;color:var(--red);font-size:12px;font-weight:900;letter-spacing:.15em}
+.brand-title{margin:0;color:#070b18;font-size:40px;font-weight:900;letter-spacing:-.055em;line-height:1.14;word-break:keep-all}
+.brand-desc{margin:11px 0 0;color:var(--gray-600);font-size:15px;font-weight:800;line-height:1.55;word-break:keep-all}
+.scope-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:38px;
+  margin:18px 0 0;
+  padding:0 16px;
+  border:1px solid var(--gray-200);
+  border-radius:999px;
+  background:var(--gray-50);
+  color:var(--gray-700);
+  font-size:15px;
+  font-weight:900;
+  line-height:1.2;
+}
+.clock-card{
+  min-width:310px;
+  padding:18px 20px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  background:linear-gradient(145deg,#17223b 0%,#0d152a 100%);
+  box-shadow:0 12px 28px rgba(15,23,42,.2);
+  color:#fff;
+  text-align:right;
+}
+.clock-card>span{display:block;margin-bottom:7px;color:#cbd5e1;font-size:12px;font-weight:900}
+.clock-card strong{display:block;font-size:22px;font-weight:900;letter-spacing:-.025em;white-space:nowrap}
+.connection-state{display:flex;justify-content:flex-end;align-items:center;gap:7px;margin-top:10px;color:#cbd5e1;font-size:12px;font-weight:900;line-height:1.35}
+.connection-state::before{content:"";width:8px;height:8px;flex:0 0 auto;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(203,213,225,.12)}
+.connection-state.ok{color:#86efac}.connection-state.warn{color:#fde68a}.connection-state.error{color:#fca5a5}
+
+.main-layout{flex:1;display:flex;justify-content:center;align-items:center;padding:18px 0 54px}
+.main-card{
+  position:relative;
+  width:min(850px,100%);
+  min-height:500px;
+  padding:46px 60px;
+  overflow:hidden;
+  border:1px solid var(--gray-200);
+  border-radius:30px;
+  background:rgba(255,255,255,.98);
+  box-shadow:var(--shadow);
+}
+.main-card::before{content:"";position:absolute;inset:0 0 auto;height:5px;background:linear-gradient(90deg,var(--red),#ef4444 38%,#f59e0b)}
+.status-area{text-align:center;margin-bottom:20px}
+.status-pill{display:inline-flex;justify-content:center;align-items:center;min-height:36px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:900}
+.status-pill.open{background:#ecfdf5;color:#047857}.status-pill.wait{background:#fff7ed;color:#c2410c}.status-pill.closed{background:#f1f5f9;color:#475569}.status-pill.error{background:#fef2f2;color:var(--red)}
+.training-name-text{text-align:center;font-size:21px;font-weight:900;color:var(--gray-500);margin-bottom:9px;word-break:keep-all;line-height:1.4}
+.main-title{margin:0 0 34px;text-align:center;color:var(--gray-900);font-size:34px;font-weight:900;letter-spacing:-.045em;line-height:1.25;word-break:keep-all}
+.period-text{margin:-20px 0 32px;text-align:center;color:var(--gray-600);font-size:15px;font-weight:900;line-height:1.5;word-break:keep-all}
+.form-row{display:grid;grid-template-columns:112px 1fr;gap:18px;align-items:center;width:min(680px,100%);margin:0 auto 20px}
+.form-row label{color:var(--gray-700);font-size:20px;font-weight:900;text-align:right;white-space:nowrap}
+.form-row input,.form-row select,.form-row textarea{
+  width:100%;
+  border:1.5px solid var(--gray-300);
+  border-radius:14px;
+  background:#fff;
+  color:var(--gray-900);
+  font-weight:800;
+  outline:none;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.form-row input,.form-row select{height:62px;padding:0 17px;font-size:22px}
+.form-row textarea{min-height:104px;padding:15px 17px;font-size:19px;line-height:1.5;resize:vertical}
+.form-row input::placeholder,.form-row textarea::placeholder{color:#94a3b8}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(37,99,235,.11);background:#fff}
+.button-row{width:min(680px,100%);margin:32px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:16px}.button-row.single{grid-template-columns:1fr}
+button{min-height:64px;border:0;border-radius:15px;padding:0 24px;color:#fff;font-size:23px;font-weight:900;cursor:pointer;box-shadow:0 9px 20px rgba(15,23,42,.11);transition:transform .15s,filter .15s,box-shadow .15s}
+button:hover{filter:brightness(.97);box-shadow:0 11px 24px rgba(15,23,42,.15)}button:active{transform:translateY(1px)}button.red{background:linear-gradient(135deg,#d71920,#bc1117)}button.red:active{background:var(--red-dark)}button.navy{background:linear-gradient(135deg,#172554,#111a38)}button.gray{background:linear-gradient(135deg,#475569,#334155)}button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.message{min-height:28px;margin:20px auto 0;text-align:center;color:var(--gray-700);font-size:16px;font-weight:900;line-height:1.55;word-break:keep-all}.message.ok{color:var(--green)}.message.warn{color:var(--orange)}.message.error{color:var(--red)}
+
+.done-card,.notice-card{text-align:center}
+.done-icon,.notice-icon{width:74px;height:74px;margin:0 auto 18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900}
+.done-icon{background:#ecfdf5;color:var(--green);box-shadow:0 0 0 8px rgba(5,150,105,.07)}
+.notice-icon{background:#fff7ed;color:#c2410c;box-shadow:0 0 0 8px rgba(194,65,12,.06)}
+.done-title,.notice-title{margin:0 0 12px;color:var(--gray-900);font-size:34px;font-weight:900;letter-spacing:-.04em;line-height:1.25;word-break:keep-all}
+.done-desc,.notice-desc{margin:0 auto 24px;color:var(--gray-600);font-size:17px;font-weight:800;line-height:1.65;word-break:keep-all}
+.result-box{width:min(720px,100%);margin:22px auto 0;border:1px solid var(--gray-200);border-radius:18px;background:var(--gray-50);overflow:hidden;text-align:left}
+.result-row{display:flex;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid var(--gray-200)}.result-row:last-child{border-bottom:0}
+.result-label{color:var(--gray-500);font-size:14px;font-weight:900;white-space:nowrap}.result-value{color:var(--gray-900);font-size:15px;font-weight:900;text-align:right;word-break:break-all}
+
+.team-dashboard{flex:1;padding:0 0 38px}
+.team-panel{background:transparent}
+.team-hero{padding:18px 20px 25px;text-align:center}
+.section-kicker{margin:0 0 10px;color:var(--red);font-size:11px;font-weight:900;letter-spacing:.14em}
+.team-title{margin:0;color:var(--gray-900);font-size:34px;font-weight:900;letter-spacing:-.045em;line-height:1.25;word-break:keep-all}
+.team-subtitle{display:inline-flex;align-items:center;min-height:34px;margin:12px 0 0;padding:0 14px;border:1px solid var(--gray-200);border-radius:999px;background:#fff;color:var(--gray-600);font-size:15px;font-weight:900;word-break:keep-all;line-height:1.3}
+.team-body{padding:0}
+.metric-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 22px}
+.metric-card{position:relative;min-height:106px;padding:18px 20px;overflow:hidden;border:1px solid var(--gray-200);border-radius:20px;background:#fff;box-shadow:var(--soft-shadow);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.metric-card::before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:5px;border-radius:0 5px 5px 0;background:var(--metric-color,#94a3b8)}
+.metric-card span{color:var(--gray-500);font-size:16px;font-weight:900;white-space:nowrap}
+.metric-card strong{color:var(--metric-color,var(--gray-900));font-size:38px;font-weight:900;letter-spacing:-.05em}
+.metric-total{--metric-color:#334155}.metric-evacuated{--metric-color:var(--green)}.metric-absent{--metric-color:var(--orange)}.metric-checking{--metric-color:var(--red)}
+.team-table-card{overflow:hidden;border:1px solid var(--gray-200);border-radius:24px;background:#fff;box-shadow:var(--soft-shadow)}
+.team-table-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;border-bottom:1px solid var(--gray-200)}
+.team-table-heading h3{margin:0;color:var(--gray-900);font-size:20px;font-weight:900;letter-spacing:-.03em}
+.team-member-count{display:inline-flex;align-items:center;min-height:30px;padding:0 11px;border-radius:999px;background:var(--gray-100);color:var(--gray-600);font-size:13px;font-weight:900;white-space:nowrap}
+.scroll-hint{margin:0;padding:10px 16px;border-bottom:1px solid var(--gray-200);background:var(--gray-25);color:var(--gray-500);font-size:12px;font-weight:800;line-height:1.4}
+.table-wrap{width:100%;max-height:540px;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff}
+.team-table{width:100%;min-width:860px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:18px}
+.team-table th,.team-table td{height:56px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px 9px;text-align:center;vertical-align:middle;word-break:keep-all;overflow-wrap:anywhere}
+.team-table th:last-child,.team-table td:last-child{border-right:0}.team-table tbody tr:last-child td{border-bottom:0}
+.team-table th{position:sticky;top:0;z-index:2;height:52px;background:#f7f9fc;color:var(--gray-700);font-size:15px;font-weight:900}
+.team-table tbody tr:nth-child(even) td{background:#fbfcfe}.team-table tbody tr:hover td{background:#f8fafc}
+.team-table td:nth-child(1){color:var(--gray-500);font-weight:900}.team-table td:nth-child(2){color:var(--gray-900);font-weight:900}
+.col-no{width:8%}.col-name{width:18%}.col-status{width:18%}.col-detail{width:56%}
+.status-select,.detail-input{width:100%;height:42px;border:1px solid var(--gray-300);border-radius:9px;padding:0 10px;background:#fff;color:var(--gray-900);font-size:16px;font-weight:800;outline:none}
+.status-select:focus,.detail-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.detail-input:disabled{border-color:#e5e7eb;background:#f3f6f9;color:var(--gray-600);cursor:not-allowed}
+.status-select.status-checking{color:var(--red);font-weight:900}.status-select option[value="확인중"]{color:var(--red);font-weight:900}
+.empty-row{height:96px!important;color:var(--gray-500);font-size:16px;font-weight:900}
+
+.fatal{flex:1;display:flex;justify-content:center;align-items:center;padding:60px 20px;text-align:center}
+.fatal-box{width:min(760px,100%);padding:34px 28px;border:1px solid #fecaca;border-radius:22px;background:#fff5f5;color:var(--red);font-size:19px;font-weight:900;line-height:1.7;box-shadow:var(--shadow);word-break:keep-all}
+.footer-note{margin-top:auto;padding-top:24px;color:#7b8493;font-size:13px;font-weight:800;text-align:center}
+
+@media(max-width:760px){
+  .page{width:100%;min-height:100dvh;padding:12px 12px calc(18px + var(--safe-bottom))}
+  .top-bar{flex-direction:column;align-items:stretch;gap:18px;margin-bottom:20px;padding:22px 20px;border-radius:24px;box-shadow:var(--mobile-shadow)}
+  .eyebrow{font-size:11px;margin-bottom:8px}.brand-title{font-size:30px;line-height:1.15}.brand-desc{font-size:13px;line-height:1.5}
+  .scope-badge{min-height:36px;margin-top:16px;padding:0 14px;font-size:14px}
+  .clock-card{width:100%;min-width:0;padding:17px 18px;border-radius:18px;text-align:left}
+  .clock-card>span{font-size:12px}.clock-card strong{font-size:21px}.connection-state{justify-content:flex-start;font-size:12px}
+  .main-layout{align-items:flex-start;padding:0 0 18px}.main-card{width:100%;min-height:auto;border-radius:24px;padding:27px 18px 22px;box-shadow:var(--mobile-shadow)}
+  .status-area{margin-bottom:15px}.status-pill{min-height:32px;padding:0 13px;font-size:13px}.training-name-text{font-size:15px;margin-bottom:8px}.main-title{margin:0 0 24px;font-size:26px}.period-text{margin:-13px 0 22px;font-size:13px}
+  .form-row{display:block;width:100%;margin:0 0 16px}.form-row label{display:block;margin:0 0 8px;font-size:17px;text-align:left}
+  .form-row input,.form-row select{height:56px;border-radius:13px;padding:0 14px;font-size:19px}.form-row textarea{min-height:100px;border-radius:13px;padding:13px 14px;font-size:17px}
+  .button-row{width:100%;margin:21px 0 0;grid-template-columns:1fr;gap:10px}button{min-height:55px;border-radius:14px;font-size:20px}
+  .message{margin-top:16px;font-size:14px}.done-icon,.notice-icon{width:62px;height:62px;font-size:34px;margin-bottom:14px}.done-title,.notice-title{font-size:25px}.done-desc,.notice-desc{font-size:14px;margin-bottom:18px}.result-row{padding:12px 14px}.result-label,.result-value{font-size:13px}
+
+  .team-dashboard{padding:0 0 22px}.team-hero{padding:14px 10px 20px}.section-kicker{font-size:10px;margin-bottom:8px}.team-title{font-size:28px}.team-subtitle{min-height:32px;margin-top:10px;font-size:13px}
+  .metric-strip{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:18px}
+  .metric-card{min-height:94px;padding:16px 17px;border-radius:18px;box-shadow:var(--mobile-shadow)}
+  .metric-card::before{top:16px;bottom:16px;width:4px}.metric-card span{font-size:15px}.metric-card strong{font-size:34px}
+  .team-table-card{border-radius:22px;box-shadow:var(--mobile-shadow)}
+  .team-table-heading{padding:17px 16px}.team-table-heading h3{font-size:18px}.team-member-count{font-size:12px}
+  .scroll-hint{display:none}
+  .table-wrap{max-height:calc(100dvh - 315px);overflow-x:hidden!important;overflow-y:auto!important}
+  .team-table{min-width:0!important;width:100%!important;font-size:12px;table-layout:fixed}
+  .team-table th,.team-table td{height:44px;padding:4px 2px;font-size:12px;line-height:1.2}
+  .team-table th{height:46px;font-size:12px;letter-spacing:-.055em}
+  .col-no{width:10%}.col-name{width:20%}.col-status{width:27%}.col-detail{width:43%}
+  .status-select,.detail-input{height:35px;border-radius:7px;padding:0 3px;font-size:11px;font-weight:900;letter-spacing:-.045em}
+  .detail-input{font-size:11px}.empty-row{font-size:12px}
+  .fatal{padding:28px 0}.fatal-box{padding:24px 18px;border-radius:20px;font-size:16px}.footer-note{padding-top:18px;font-size:11px;line-height:1.5}
+}
+
+@media(max-width:370px){
+  .brand-title{font-size:27px}.clock-card strong{font-size:19px}.metric-card{padding:14px}.metric-card span{font-size:14px}.metric-card strong{font-size:31px}
+  .team-table th,.team-table td{font-size:11px}.status-select,.detail-input{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top-bar">
+  <div class="brand">
+    <p class="eyebrow">EMERGENCY SYSTEM</p>
+    <h1 id="pageTitle" class="brand-title">비상상황 대피자 위치 공유</h1>
+    <p id="pageDesc" class="brand-desc">이름과 사번을 입력하여 대피완료 또는 부재 사유를 등록해주시기 바랍니다.</p>
+    <p id="teamScopeBadge" class="scope-badge hidden">-</p>
+  </div>
+  <div class="clock-card"><span>현재 한국시간</span><strong id="kstClock">-</strong><div id="firebaseState" class="connection-state warn">Firebase 연결 확인 중</div></div>
+</header>
+
+<section id="fatalView" class="fatal hidden"><div id="fatalBox" class="fatal-box"></div></section>
+
+<section id="entryView" class="main-layout hidden"><div class="main-card">
+  <div class="status-area"><span id="statusPill" class="status-pill">-</span></div>
+  <div id="trainingNameText" class="training-name-text">-</div><h2 class="main-title">대피자 위치 공유</h2><div id="periodText" class="period-text">-</div>
+  <div class="form-row"><label for="nameInput">성명</label><input id="nameInput" autocomplete="name" placeholder="성명을 입력하세요" /></div>
+  <div class="form-row"><label for="empNoInput">사번</label><input id="empNoInput" inputmode="numeric" autocomplete="off" placeholder="사번을 입력하세요" /></div>
+  <div class="button-row"><button id="evacSubmitBtn" class="red" onclick="handleEvacuated()">대피 완료</button><button id="absenceOpenBtn" class="navy" onclick="openAbsenceForm()">부재</button></div>
+  <div id="entryMessage" class="message"></div>
+</div></section>
+
+<section id="externalView" class="main-layout hidden"><div class="main-card">
+  <div class="status-area"><span id="externalStatusPill" class="status-pill">-</span></div>
+  <div id="externalTrainingNameText" class="training-name-text">-</div><h2 class="main-title">협력·외주 대피자 위치 공유</h2><div id="externalPeriodText" class="period-text">-</div>
+  <div class="form-row"><label for="externalAffiliationInput">소속</label><input id="externalAffiliationInput" autocomplete="organization" placeholder="소속을 입력하세요" /></div>
+  <div class="form-row"><label for="externalNameInput">성명</label><input id="externalNameInput" autocomplete="name" placeholder="성명을 입력하세요" /></div>
+  <div class="button-row single"><button id="externalSubmitBtn" class="red" onclick="handleExternalEvacuated()">대피 완료</button></div>
+  <div id="externalMessage" class="message"></div>
+</div></section>
+
+<section id="absenceView" class="main-layout hidden"><div class="main-card">
+  <div class="status-area"><span id="absenceStatusPill" class="status-pill open">입력 가능</span></div>
+  <div id="absenceTrainingNameText" class="training-name-text">-</div><h2 class="main-title">부재 사유 입력</h2><div id="absencePersonText" class="period-text">-</div>
+  <div class="form-row"><label for="absenceReasonInput">사유</label><select id="absenceReasonInput"><option value="">선택</option><option value="타 본부">타 본부</option><option value="휴가">휴가</option><option value="출장">출장</option><option value="외출">외출</option></select></div>
+  <div class="form-row"><label for="absenceDetailInput">내용</label><textarea id="absenceDetailInput" placeholder="상세 위치 또는 사유를 입력하세요"></textarea></div>
+  <div class="button-row"><button id="absenceSubmitBtn" class="navy" onclick="submitAbsence()">완료</button><button class="gray" onclick="backToEntry()">이전</button></div>
+  <div id="absenceMessage" class="message"></div>
+</div></section>
+
+<section id="doneView" class="main-layout hidden"><div class="main-card done-card">
+  <div class="done-icon">✓</div><h2 id="doneTitle" class="done-title">입력이 완료되었습니다</h2><p id="doneDesc" class="done-desc">정상적으로 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.</p>
+  <div class="result-box">
+    <div class="result-row"><span class="result-label">상황</span><span id="doneTrainingName" class="result-value">-</span></div>
+    <div class="result-row"><span id="doneTeamLabel" class="result-label">팀명</span><span id="doneTeamName" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">성명</span><span id="doneName" class="result-value">-</span></div>
+    <div class="result-row"><span id="doneTimeLabel" class="result-label">출석 시간</span><span id="doneTime" class="result-value">-</span></div>
+  </div>
+</div></section>
+
+<section id="noticeView" class="main-layout hidden"><div class="main-card notice-card">
+  <div class="notice-icon">!</div><h2 id="noticeTitle" class="notice-title">확인 중입니다</h2><p id="noticeDesc" class="notice-desc">훈련 정보를 확인하고 있습니다.</p>
+  <div class="result-box">
+    <div class="result-row"><span class="result-label">상황</span><span id="noticeTrainingName" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">구분</span><span id="noticeTeamName" class="result-value">-</span></div>
+    <div class="result-row"><span class="result-label">입력 가능 시간</span><span id="noticePeriod" class="result-value">-</span></div>
+  </div>
+</div></section>
+
+<section id="teamView" class="team-dashboard hidden"><div class="team-panel">
+  <div class="team-hero">
+    <p class="section-kicker">LIVE EVACUATION STATUS</p>
+    <h2 id="teamDashboardTitle" class="team-title">비상대응훈련</h2>
+    <div id="teamDashboardSubtitle" class="team-subtitle hidden"></div>
+  </div>
+  <div class="team-body">
+    <div class="metric-strip" aria-label="팀 대피 현황 요약">
+      <div class="metric-card metric-total"><span>총원</span><strong id="teamMetricTotal">0</strong></div>
+      <div class="metric-card metric-evacuated"><span>대피</span><strong id="teamMetricEvacuated">0</strong></div>
+      <div class="metric-card metric-absent"><span>부재</span><strong id="teamMetricAbsent">0</strong></div>
+      <div class="metric-card metric-checking"><span>확인중</span><strong id="teamMetricChecking">0</strong></div>
+    </div>
+
+    <div class="team-table-card">
+      <div class="team-table-heading">
+        <h3>팀원별 대피 현황</h3>
+        <span id="teamMemberCount" class="team-member-count">0명</span>
+      </div>
+      <p class="scroll-hint">팀원의 상태와 출석 시간 또는 부재내용을 확인하고 수정할 수 있습니다.</p>
+      <div class="table-wrap"><table class="team-table"><thead><tr><th class="col-no">순번</th><th class="col-name">성명</th><th class="col-status">상태</th><th class="col-detail">출석 시간 / 부재내용</th></tr></thead><tbody id="teamTbody"><tr><td colspan="4" class="empty-row">팀 현황을 불러오는 중입니다.</td></tr></tbody></table></div>
+    </div>
+  </div>
+</div></section>
+
+<div class="footer-note">HYUNDAI STEEL R&amp;D CENTER</div>
+</div>
+
+<script>
+/********************************************************
+ * 1. Firebase 설정
+ * 관리자용 admin.html과 동일한 firebaseConfig를 입력하세요.
+ ********************************************************/
+const firebaseConfig={
+  apiKey: "AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",
+  authDomain: "emergy-e15f5.firebaseapp.com",
+  projectId: "emergy-e15f5",
+  storageBucket: "emergy-e15f5.firebasestorage.app",
+  messagingSenderId: "123548770828",
+  appId: "1:123548770828:web:904e66916a055a52d64429",
+  /* Firebase Console > Realtime Database에 표시되는 URL과 다르면 이 한 줄만 바꾸세요. */
+  databaseURL: "https://emergy-e15f5-default-rtdb.firebaseio.com"
+};
+
+const params=new URLSearchParams(location.search);
+let trainingId=params.get("trainingId")||"";
+const viewMode=params.get("view")||"";
+const urlTeamName=params.get("team")||"";
+const urlTeamKey=params.get("teamKey")||"";
+const isTeamDashboardMode=viewMode==="team";
+const isExternalMode=params.get("external")==="1"||params.get("type")==="external"||normalizeText(urlTeamName)===normalizeText("협력·외주")||normalizeText(urlTeamName)===normalizeText("협력/외주");
+
+let db=null,rtdb=null,firebaseReady=false,trainingData=null;
+let selectedTeamName=urlTeamName||"";
+let selectedTeamKey=urlTeamKey||normalizeTeamKey(urlTeamName);
+let currentPerson=null,currentPersonRef=null,teamMembers=[];
+let attendanceCompleted=false,absenceModeOpen=false,submitLocked=false;
+let unsubscribeTeamMembers=null;
+const $=(id)=>document.getElementById(id);
+
+function initFirebaseSafely(){
+  try{
+    if(typeof firebase==="undefined")throw new Error("Firebase SDK가 로드되지 않았습니다.");
+    if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+    db=firebase.firestore();rtdb=firebase.database();firebaseReady=true;setFirebaseState("Firebase 연결 준비 완료","ok");return true;
+  }catch(err){
+    console.error("Firebase 초기화 오류:",err);
+    db=null;rtdb=null;firebaseReady=false;setFirebaseState("Firebase 연결 실패","error");
+    showFatalError("Firebase 연결에 실패했습니다.<br>firebaseConfig 값, Firestore 생성 여부, API Key 제한을 확인해주세요.");
+    return false;
+  }
+}
+function ensureFirebaseReady(){if(!firebaseReady||!db){setFirebaseState("Firebase 연결 실패","error");throw new Error("Firebase 연결 실패");}}
+function ensureRtdbReady(){if(!firebaseReady||!rtdb){setFirebaseState("RTDB 연결 실패","error");throw new Error("RTDB 연결 실패");}}
+function setFirebaseState(text,type){const el=$("firebaseState");if(!el)return;el.textContent=text;el.className=`connection-state ${type||""}`;}
+function handleFirestoreError(err,place){
+  console.error(`${place} 오류:`,err);
+  let message=`${place} 중 오류가 발생했습니다.`;
+  if(err&&err.code==="permission-denied")message=`${place} 실패: Firestore 보안 규칙 권한이 없습니다.<br>emergencyTrainings, participants, externalParticipants 권한을 확인해주세요.`;
+  else if(err&&err.code==="failed-precondition")message=`${place} 실패: Firestore 인덱스 또는 데이터베이스 설정이 필요할 수 있습니다.`;
+  else if(err&&err.message)message=`${place} 실패: ${escapeHtml(err.message)}`;
+  setFirebaseState("Firebase 오류 발생","error");showFatalError(message);
+}
+
+function pad2(v){return String(v).padStart(2,"0");}
+function getKstDate(date=new Date()){return new Date(date.getTime()+9*60*60*1000);}
+function getKstParts(date=new Date()){const k=getKstDate(date);return{year:k.getUTCFullYear(),month:k.getUTCMonth()+1,day:k.getUTCDate(),hour:k.getUTCHours(),minute:k.getUTCMinutes(),second:k.getUTCSeconds()};}
+function formatKst(value,withSeconds=true){if(!value)return"";let d=typeof value.toDate==="function"?value.toDate():new Date(value);const p=getKstParts(d);const t=withSeconds?`${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`:`${pad2(p.hour)}:${pad2(p.minute)}`;return`${p.year}.${pad2(p.month)}.${pad2(p.day)}. ${t}`;}
+function formatKoreanDateTime(value){if(!value)return"";let d=typeof value.toDate==="function"?value.toDate():new Date(value);const p=getKstParts(d);return`${p.year}년 ${p.month}월 ${p.day}일 ${pad2(p.hour)}:${pad2(p.minute)}`;}
+function toMillis(value){if(!value)return 0;if(typeof value.toMillis==="function")return value.toMillis();if(typeof value.toDate==="function")return value.toDate().getTime();const ms=new Date(value).getTime();return Number.isNaN(ms)?0:ms;}
+function updateClock(){const p=getKstParts();$("kstClock").textContent=`${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;if(trainingData&&!attendanceCompleted&&!isTeamDashboardMode){renderTrainingInfo();applyTimeBasedView();}}
+
+function trainingRef(){ensureFirebaseReady();return db.collection("emergencyTrainings").doc(trainingId);}
+function participantsRef(){return trainingRef().collection("participants");}
+function externalParticipantsRef(){return trainingRef().collection("externalParticipants");}
+
+function init(){
+  updateClock();setInterval(updateClock,1000);
+  const ok=initFirebaseSafely();if(!ok)return;
+  if(isTeamDashboardMode){initTeamDashboardMode();return;}
+  if(isExternalMode){initExternalMode();return;}
+  initEntryMode();
+}
+function initEntryMode(){
+  $("pageTitle").textContent="비상상황 대피자 위치 공유";
+  $("pageDesc").classList.remove("hidden");
+  $("teamScopeBadge").classList.add("hidden");
+  $("pageDesc").innerHTML="① 이름과 사번을 입력하여 출석 체크 바랍니다.<br>② 부재자는 ‘부재’ 버튼을 클릭하여 절차대로 입력해주시기 바랍니다.";
+  if(!trainingId){showFatalError("통합 출결 링크가 올바르지 않습니다.<br><br>통합 출결 링크에는 trainingId가 포함되어야 합니다.<br>예: participant.html?trainingId=훈련ID");setFirebaseState("링크 정보 오류","error");return;}
+  showLoading("훈련 정보를 확인 중입니다","비상상황 정보를 불러오고 있습니다.");loadTrainingOnce();
+}
+function initExternalMode(){
+  $("pageTitle").textContent="협력·외주 대피자 위치 공유";
+  $("pageDesc").classList.remove("hidden");
+  $("teamScopeBadge").classList.add("hidden");
+  $("pageDesc").textContent="협력·외주 참석자는 소속과 성명을 입력하여 대피완료를 등록해주시기 바랍니다.";
+  if(!trainingId){showFatalError("협력·외주 링크가 올바르지 않습니다.<br><br>협력·외주 링크에는 trainingId가 포함되어야 합니다.");setFirebaseState("협력·외주 링크 오류","error");return;}
+  showLoading("훈련 정보를 확인 중입니다","협력·외주 대피자 위치 공유 정보를 불러오고 있습니다.");loadTrainingOnce();
+}
+async function initTeamDashboardMode(){
+  $("pageTitle").textContent="비상상황 대피자 현황_팀장";
+  $("pageDesc").textContent="";
+  $("pageDesc").classList.add("hidden");
+  $("teamScopeBadge").textContent=selectedTeamName||selectedTeamKey||"팀 현황";
+  $("teamScopeBadge").classList.remove("hidden");
+  if(!selectedTeamKey){showFatalError("팀장 현황 링크가 올바르지 않습니다.<br><br>팀장 현황 링크에는 team 또는 teamKey가 포함되어야 합니다.");setFirebaseState("팀장 링크 오류","error");return;}
+  if(!trainingId){showFatalError("팀장 현황 링크가 올바르지 않습니다.<br><br>사용량 절감형 팀장 링크에는 trainingId가 포함되어야 합니다.<br>관리자 페이지에서 새 링크를 복사해주세요.");setFirebaseState("팀장 링크 오류","error");return;}
+  showLoading("팀 현황을 확인 중입니다","관리자 허브의 팀 현황을 불러오고 있습니다.");
+  try{
+    await loadTeamMetaOnce();
+    renderTeamDashboardShell();
+    showTeamDashboard();
+    subscribeTeamMembers();
+  }
+  catch(err){console.error(err);showFatalError("해당 팀의 실시간 현황을 찾지 못했습니다.<br><br>관리자 페이지가 열려 있는지, RTDB URL과 Rules가 올바른지 확인해주세요.");setFirebaseState("팀장 현황 연결 실패","error");}
+}
+async function loadTeamMetaOnce(){
+  ensureRtdbReady();
+  const snapshot=await rtdb.ref(`emergencyLive/${trainingId}/meta`).once("value");
+  if(!snapshot.exists())throw new Error("RTDB 훈련 메타 없음");
+  const data=snapshot.val()||{};
+  trainingData={id:trainingId,trainingName:data.trainingName||"비상대응훈련",startAt:data.startAt||null,endAt:data.endAt||null};
+  setFirebaseState("RTDB 실시간 연결 준비 완료","ok");
+}
+async function loadTrainingOnce(){
+  try{
+    ensureFirebaseReady();
+    const doc=await trainingRef().get();
+    if(!doc.exists){showFatalError("해당 비상상황 정보를 찾을 수 없습니다.");return false;}
+    trainingData={id:doc.id,...doc.data()};setFirebaseState("Firebase 연결 정상","ok");hideFatalError();
+    if(isTeamDashboardMode){renderTeamDashboardShell();showTeamDashboard();return true;}
+    renderTrainingInfo();applyTimeBasedView();return true;
+  }catch(err){if(err.message!=="Firebase 연결 실패")handleFirestoreError(err,"훈련 정보 연결");}
+  return false;
+}
+function getTrainingStatus(){
+  if(!trainingData||!trainingData.startAt||!trainingData.endAt)return{code:"invalid",text:"시간 미설정"};
+  const now=Date.now(),start=toMillis(trainingData.startAt),end=toMillis(trainingData.endAt);
+  if(!start||!end)return{code:"invalid",text:"시간 오류"};
+  if(now<start)return{code:"wait",text:"입력 시작 전"};
+  if(now>=start&&now<=end)return{code:"open",text:"입력 가능"};
+  return{code:"closed",text:"입력 종료"};
+}
+function renderTrainingInfo(){
+  const trainingName=trainingData?.trainingName||"비상대응훈련",status=getTrainingStatus();
+  $("trainingNameText").textContent=trainingName;$("periodText").textContent=getPeriodText();
+  $("externalTrainingNameText").textContent=trainingName;$("externalPeriodText").textContent=getPeriodText();
+  const pill=isExternalMode?$("externalStatusPill"):$("statusPill");pill.textContent=status.text;
+  if(status.code==="open")pill.className="status-pill open";else if(status.code==="wait")pill.className="status-pill wait";else if(status.code==="closed")pill.className="status-pill closed";else pill.className="status-pill error";
+}
+function applyTimeBasedView(){
+  if(!trainingData||attendanceCompleted)return;
+  if(absenceModeOpen)return;
+  const status=getTrainingStatus();
+  if(status.code==="open"){isExternalMode?showExternalEntry():showEntry();return;}
+  if(status.code==="wait"){showNotice("아직 입력 시작 전입니다","관리자가 설정한 입력 시작 시간이 되면 입력할 수 있습니다.");return;}
+  if(status.code==="closed"){showNotice("입력 시간이 종료되었습니다","관리자가 설정한 입력 가능 시간이 지나 입력할 수 없습니다.");return;}
+  showNotice("입력 시간이 설정되지 않았습니다","관리자에게 훈련 시간 설정 상태를 확인해주세요.");
+}
+
+async function findPersonByNameAndEmpNo(){
+  ensureFirebaseReady();
+  const name=$("nameInput").value.trim(),empNo=$("empNoInput").value.trim();
+  if(!name){setEntryMessage("성명을 입력해주세요.","error");$("nameInput").focus();return null;}
+  if(!empNo){setEntryMessage("사번을 입력해주세요.","error");$("empNoInput").focus();return null;}
+  let docRef=participantsRef().doc(makeSafeDocId(empNo)),doc=await docRef.get();
+  if(!doc.exists){
+    const q=await participantsRef().where("empNo","==",empNo).limit(1).get();
+    if(q.empty){setEntryMessage("등록된 참석자 명단에서 해당 사번을 찾을 수 없습니다.","error");return null;}
+    doc=q.docs[0];docRef=doc.ref;
+  }
+  const person=doc.data();
+  if(normalizeText(person.name)!==normalizeText(name)){setEntryMessage("입력한 성명과 사번이 관리자 등록 명단과 일치하지 않습니다.","error");return null;}
+  currentPerson={id:doc.id,...person};currentPersonRef=docRef;return{person:currentPerson,ref:currentPersonRef};
+}
+async function handleEvacuated(){
+  if(submitLocked)return;
+  try{
+    ensureFirebaseReady();const status=getTrainingStatus();
+    if(status.code!=="open"){setEntryMessage("현재는 입력 가능 시간이 아닙니다.","error");applyTimeBasedView();return;}
+    submitLocked=true;setButtonLoading("evacSubmitBtn",true,"처리 중...");setButtonLoading("absenceOpenBtn",true,"처리 중...");
+    const found=await findPersonByNameAndEmpNo();if(!found)return;
+    const now=new Date();
+    await found.ref.set({status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"participant-evacuated"},{merge:true});
+    const person=found.person;
+    if(isLeaderPerson(person)){selectedTeamName=person.team||"";selectedTeamKey=normalizeTeamKey(person.team);await openLeaderDashboardAfterSubmit();return;}
+    showDone({title:"대피 공유가 완료되었습니다",desc:"정상적으로 출석 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.",trainingName:trainingData.trainingName,teamLabel:"팀명",teamName:person.team||"-",name:person.name||"-",timeLabel:"출석 시간",time:formatKst(now)});
+  }catch(err){
+    if(err.message==="Firebase 연결 실패"){setEntryMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.","error");return;}
+    console.error(err);setEntryMessage(err.code==="permission-denied"?"입력 권한이 없습니다. Firestore Rules를 확인해주세요.":"대피 완료 처리 중 오류가 발생했습니다.","error");
+  }finally{submitLocked=false;setButtonLoading("evacSubmitBtn",false,"대피 완료");setButtonLoading("absenceOpenBtn",false,"부재");}
+}
+async function openAbsenceForm(){
+  if(submitLocked)return;
+  try{
+    ensureFirebaseReady();const status=getTrainingStatus();
+    if(status.code!=="open"){setEntryMessage("현재는 입력 가능 시간이 아닙니다.","error");applyTimeBasedView();return;}
+    submitLocked=true;setButtonLoading("absenceOpenBtn",true,"확인 중...");
+    const found=await findPersonByNameAndEmpNo();if(!found)return;
+    $("absenceTrainingNameText").textContent=trainingData.trainingName||"비상대응훈련";
+    $("absencePersonText").textContent=`${found.person.team||"-"} · ${found.person.name||"-"} / ${found.person.empNo||"-"}`;
+    $("absenceReasonInput").value="";$("absenceDetailInput").value="";setAbsenceMessage("","");
+    showAbsence();
+  }catch(err){console.error(err);setEntryMessage("부재 입력 화면 이동 중 오류가 발생했습니다.","error");}
+  finally{submitLocked=false;setButtonLoading("absenceOpenBtn",false,"부재");}
+}
+async function submitAbsence(){
+  if(submitLocked)return;
+  try{
+    ensureFirebaseReady();
+    if(!currentPerson||!currentPersonRef){setAbsenceMessage("입력 대상자를 다시 확인해주세요.","error");backToEntry();return;}
+    const status=getTrainingStatus();if(status.code!=="open"){setAbsenceMessage("현재는 입력 가능 시간이 아닙니다.","error");applyTimeBasedView();return;}
+    const reason=$("absenceReasonInput").value.trim(),detail=$("absenceDetailInput").value.trim();
+    if(!reason){setAbsenceMessage("부재 사유를 선택해주세요.","error");$("absenceReasonInput").focus();return;}
+    if(!detail){setAbsenceMessage("상세 내용을 입력해주세요.","error");$("absenceDetailInput").focus();return;}
+    submitLocked=true;setButtonLoading("absenceSubmitBtn",true,"저장 중...");
+    await currentPersonRef.set({status:reason,statusType:"absence",checked:false,absenceReason:reason,absenceDetail:detail,absenceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"participant-absence"},{merge:true});
+    const person=currentPerson;
+    if(isLeaderPerson(person)){selectedTeamName=person.team||"";selectedTeamKey=normalizeTeamKey(person.team);await openLeaderDashboardAfterSubmit();return;}
+    showDone({title:"부재 사유 입력이 완료되었습니다",desc:"위치가 공유되었습니다.<br>이 화면은 닫아도 됩니다.",trainingName:trainingData.trainingName,teamLabel:"팀명",teamName:person.team||"-",name:person.name||"-",timeLabel:"부재 내용",time:`${reason} · ${detail}`});
+  }catch(err){
+    if(err.message==="Firebase 연결 실패"){setAbsenceMessage("Firebase 연결에 실패했습니다. 관리자에게 문의해주세요.","error");return;}
+    console.error(err);setAbsenceMessage(err.code==="permission-denied"?"입력 권한이 없습니다. Firestore Rules를 확인해주세요.":"부재 사유 저장 중 오류가 발생했습니다.","error");
+  }finally{submitLocked=false;setButtonLoading("absenceSubmitBtn",false,"완료");}
+}
+async function handleExternalEvacuated(){
+  if(submitLocked)return;
+  try{
+    ensureFirebaseReady();const status=getTrainingStatus();
+    if(status.code!=="open"){setExternalMessage("현재는 입력 가능 시간이 아닙니다.","error");applyTimeBasedView();return;}
+    const affiliation=$("externalAffiliationInput").value.trim(),name=$("externalNameInput").value.trim();
+    if(!affiliation){setExternalMessage("소속을 입력해주세요.","error");$("externalAffiliationInput").focus();return;}
+    if(!name){setExternalMessage("성명을 입력해주세요.","error");$("externalNameInput").focus();return;}
+    submitLocked=true;setButtonLoading("externalSubmitBtn",true,"처리 중...");
+    const now=new Date();
+    await externalParticipantsRef().add({team:"협력·외주",affiliation,name,status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"participant-external"});
+    $("externalAffiliationInput").value="";$("externalNameInput").value="";
+    showDone({title:"대피 공유가 완료되었습니다",desc:"정상적으로 협력·외주 대피 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.",trainingName:trainingData.trainingName,teamLabel:"구분",teamName:`협력·외주 / ${affiliation}`,name,timeLabel:"출석 시간",time:formatKst(now)});
+  }catch(err){console.error(err);setExternalMessage(err.code==="permission-denied"?"입력 권한이 없습니다. Firestore Rules를 확인해주세요.":"협력·외주 대피 완료 처리 중 오류가 발생했습니다.","error");}
+  finally{submitLocked=false;setButtonLoading("externalSubmitBtn",false,"대피 완료");}
+}
+
+async function openLeaderDashboardAfterSubmit(){
+  absenceModeOpen=false;attendanceCompleted=true;
+  showLoading("팀장 현황으로 이동 중입니다","팀 대피자 현황을 불러오고 있습니다.");
+  if(unsubscribeTeamMembers)unsubscribeTeamMembers();
+  renderTeamDashboardShell();subscribeTeamMembers();showTeamDashboard();
+}
+function subscribeTeamMembers(){
+  try{
+    ensureRtdbReady();
+    if(!selectedTeamKey){showFatalError("팀 정보가 없어 팀장 현황을 불러올 수 없습니다.");return;}
+    if(unsubscribeTeamMembers)unsubscribeTeamMembers();
+    const query=rtdb.ref(`emergencyLive/${trainingId}/teamMembers/${makeRtdbKey(selectedTeamKey)}`);
+    const onValue=snapshot=>{
+      if(!snapshot.exists()){
+        teamMembers=[];
+        renderTeamDashboardShell();renderTeamTable();
+        setFirebaseState("RTDB 관리자 허브 데이터 대기","warn");
+        return;
+      }
+      teamMembers=[];
+      snapshot.forEach(child=>{
+        const member=child.val()||{};
+        teamMembers.push({id:member.id||child.key,...member});
+      });
+      teamMembers.sort((a,b)=>Number(a.order||0)-Number(b.order||0));
+      if(!selectedTeamName&&teamMembers.length>0)selectedTeamName=teamMembers[0].team||"";
+      setFirebaseState("RTDB 팀 현황 실시간 연결 정상","ok");
+      renderTeamDashboardShell();renderTeamTable();
+    };
+    const onError=err=>{
+      console.error("팀 현황 RTDB 오류:",err);
+      setFirebaseState("RTDB 팀 현황 오류","error");
+      showFatalError("팀 현황을 불러오지 못했습니다.<br>Realtime Database URL과 Rules의 읽기 권한을 확인해주세요.");
+    };
+    query.on("value",onValue,onError);
+    unsubscribeTeamMembers=()=>query.off("value",onValue);
+  }catch(err){if(err.message!=="RTDB 연결 실패"){console.error(err);showFatalError("팀 현황 연결 중 오류가 발생했습니다.");}}
+}
+function renderTeamDashboardShell(){
+  const trainingName=trainingData?.trainingName||"비상대응훈련";
+
+  $("pageTitle").textContent="비상상황 대피자 현황_팀장";
+  $("pageDesc").textContent="";
+  $("pageDesc").classList.add("hidden");
+
+  $("teamScopeBadge").textContent=selectedTeamName||getTeamNameFromTrainingSummary(selectedTeamKey)||selectedTeamKey||"팀 현황";
+  $("teamScopeBadge").classList.remove("hidden");
+  $("teamDashboardTitle").textContent=trainingName;
+  $("teamDashboardSubtitle").textContent="";
+  $("teamDashboardSubtitle").classList.add("hidden");
+}
+function renderTeamTable(){
+  const tbody=$("teamTbody");
+  if(teamMembers.length===0){tbody.innerHTML=`<tr><td colspan="4" class="empty-row">현재 팀에 등록된 인원이 없습니다.</td></tr>`;renderTeamSummary();return;}
+  tbody.innerHTML=teamMembers.map((person,index)=>{
+    const status=getPersonStatus(person);
+    const detail=getPersonDetail(person);
+    const isEvacuated=status==="대피완료";
+    const isChecking=status==="확인중";
+    const placeholder=getDetailPlaceholder(status);
+
+    return `<tr><td>${index+1}</td><td>${escapeHtml(person.name||"")}</td><td><select class="status-select ${isChecking?"status-checking":""}" data-id="${escapeAttr(person.id)}" onchange="updateMemberStatus(this)">${renderStatusOptions(status)}</select></td><td><input class="detail-input" data-id="${escapeAttr(person.id)}" value="${escapeAttr(detail)}" ${isEvacuated?"disabled":""} placeholder="${escapeAttr(placeholder)}" onchange="updateMemberDetail(this)" /></td></tr>`;
+  }).join("");
+  renderTeamSummary();
+}
+function renderTeamSummary(){
+  const total=teamMembers.length;
+  const evacuated=teamMembers.filter(p=>getPersonStatus(p)==="대피완료").length;
+  const absence=teamMembers.filter(p=>isAbsenceStatus(getPersonStatus(p))).length;
+  const unknown=total-evacuated-absence;
+
+  $("teamMetricTotal").textContent=total;
+  $("teamMetricEvacuated").textContent=evacuated;
+  $("teamMetricAbsent").textContent=absence;
+  $("teamMetricChecking").textContent=unknown;
+  $("teamMemberCount").textContent=`${total}명`;
+}
+function renderStatusOptions(currentStatus){
+  const options=["확인중","대피완료","타 본부","휴가","출장","외출"],cur=currentStatus||"확인중";
+  return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join("");
+}
+function getDetailPlaceholder(status){
+  if(status==="대피완료")return"";
+  if(status==="휴가")return"";
+  return"부재 내용 입력";
+}
+async function updateMemberStatus(selectEl){
+  try{
+    ensureFirebaseReady();
+    const id=selectEl.dataset.id,newStatus=selectEl.value,member=teamMembers.find(p=>p.id===id);if(!member)return;
+
+    selectEl.classList.toggle("status-checking",newStatus==="확인중");
+
+    const row=selectEl.closest("tr");
+    const detailInput=row?row.querySelector(".detail-input"):null;
+    if(detailInput){
+      detailInput.placeholder=getDetailPlaceholder(newStatus);
+      detailInput.disabled=newStatus==="대피완료";
+      if(newStatus==="대피완료"||newStatus==="확인중"||newStatus==="휴가")detailInput.value="";
+    }
+
+    const ref=participantsRef().doc(id);
+
+    if(newStatus==="대피완료"){
+      await ref.set({status:"대피완료",statusType:"evacuated",checked:true,checkTime:firebase.firestore.FieldValue.serverTimestamp(),absenceReason:"",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
+    if(newStatus==="확인중"){
+      await ref.set({status:"",statusType:"",checked:false,absenceReason:"",absenceDetail:"",checkTime:firebase.firestore.FieldValue.delete(),absenceUpdatedAt:firebase.firestore.FieldValue.delete(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
+    if(newStatus==="휴가"){
+      await ref.set({status:"휴가",statusType:"absence",checked:false,absenceReason:"휴가",absenceDetail:"",updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+      return;
+    }
+
+    await ref.set({status:newStatus,statusType:"absence",checked:false,absenceReason:newStatus,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+  }catch(err){console.error(err);alert("상태 수정 중 오류가 발생했습니다.");}
+}
+async function updateMemberDetail(inputEl){
+  try{
+    ensureFirebaseReady();
+    const id=inputEl.dataset.id,member=teamMembers.find(p=>p.id===id);if(!member)return;
+    const status=getPersonStatus(member);
+    if(status==="대피완료"){inputEl.value=getPersonDetail(member);return;}
+    await participantsRef().doc(id).set({absenceDetail:inputEl.value.trim(),absenceUpdatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedByPage:"leader-dashboard"},{merge:true});
+  }catch(err){console.error(err);alert("부재내용 수정 중 오류가 발생했습니다.");}
+}
+
+function showEntry(){absenceModeOpen=false;$("fatalView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.add("hidden");$("entryView").classList.remove("hidden");}
+function showExternalEntry(){absenceModeOpen=false;$("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.add("hidden");$("externalView").classList.remove("hidden");}
+function showAbsence(){absenceModeOpen=true;$("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("doneView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.add("hidden");$("absenceView").classList.remove("hidden");setTimeout(()=>$("absenceReasonInput").focus(),150);}
+function backToEntry(){absenceModeOpen=false;$("absenceView").classList.add("hidden");$("entryView").classList.remove("hidden");}
+function showDone(result){
+  absenceModeOpen=false;attendanceCompleted=true;
+  $("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.add("hidden");$("doneView").classList.remove("hidden");
+  $("pageDesc").classList.remove("hidden");
+  $("pageDesc").textContent=result.title&&result.title.includes("부재")?"부재 사유 입력이 완료되었습니다.":"대피 공유가 완료되었습니다.";
+  $("doneTitle").textContent=result.title||"입력이 완료되었습니다";$("doneDesc").innerHTML=result.desc||"정상적으로 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.";
+  $("doneTrainingName").textContent=result.trainingName||"비상대응훈련";$("doneTeamLabel").textContent=result.teamLabel||"팀명";$("doneTeamName").textContent=result.teamName||"-";$("doneName").textContent=result.name||"-";$("doneTimeLabel").textContent=result.timeLabel||"출석 시간";$("doneTime").textContent=result.time||"-";
+}
+function showNotice(title,desc){
+  absenceModeOpen=false;
+  $("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("teamView").classList.add("hidden");$("noticeView").classList.remove("hidden");
+  $("noticeTitle").textContent=title;$("noticeDesc").textContent=desc;$("noticeTrainingName").textContent=trainingData?.trainingName||"비상대응훈련";$("noticeTeamName").textContent=isExternalMode?"협력·외주":selectedTeamName||selectedTeamKey||"통합 출결";$("noticePeriod").textContent=getPeriodText();
+}
+function showLoading(title,desc){
+  $("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("teamView").classList.add("hidden");$("noticeView").classList.remove("hidden");
+  $("noticeTitle").textContent=title;$("noticeDesc").textContent=desc;$("noticeTrainingName").textContent="확인 중";$("noticeTeamName").textContent=isExternalMode?"협력·외주":selectedTeamName||selectedTeamKey||"통합 출결";$("noticePeriod").textContent="훈련 정보를 불러오는 중입니다.";
+}
+function showTeamDashboard(){absenceModeOpen=false;$("fatalView").classList.add("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.remove("hidden");}
+function showFatalError(message){absenceModeOpen=false;$("fatalBox").innerHTML=message;$("fatalView").classList.remove("hidden");$("entryView").classList.add("hidden");$("externalView").classList.add("hidden");$("absenceView").classList.add("hidden");$("doneView").classList.add("hidden");$("noticeView").classList.add("hidden");$("teamView").classList.add("hidden");}
+function hideFatalError(){$("fatalView").classList.add("hidden");}
+
+function getPeriodText(){if(!trainingData||!trainingData.startAt||!trainingData.endAt)return"입력 가능 시간 미설정";return`${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;}
+function getPersonStatus(person){if(person.status)return person.status;if(person.checked===true)return"대피완료";if(person.absenceReason)return person.absenceReason;return"확인중";}
+function getPersonDetail(person){const status=getPersonStatus(person);if(status==="대피완료")return person.checkTime?formatKst(person.checkTime):"";return person.absenceDetail||"";}
+function isAbsenceStatus(status){return["타 본부","휴가","출장","외출"].includes(status);}
+function isLeaderPerson(person){
+  if(!person)return false;if(person.isLeader===true)return true;
+  const values=[person.leaderFlag,person.leader,person.leaderYn,person.teamLeader,person.teamLeaderYn,person.role,person.position];
+  return values.map(v=>normalizeText(v)).some(v=>v==="해당"||v==="팀장"||v==="y"||v==="yes"||v==="true");
+}
+function getTeamNameFromTrainingSummary(teamKey){if(!trainingData||!Array.isArray(trainingData.teamSummary))return"";const found=trainingData.teamSummary.find(item=>item.teamKey===teamKey);return found?found.team:"";}
+function setEntryMessage(text,type){const el=$("entryMessage");el.innerHTML=text||"";el.className=`message ${type||""}`;}
+function setExternalMessage(text,type){const el=$("externalMessage");el.innerHTML=text||"";el.className=`message ${type||""}`;}
+function setAbsenceMessage(text,type){const el=$("absenceMessage");el.innerHTML=text||"";el.className=`message ${type||""}`;}
+function setButtonLoading(id,loading,text){const btn=$(id);if(!btn)return;btn.disabled=loading;btn.textContent=text;}
+function makeSafeDocId(value){return String(value).trim().replace(/[\/\\#?]/g,"_");}
+function makeRtdbKey(value){
+  const text=normalizeText(value)||"scope";
+  let hash=2166136261;
+  for(let i=0;i<text.length;i++){
+    hash^=text.charCodeAt(i);
+    hash=Math.imul(hash,16777619);
+  }
+  const safe=text.replace(/[.#$\[\]\/]/g,"_").slice(0,60)||"scope";
+  return`${safe}__${(hash>>>0).toString(36)}`;
+}
+function normalizeText(value){return String(value||"").trim().replace(/\s+/g,"").replaceAll("ㆍ","·").replaceAll("/","·").toLowerCase();}
+function normalizeTeamKey(value){return normalizeText(value);}
+function escapeHtml(value){return String(value??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
+function escapeAttr(value){return escapeHtml(value).replaceAll("`","&#096;");}
+
+window.addEventListener("DOMContentLoaded",init);
+</script>
+</body>
+</html>
