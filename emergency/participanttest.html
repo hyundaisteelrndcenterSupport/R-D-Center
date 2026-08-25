@@ -260,7 +260,7 @@ button:hover{filter:brightness(.97);box-shadow:0 11px 24px rgba(15,23,42,.15)}bu
 <section id="absenceView" class="main-layout hidden"><div class="main-card">
   <div class="status-area"><span id="absenceStatusPill" class="status-pill open">입력 가능</span></div>
   <div id="absenceTrainingNameText" class="training-name-text">-</div><h2 class="main-title">부재 사유 입력</h2><div id="absencePersonText" class="period-text">-</div>
-  <div class="form-row"><label for="absenceReasonInput">사유</label><select id="absenceReasonInput"><option value="">선택</option><option value="타 본부">타 본부</option><option value="휴가">휴가</option><option value="출장">출장</option><option value="외출">외출</option></select></div>
+  <div class="form-row"><label for="absenceReasonInput">사유</label><select id="absenceReasonInput"><option value="">선택</option><option value="기타">기타</option><option value="휴가">휴가</option><option value="출장">출장</option><option value="교육">교육</option></select></div>
   <div class="form-row"><label for="absenceDetailInput">내용</label><textarea id="absenceDetailInput" placeholder="상세 위치 또는 사유를 입력하세요"></textarea></div>
   <div class="button-row"><button id="absenceSubmitBtn" class="navy" onclick="submitAbsence()">완료</button><button class="gray" onclick="backToEntry()">이전</button></div>
   <div id="absenceMessage" class="message"></div>
@@ -625,7 +625,7 @@ function renderTeamSummary(){
   $("teamMemberCount").textContent=`${total}명`;
 }
 function renderStatusOptions(currentStatus){
-  const options=["확인중","대피완료","타 본부","휴가","출장","외출"],cur=currentStatus||"확인중";
+  const options=["확인중","대피완료","기타","휴가","출장","교육"],cur=currentStatus||"확인중";
   return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join("");
 }
 function getDetailPlaceholder(status){
@@ -706,7 +706,7 @@ function hideFatalError(){$("fatalView").classList.add("hidden");}
 function getPeriodText(){if(!trainingData||!trainingData.startAt||!trainingData.endAt)return"입력 가능 시간 미설정";return`${formatKoreanDateTime(trainingData.startAt)} ~ ${formatKoreanDateTime(trainingData.endAt)}`;}
 function getPersonStatus(person){if(person.status)return person.status;if(person.checked===true)return"대피완료";if(person.absenceReason)return person.absenceReason;return"확인중";}
 function getPersonDetail(person){const status=getPersonStatus(person);if(status==="대피완료")return person.checkTime?formatKst(person.checkTime):"";return person.absenceDetail||"";}
-function isAbsenceStatus(status){return["타 본부","휴가","출장","외출"].includes(status);}
+function isAbsenceStatus(status){return["기타","휴가","출장","교육"].includes(status);}
 function isLeaderPerson(person){
   if(!person)return false;if(person.isLeader===true)return true;
   const values=[person.leaderFlag,person.leader,person.leaderYn,person.teamLeader,person.teamLeaderYn,person.role,person.position];
