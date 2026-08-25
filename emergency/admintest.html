@@ -1109,7 +1109,7 @@
     /********************************************************
      * 12. 상태 수정
      ********************************************************/
-    function renderStatusOptions(currentStatus){ const options=["확인중","대피완료","기타","휴가","출장","외출"]; const cur=currentStatus||"확인중"; return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join(""); }
+    function renderStatusOptions(currentStatus){ const options=["확인중","대피완료","기타","휴가","출장","교육"]; const cur=currentStatus||"확인중"; return options.map(o=>`<option value="${escapeAttr(o)}" ${o===cur?"selected":""}>${escapeHtml(o)}</option>`).join(""); }
     async function updateMemberStatus(selectEl){
       try{
         ensureFirebaseReady(); requireSelectedTraining();
@@ -1164,7 +1164,7 @@
     function getPersonStatus(person){ if(person.status) return person.status; if(person.checked===true) return "대피완료"; if(person.absenceReason) return person.absenceReason; return "확인중"; }
     function getPersonDetail(person){ const status=getPersonStatus(person); if(status==="대피완료") return person.checkTime?formatKst(person.checkTime):""; return person.absenceDetail||""; }
     function getDetailPlaceholder(status){ if(status==="대피완료") return ""; if(status==="확인중") return ""; if(status==="휴가") return ""; return "부재 내용 입력"; }
-    function isAbsenceStatus(status){ return ["기타","휴가","출장","외출"].includes(status); }
+    function isAbsenceStatus(status){ return ["기타","휴가","출장","교육"].includes(status); }
     function getTeamInfosFromParticipants(list){
       const map=new Map();
       list.forEach(p=>{ const team=String(p.team||"").trim(); if(!team) return; const teamKey=normalizeTeamKey(team); if(!map.has(teamKey)) map.set(teamKey,{headquarter:p.headquarter||p.headquarters||"",division:p.division||"",office:p.office||"",team,teamKey,count:0,leaderCount:0}); const item=map.get(teamKey); item.count+=1; if(isLeaderPerson(p)) item.leaderCount+=1; });
