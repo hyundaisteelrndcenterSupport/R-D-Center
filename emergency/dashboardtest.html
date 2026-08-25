@@ -900,7 +900,7 @@ function getPersonStatus(person){
   return"확인중";
 }
 
-function isAbsentStatus(status){return["타 본부","휴가","출장","외출"].includes(status)}
+function isAbsentStatus(status){return["기타","휴가","출장","교육"].includes(status)}
 
 function groupBy(array,getKey){
   return array.reduce((acc,item)=>{
