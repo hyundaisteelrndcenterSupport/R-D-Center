@@ -33,19 +33,126 @@
 <section id="absenceView" class="main-layout hidden"><div class="main-card"><div class="status-area"><span id="absenceStatusPill" class="status-pill open">입력 가능</span></div><div id="absenceTrainingNameText" class="training-name-text">-</div><h2 class="main-title">부재 사유 입력</h2><div id="absencePersonText" class="period-text">-</div><div class="form-row"><label for="absenceReasonInput">사유</label><select id="absenceReasonInput"><option value="">선택</option><option value="기타">기타</option><option value="휴가">휴가</option><option value="출장">출장</option><option value="교육">교육</option></select></div><div class="form-row"><label for="absenceDetailInput">내용</label><textarea id="absenceDetailInput" placeholder="상세 위치 또는 사유를 입력하세요"></textarea></div><div class="button-row"><button id="absenceSubmitBtn" class="navy" onclick="submitAbsence()">완료</button><button class="gray" onclick="backToEntry()">이전</button></div><div id="absenceMessage" class="message"></div></div></section>
 <section id="doneView" class="main-layout hidden"><div class="main-card done-card"><div class="done-icon">✓</div><h2 id="doneTitle" class="done-title">입력이 완료되었습니다</h2><p id="doneDesc" class="done-desc">정상적으로 정보가 저장되었습니다.<br>이 화면은 닫아도 됩니다.</p><div class="result-box"><div class="result-row"><span class="result-label">상황</span><span id="doneTrainingName" class="result-value">-</span></div><div class="result-row"><span id="doneTeamLabel" class="result-label">팀명</span><span id="doneTeamName" class="result-value">-</span></div><div class="result-row"><span class="result-label">성명</span><span id="doneName" class="result-value">-</span></div><div class="result-row"><span id="doneTimeLabel" class="result-label">출석 시간</span><span id="doneTime" class="result-value">-</span></div></div></div></section>
 <section id="noticeView" class="main-layout hidden"><div class="main-card notice-card"><div class="notice-icon">!</div><h2 id="noticeTitle" class="notice-title">확인 중입니다</h2><p id="noticeDesc" class="notice-desc">훈련 정보를 확인하고 있습니다.</p><div class="result-box"><div class="result-row"><span class="result-label">상황</span><span id="noticeTrainingName" class="result-value">-</span></div><div class="result-row"><span class="result-label">구분</span><span id="noticeTeamName" class="result-value">-</span></div><div class="result-row"><span class="result-label">입력 가능 시간</span><span id="noticePeriod" class="result-value">-</span></div></div></div></section>
+<section id="masterView" class="main-layout hidden"><div class="main-card">
+  <div class="status-area"><span class="status-pill open">마스터 권한 선택</span></div>
+  <div id="masterTrainingNameText" class="training-name-text">-</div>
+  <h2 class="main-title">대시보드 권한 선택</h2>
+  <div class="period-text">부재한 관리자를 대신하여 조회할 권한과 조직을 선택하세요.</div>
+  <div class="form-row">
+    <label for="masterRoleSelect">권한</label>
+    <select id="masterRoleSelect" onchange="updateMasterScopeOptions()">
+      <option value="팀장">팀장</option>
+      <option value="실장">실장</option>
+      <option value="센터장">센터장</option>
+      <option value="본부장">본부장</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <label id="masterScopeLabel" for="masterScopeSelect">팀명</label>
+    <select id="masterScopeSelect"><option value="">선택 가능한 조직을 불러오는 중입니다.</option></select>
+  </div>
+  <div class="button-row single"><button class="green" onclick="openSelectedMasterDashboard()">확인</button></div>
+  <div id="masterMessage" class="message"></div>
+</div></section>
 <section id="teamView" class="team-dashboard hidden"><div class="team-panel"><div class="team-hero"><p class="section-kicker">LIVE EVACUATION STATUS</p><h2 id="teamDashboardTitle" class="team-title">비상대응훈련</h2><div id="teamDashboardSubtitle" class="team-subtitle hidden"></div></div><div class="team-body"><div class="metric-strip"><div class="metric-card metric-total"><span>총원</span><strong id="teamMetricTotal">0</strong></div><div class="metric-card metric-evacuated"><span>대피</span><strong id="teamMetricEvacuated">0</strong></div><div class="metric-card metric-absent"><span>부재</span><strong id="teamMetricAbsent">0</strong></div><div class="metric-card metric-checking"><span>확인중</span><strong id="teamMetricChecking">0</strong></div></div><div class="team-table-card"><div class="team-table-heading"><h3>팀원별 대피 현황</h3><span id="teamMemberCount" class="team-member-count">0명</span></div><p class="scroll-hint">팀원의 상태와 출석 시간 또는 부재내용을 확인하고 수정할 수 있습니다.</p><div class="table-wrap"><table class="team-table"><thead><tr><th class="col-no">순번</th><th class="col-name">성명</th><th class="col-status">상태</th><th class="col-detail">출석 시간 / 부재내용</th></tr></thead><tbody id="teamTbody"><tr><td colspan="4" class="empty-row">팀 현황을 불러오는 중입니다.</td></tr></tbody></table></div></div><div class="approval-panel"><p class="approval-help">팀원 현황을 확인·수정한 뒤 아래 버튼을 누르면 <strong>그 시점의 팀 데이터</strong>가 실장 대시보드에 반영됩니다.</p><button id="teamApprovalBtn" class="approval-btn" onclick="confirmTeamApproval()">확인완료</button><p id="teamApprovalMessage" class="approval-message"></p></div></div></div></section>
 <div class="footer-note">HYUNDAI STEEL R&amp;D CENTER</div></div>
 <script>
 const firebaseConfig={apiKey:"AIzaSyCqIJHAJtFoOxeK-M9fChyPvu8z8E_pOGU",authDomain:"emergy-e15f5.firebaseapp.com",projectId:"emergy-e15f5",storageBucket:"emergy-e15f5.firebasestorage.app",messagingSenderId:"123548770828",appId:"1:123548770828:web:904e66916a055a52d64429",databaseURL:"https://emergy-e15f5-default-rtdb.firebaseio.com"};
-const params=new URLSearchParams(location.search);let trainingId=params.get("trainingId")||"";const viewMode=params.get("view")||"",urlTeamName=params.get("team")||"",urlTeamKey=params.get("teamKey")||"";const isTeamDashboardMode=viewMode==="team";const isExternalMode=params.get("external")==="1"||params.get("type")==="external"||normalizeText(urlTeamName)===normalizeText("협력·외주")||normalizeText(urlTeamName)===normalizeText("협력/외주");
-let db=null,rtdb=null,firebaseReady=false,trainingData=null,selectedTeamName=urlTeamName||"",selectedTeamKey=urlTeamKey||normalizeTeamKey(urlTeamName),currentPerson=null,currentPersonRef=null,teamMembers=[],attendanceCompleted=false,absenceModeOpen=false,submitLocked=false,pendingTeamWrites=0,unsubscribeTeamMembers=null;const $=id=>document.getElementById(id);
+const params=new URLSearchParams(location.search);let trainingId=params.get("trainingId")||"";const viewMode=params.get("view")||"",urlTeamName=params.get("team")||"",urlTeamKey=params.get("teamKey")||"";const isMasterMode=viewMode==="master";const isTeamDashboardMode=viewMode==="team";const isExternalMode=params.get("external")==="1"||params.get("type")==="external"||normalizeText(urlTeamName)===normalizeText("협력·외주")||normalizeText(urlTeamName)===normalizeText("협력/외주");
+let db=null,rtdb=null,firebaseReady=false,trainingData=null,selectedTeamName=urlTeamName||"",selectedTeamKey=urlTeamKey||normalizeTeamKey(urlTeamName),currentPerson=null,currentPersonRef=null,teamMembers=[],attendanceCompleted=false,absenceModeOpen=false,submitLocked=false,pendingTeamWrites=0,unsubscribeTeamMembers=null,masterDashboardOptions={teams:[],offices:[],divisions:[],headquarters:[]};const $=id=>document.getElementById(id);
 function initFirebaseSafely(){try{if(typeof firebase==="undefined")throw new Error("Firebase SDK가 로드되지 않았습니다.");if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);db=firebase.firestore();rtdb=firebase.database();firebaseReady=true;setFirebaseState("Firebase 연결 준비 완료","ok");return true}catch(err){console.error(err);db=null;rtdb=null;firebaseReady=false;setFirebaseState("Firebase 연결 실패","error");showFatalError("Firebase 연결에 실패했습니다.");return false}}
 function ensureFirebaseReady(){if(!firebaseReady||!db){setFirebaseState("Firebase 연결 실패","error");throw new Error("Firebase 연결 실패")}}function ensureRtdbReady(){if(!firebaseReady||!rtdb){setFirebaseState("RTDB 연결 실패","error");throw new Error("RTDB 연결 실패")}}function setFirebaseState(text,type){const el=$("firebaseState");if(!el)return;el.textContent=text;el.className=`connection-state ${type||""}`}
 function handleFirestoreError(err,place){console.error(place,err);setFirebaseState("Firebase 오류 발생","error");showFatalError(`${place} 중 오류가 발생했습니다.<br>${escapeHtml(err?.message||"")}`)}
 function pad2(v){return String(v).padStart(2,"0")}function getKstDate(date=new Date()){return new Date(date.getTime()+9*60*60*1000)}function getKstParts(date=new Date()){const k=getKstDate(date);return{year:k.getUTCFullYear(),month:k.getUTCMonth()+1,day:k.getUTCDate(),hour:k.getUTCHours(),minute:k.getUTCMinutes(),second:k.getUTCSeconds()}}function formatKst(value,withSeconds=true){if(!value)return"";const d=typeof value.toDate==="function"?value.toDate():new Date(value),p=getKstParts(d),t=withSeconds?`${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`:`${pad2(p.hour)}:${pad2(p.minute)}`;return`${p.year}.${pad2(p.month)}.${pad2(p.day)}. ${t}`}function formatKoreanDateTime(value){if(!value)return"";const d=typeof value.toDate==="function"?value.toDate():new Date(value),p=getKstParts(d);return`${p.year}년 ${p.month}월 ${p.day}일 ${pad2(p.hour)}:${pad2(p.minute)}`}function toMillis(value){if(!value)return 0;if(typeof value.toMillis==="function")return value.toMillis();if(typeof value.toDate==="function")return value.toDate().getTime();const ms=new Date(value).getTime();return Number.isNaN(ms)?0:ms}
-function updateClock(){const p=getKstParts();$("kstClock").textContent=`${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;if(trainingData&&!attendanceCompleted&&!isTeamDashboardMode){renderTrainingInfo();applyTimeBasedView()}}
+function updateClock(){const p=getKstParts();$("kstClock").textContent=`${p.year}.${pad2(p.month)}.${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;if(trainingData&&!attendanceCompleted&&!isTeamDashboardMode&&!isMasterMode){renderTrainingInfo();applyTimeBasedView()}}
 function trainingRef(){ensureFirebaseReady();return db.collection("emergencyTrainings").doc(trainingId)}function participantsRef(){return trainingRef().collection("participants")}function externalParticipantsRef(){return trainingRef().collection("externalParticipants")}function approvalsRef(){return trainingRef().collection("approvals")}
-function init(){updateClock();setInterval(updateClock,1000);if(!initFirebaseSafely())return;if(isTeamDashboardMode){initTeamDashboardMode();return}if(isExternalMode){initExternalMode();return}initEntryMode()}
+function init(){updateClock();setInterval(updateClock,1000);if(!initFirebaseSafely())return;if(isMasterMode){initMasterMode();return}if(isTeamDashboardMode){initTeamDashboardMode();return}if(isExternalMode){initExternalMode();return}initEntryMode()}
+async function initMasterMode(){
+  $("pageTitle").textContent="비상상황 대피자 현황_마스터";
+  $("pageDesc").classList.remove("hidden");
+  $("pageDesc").textContent="부재한 관리자를 대신하여 권한과 조직을 선택한 뒤 해당 대시보드로 이동할 수 있습니다.";
+  $("teamScopeBadge").textContent="MASTER DASHBOARD";
+  $("teamScopeBadge").classList.remove("hidden");
+  if(!trainingId){
+    showFatalError("마스터 링크가 올바르지 않습니다.<br><br>마스터 링크에는 trainingId가 포함되어야 합니다.");
+    setFirebaseState("마스터 링크 오류","error");
+    return;
+  }
+  showLoading("마스터 대시보드 연결 중","훈련의 조직 목록을 불러오고 있습니다.");
+  try{
+    ensureRtdbReady();
+    const snapshot=await rtdb.ref(`emergencyLive/${trainingId}/meta`).once("value");
+    if(!snapshot.exists())throw new Error("관리자 허브 메타 데이터가 없습니다.");
+    const data=snapshot.val()||{};
+    trainingData={id:trainingId,trainingName:data.trainingName||"비상대응훈련",startAt:data.startAt||null,endAt:data.endAt||null};
+    masterDashboardOptions=data.masterDashboardOptions||{teams:[],offices:[],divisions:[],headquarters:[]};
+    ["teams","offices","divisions","headquarters"].forEach(key=>{
+      if(!Array.isArray(masterDashboardOptions[key]))masterDashboardOptions[key]=[];
+    });
+    $("masterTrainingNameText").textContent=trainingData.trainingName||"비상대응훈련";
+    setFirebaseState("RTDB 마스터 목록 연결 정상","ok");
+    showMasterView();
+    updateMasterScopeOptions();
+  }catch(err){
+    console.error(err);
+    setFirebaseState("마스터 목록 연결 실패","error");
+    showFatalError("마스터 대시보드 조직 목록을 불러오지 못했습니다.<br><br>관리자 페이지가 열려 있는지, RTDB 데이터가 게시되었는지 확인해주세요.");
+  }
+}
+function updateMasterScopeOptions(){
+  const role=$("masterRoleSelect").value;
+  const config={
+    "팀장":{label:"팀명",key:"teams"},
+    "실장":{label:"실명",key:"offices"},
+    "센터장":{label:"센터명",key:"divisions"},
+    "본부장":{label:"본부명",key:"headquarters"}
+  }[role];
+  $("masterScopeLabel").textContent=config.label;
+  const values=(masterDashboardOptions[config.key]||[]).filter(v=>String(v||"").trim()&&String(v).trim()!=="-");
+  $("masterScopeSelect").innerHTML=values.length
+    ? `<option value="">${config.label}을 선택하세요</option>`+values.map(v=>`<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join("")
+    : `<option value="">선택 가능한 ${config.label}이 없습니다.</option>`;
+  setMasterMessage("","");
+}
+function setMasterMessage(text,type){
+  const el=$("masterMessage");
+  if(!el)return;
+  el.textContent=text||"";
+  el.className=`message ${type||""}`;
+}
+function openSelectedMasterDashboard(){
+  const role=$("masterRoleSelect").value;
+  const scope=$("masterScopeSelect").value;
+  if(!scope){
+    setMasterMessage("조회할 조직을 선택해주세요.","error");
+    return;
+  }
+  const url=new URL(location.href);
+  const q=new URLSearchParams();
+  q.set("trainingId",trainingId);
+  q.set("from","master");
+  q.set("approverName","마스터링크");
+  q.set("approverRole",role);
+  if(role==="팀장"){
+    url.pathname=url.pathname.replace(/[^/]*$/,"participant.html");
+    q.set("view","team");
+    q.set("team",scope);
+    q.set("teamKey",normalizeTeamKey(scope));
+  }else{
+    url.pathname=url.pathname.replace(/[^/]*$/,"dashboard.html");
+    const map={
+      "실장":{view:"office",param:"office"},
+      "센터장":{view:"division",param:"division"},
+      "본부장":{view:"headquarters",param:"headquarters"}
+    };
+    const target=map[role];
+    q.set("view",target.view);
+    q.set(target.param,scope);
+  }
+  url.search=q.toString();
+  url.hash="";
+  location.assign(url.toString());
+}
 function initEntryMode(){$("pageTitle").textContent="비상상황 대피자 위치 공유";$("pageDesc").classList.remove("hidden");$("teamScopeBadge").classList.add("hidden");$("pageDesc").innerHTML="① 이름과 사번을 입력하여 출석 체크 바랍니다.<br>② 부재자는 ‘부재’ 버튼을 클릭하여 절차대로 입력해주시기 바랍니다.";if(!trainingId){showFatalError("통합 출결 링크가 올바르지 않습니다.");return}showLoading("훈련 정보를 확인 중입니다","비상상황 정보를 불러오고 있습니다.");loadTrainingOnce()}
 function initExternalMode(){$("pageTitle").textContent="협력·외주 대피자 위치 공유";$("pageDesc").classList.remove("hidden");$("teamScopeBadge").classList.add("hidden");$("pageDesc").textContent="협력·외주 참석자는 소속과 성명을 입력하여 대피완료를 등록해주시기 바랍니다.";if(!trainingId){showFatalError("협력·외주 링크가 올바르지 않습니다.");return}showLoading("훈련 정보를 확인 중입니다","협력·외주 대피자 위치 공유 정보를 불러오고 있습니다.");loadTrainingOnce()}
 async function initTeamDashboardMode(){$("pageTitle").textContent="비상상황 대피자 현황_팀장";$("pageDesc").classList.add("hidden");$("teamScopeBadge").textContent=selectedTeamName||selectedTeamKey||"팀 현황";$("teamScopeBadge").classList.remove("hidden");if(!selectedTeamKey||!trainingId){showFatalError("팀장 현황 링크가 올바르지 않습니다.");return}showLoading("팀 현황을 확인 중입니다","관리자 허브의 팀 현황을 불러오고 있습니다.");try{await loadTeamMetaOnce();renderTeamDashboardShell();showTeamDashboard();subscribeTeamMembers()}catch(err){console.error(err);showFatalError("해당 팀의 실시간 현황을 찾지 못했습니다.")}}
@@ -79,7 +186,7 @@ function countMembers(members){const total=members.length,evacuated=members.filt
 function approvalDocId(stage,scopeName){return`${stage}__${makeRtdbKey(scopeName)}`}
 async function confirmTeamApproval(){const btn=$("teamApprovalBtn"),msg=$("teamApprovalMessage");try{ensureFirebaseReady();if(pendingTeamWrites>0)throw new Error("팀원 수정사항이 아직 저장 중입니다. 저장이 끝난 뒤 다시 눌러주세요.");if(!selectedTeamKey||!selectedTeamName){throw new Error("팀 정보가 없습니다.")}btn.disabled=true;btn.textContent="확인 저장 중...";msg.textContent="최신 Firestore 상태를 확인하고 있습니다.";msg.className="approval-message";let snap=await participantsRef().where("teamKey","==",selectedTeamKey).get();if(snap.empty&&selectedTeamName)snap=await participantsRef().where("team","==",selectedTeamName).get();const members=snap.docs.map(d=>({id:d.id,...d.data()})).filter(isEvacuationRosterPerson).sort((a,b)=>Number(a.order||0)-Number(b.order||0));if(!members.length)throw new Error("확인할 대피 대상 팀원이 없습니다.");const first=members[0],totals=countMembers(members),unknownMembers=members.filter(p=>getPersonStatus(p)==="확인중").map(p=>({id:p.id,order:Number(p.order||0),team:p.team||selectedTeamName,name:p.name||""}));const approvedMembers=members.map(p=>({id:p.id,order:Number(p.order||0),name:p.name||"",team:p.team||"",empNo:p.empNo||"",status:getPersonStatus(p),statusType:p.statusType||"",checked:p.checked===true,checkTime:toMillis(p.checkTime)||0,absenceReason:p.absenceReason||"",absenceDetail:p.absenceDetail||""}));await approvalsRef().doc(approvalDocId("team",selectedTeamName)).set({schemaVersion:2,rosterPolicy:"exclude-senior-managers-v1",stage:"team",scopeName:selectedTeamName,scopeKey:selectedTeamKey,team:selectedTeamName,teamKey:selectedTeamKey,headquarter:first.headquarter||first.headquarters||"",headquarters:first.headquarter||first.headquarters||"",division:first.division||"",office:first.office||"",order:Math.min(...members.map(p=>Number(p.order||999999))),totals,rows:[{team:selectedTeamName,order:Math.min(...members.map(p=>Number(p.order||999999))),...totals}],members:approvedMembers,unknownMembers,confirmedByName:currentPerson?.name||params.get("approverName")||"",confirmedByEmpNo:currentPerson?.empNo||params.get("approverEmpNo")||"",confirmedByRole:"팀장",confirmedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});btn.textContent="확인완료 · 다시 확인 가능";msg.textContent="이 시점의 팀 현황이 실장 대시보드로 전달되었습니다.";msg.className="approval-message ok"}catch(err){console.error(err);btn.textContent="확인완료";msg.textContent=`확인완료 처리 실패: ${err.message||"오류"}`;msg.className="approval-message error"}finally{btn.disabled=false}}
 
-function showEntry(){absenceModeOpen=false;hideViews("entryView")}function showExternalEntry(){absenceModeOpen=false;hideViews("externalView")}function showAbsence(){absenceModeOpen=true;hideViews("absenceView")}function backToEntry(){absenceModeOpen=false;hideViews("entryView")}function showTeamDashboard(){absenceModeOpen=false;hideViews("teamView")}function hideViews(showId){["fatalView","entryView","externalView","absenceView","doneView","noticeView","teamView"].forEach(id=>$(id).classList.toggle("hidden",id!==showId))}
+function showEntry(){absenceModeOpen=false;hideViews("entryView")}function showExternalEntry(){absenceModeOpen=false;hideViews("externalView")}function showAbsence(){absenceModeOpen=true;hideViews("absenceView")}function backToEntry(){absenceModeOpen=false;hideViews("entryView")}function showMasterView(){absenceModeOpen=false;hideViews("masterView")}function showTeamDashboard(){absenceModeOpen=false;hideViews("teamView")}function hideViews(showId){["fatalView","entryView","externalView","absenceView","doneView","noticeView","masterView","teamView"].forEach(id=>$(id).classList.toggle("hidden",id!==showId))}
 function showDone(result){absenceModeOpen=false;attendanceCompleted=true;hideViews("doneView");$("pageDesc").classList.remove("hidden");$("pageDesc").textContent=result.title?.includes("부재")?"부재 사유 입력이 완료되었습니다.":"대피 공유가 완료되었습니다.";$("doneTitle").textContent=result.title||"입력이 완료되었습니다";$("doneDesc").innerHTML=result.desc||"정상적으로 저장되었습니다.";$("doneTrainingName").textContent=result.trainingName||"비상대응훈련";$("doneTeamLabel").textContent=result.teamLabel||"팀명";$("doneTeamName").textContent=result.teamName||"-";$("doneName").textContent=result.name||"-";$("doneTimeLabel").textContent=result.timeLabel||"출석 시간";$("doneTime").textContent=result.time||"-"}
 function showNotice(title,desc){absenceModeOpen=false;hideViews("noticeView");$("noticeTitle").textContent=title;$("noticeDesc").textContent=desc;$("noticeTrainingName").textContent=trainingData?.trainingName||"비상대응훈련";$("noticeTeamName").textContent=isExternalMode?"협력·외주":selectedTeamName||selectedTeamKey||"통합 출결";$("noticePeriod").textContent=getPeriodText()}
 function showLoading(title,desc){hideViews("noticeView");$("noticeTitle").textContent=title;$("noticeDesc").textContent=desc;$("noticeTrainingName").textContent="확인 중";$("noticeTeamName").textContent=isExternalMode?"협력·외주":selectedTeamName||selectedTeamKey||"통합 출결";$("noticePeriod").textContent="훈련 정보를 불러오는 중입니다."}
