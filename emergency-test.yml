@@ -1,0 +1,248 @@
+# 모바일 설치: 비공개 GitHub 저장소에 이 파일을 업로드한 뒤 파일명을
+# .github/workflows/emergency-test.yml 로 변경하고 Commit 합니다.
+# Actions > Emergency drill test > Run workflow > preflight 실행.
+# 성공 후, 훈련 입력시간이 현재 시각을 포함하는지 확인하고 full 실행.
+# full 모드는 지정한 시험 훈련 550명의 출석/부재/구조요청 및 승인을 실제 변경합니다.
+# 임의 삭제/보안규칙 변경은 없습니다. 기존 상태가 있으면 full 모드는 중단합니다.
+# 완료 후 Actions 실행 상세 > Artifacts > emergency-test-results 를 내려받으세요.
+# API 550명 부하 + 실제 대시보드 87개 UI. 550개 휴대폰 브라우저 시험은 아닙니다.
+# 사전 조회 10/50/100, 동시 조회/쓰기 550, 전체 새로고침 조회 3회,
+# 잘못된 이름 로컬 검증 550건, 상태 정정 55건, 최종 대피완료 복구를 실행합니다.
+# 이름/사번은 결과에 출력하지 않습니다. 결과는 7일 보관됩니다.
+# YAML/Python 구문 검증 완료. GitHub 실행 및 실제 최대 부하는 아직 미검증입니다.
+# 오류 시 결과를 확인하고 중단하세요. 재실행은 해당 시험 훈련 상태/승인을 초기화한 뒤 진행.
+# API 요청 수는 Firebase 콘솔의 청구 읽기 수와 동일하지 않습니다.
+name: Emergency drill test
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'preflight = read only / full = real test writes'
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - full
+permissions:
+  contents: read
+concurrency:
+  group: emergency-drill-rK5MRxDyQ2Oava7xEggc
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TEST_MODE: ${{ inputs.mode }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test tools
+        run: |
+          python -m pip install aiohttp==3.14.4 playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Create bounded test runner
+        shell: bash
+        run: |
+          cat > test.py <<'PYTHON_SCRIPT'
+          """Authorized isolated drill load test. Browser supervisors + REST participants.
+          Never delete roster/approvals, never change security rules, never log roster PII.
+          """
+          import asyncio, json, os, time, random, hashlib, pathlib, datetime, collections, math
+          from urllib.parse import urlencode
+          import aiohttp
+          from playwright.async_api import async_playwright
+          
+          ID='rK5MRxDyQ2Oava7xEggc'
+          BASE='https://r-d-center.pages.dev/emergency/'
+          FS='https://firestore.googleapis.com/v1/projects/emergy-e15f5/databases/(default)/documents'
+          PATH='emergencyTrainings/'+ID
+          OUT=pathlib.Path('results');OUT.mkdir(exist_ok=True)
+          MODE=os.environ.get('TEST_MODE','preflight')
+          events=[];tasks=[];done=asyncio.Event();errors=[];browser=None
+          def stamp():return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).isoformat()
+          def decode(v):
+              if 'mapValue' in v:return {k:decode(x) for k,x in v['mapValue'].get('fields',{}).items()}
+              if 'arrayValue' in v:return [decode(x) for x in v['arrayValue'].get('values',[])]
+              if 'integerValue' in v:return int(v['integerValue'])
+              return next(iter(v.values()))
+          def data(d):return {k:decode(v) for k,v in d.get('fields',{}).items()}
+          def val(v):
+              if isinstance(v,bool):return {'booleanValue':v}
+              return {'stringValue':v}
+          def norm(v):return ''.join(str(v).split()).replace('ㆍ','·').replace('/','·').lower()
+          def record(kind,**kw):events.append(dict(at=stamp(),kind=kind,**kw))
+          def save():
+              (OUT/'events.json').write_text(json.dumps(events,ensure_ascii=False,indent=2))
+              (OUT/'summary.json').write_text(json.dumps({'trainingId':ID,'mode':MODE,'at':stamp(),'counts':dict(collections.Counter(e['kind'] for e in events)),'errors':errors,'billingConsoleMeasured':False,'participantMethod':'REST API, not 550 rendered browser tabs','supervisorMethod':'real deployed pages, actual reloads and clicks'},ensure_ascii=False,indent=2))
+          async def req(s,kind,method,url,body=None):
+              start=time.monotonic()
+              try:
+                  async with s.request(method,url,json=body,timeout=aiohttp.ClientTimeout(total=45)) as r:
+                      raw=await r.read();record(kind,status=r.status,ms=round((time.monotonic()-start)*1000),bytes=len(raw))
+                      if r.status!=200:raise RuntimeError(f'{kind}: HTTP {r.status}')
+                      return json.loads(raw)
+              except Exception as e:record('request_error',phase=kind,error=type(e).__name__);raise
+          async def wave(label,items,fn):
+              t=time.monotonic();rs=await asyncio.gather(*(fn(x) for x in items),return_exceptions=True)
+              failures=sum(isinstance(x,BaseException) for x in rs)
+              record('wave',phase=label,n=len(items),failures=failures,elapsedSeconds=round(time.monotonic()-t,2))
+              print(f'{label}: {len(items)-failures}/{len(items)} succeeded',flush=True);save()
+              if failures:raise RuntimeError(f'{label}: {failures} failures; stopped')
+              return rs
+          async def roster(s):
+              result=[];token=''
+              while True:
+                  q={'pageSize':1000}
+                  if token:q['pageToken']=token
+                  d=await req(s,'setup_roster_read','GET',FS+'/'+PATH+'/participants?'+urlencode(q))
+                  for x in d.get('documents',[]):result.append({**data(x),'id':x['name'].split('/')[-1]})
+                  token=d.get('nextPageToken','')
+                  if not token:return result
+          def role(p):return p.get('roleType') or p.get('role') or p.get('leaderFlag') or '일반'
+          async def status(s,p,status):
+              assert p['id'] and '/' not in p['id']
+              d={'status':status,'statusType':'evacuated' if status=='대피완료' else 'rescue' if status=='구조요청' else 'absence','checked':status=='대피완료','absenceReason':status if status in ['휴가','출장','교육','기타'] else '', 'absenceDetail':'' if status=='대피완료' else '[자동 부하시험] 실제 구조요청 아님','updatedByPage':'authorized-github-loadtest'}
+              w={'update':{'name':'projects/emergy-e15f5/databases/(default)/documents/'+PATH+'/participants/'+p['id'],'fields':{k:val(v) for k,v in d.items()}},'currentDocument':{'exists':True},'updateMask':{'fieldPaths':list(d)+(['checkTime'] if status!='대피완료' else ['absenceUpdatedAt'])},'updateTransforms':[{'fieldPath':'updatedAt','setToServerValue':'REQUEST_TIME'},{'fieldPath':'checkTime' if status=='대피완료' else 'absenceUpdatedAt','setToServerValue':'REQUEST_TIME'}]}
+              return await req(s,'participant_write','POST',FS+':commit',{'writes':[w]})
+          def dashboard_url(p):
+              r=role(p);q={'trainingId':ID};filename='dashboard.html'
+              if r=='팀장':filename='participant.html';q.update(view='team',team=p['team'],teamKey=p.get('teamKey') or norm(p['team']))
+              else:
+                  view,field={'실장':('office','office'),'센터장':('division','division'),'본부장':('headquarters','headquarters')}[r]
+                  scope=(p.get('headquarter') or p.get('headquarters')) if field=='headquarters' else p.get(field)
+                  if not scope or scope=='-':raise RuntimeError('Manager scope missing')
+                  q.update(view=view);q[field]=scope
+              return BASE+filename+'?'+urlencode(q)
+          async def dashboard_ready(page,r):
+              if r=='팀장':await page.locator('#teamView').wait_for(state='visible',timeout=45000)
+              else:await page.locator('#dashboardView').wait_for(state='visible',timeout=45000)
+          async def supervisor(page,p,index):
+              rng=random.Random(index);r=role(p);next_reload=time.monotonic()+rng.uniform(30,60);cycles=0
+              try:
+                  await asyncio.sleep(rng.uniform(0,8))
+                  while not done.is_set() and cycles<20:
+                      if time.monotonic()>=next_reload:
+                          await page.reload(wait_until='domcontentloaded');await dashboard_ready(page,r)
+                          record('supervisor_reload',role=r,client=index);next_reload=time.monotonic()+rng.uniform(30,60)
+                      if r!='본부장':
+                          bid='#teamApprovalBtn' if r=='팀장' else '#approvalButton'
+                          mid='#teamApprovalMessage' if r=='팀장' else '#approvalMessage'
+                          await page.locator(bid).click(timeout=20000)
+                          # The deployed functions set text synchronously; wait until the network save finishes.
+                          await page.wait_for_function("id => { const e=document.querySelector(id); return e && !e.disabled; }",arg=bid,timeout=45000)
+                          msg=await page.locator(mid).inner_text()
+                          if '실패' in msg or '저장' not in msg:raise RuntimeError('Approval did not confirm saved state')
+                          record('supervisor_approval',role=r,client=index)
+                      cycles+=1
+                      try:await asyncio.wait_for(done.wait(),timeout=rng.uniform(10,20))
+                      except asyncio.TimeoutError:pass
+              except Exception as e:errors.append({'where':'supervisor','client':index,'role':r,'error':type(e).__name__});done.set()
+          
+          async def main():
+              global browser
+              async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=600),trust_env=True) as s:
+                  train=data(await req(s,'setup_training_read','GET',FS+'/'+PATH));people=await roster(s)
+                  counts=dict(collections.Counter(role(p) for p in people))
+                  expected={'본부장':1,'센터장':3,'실장':9,'팀장':74,'일반':463}
+                  record('preflight',roster=len(people),roles=counts,startAt=train.get('startAt'),endAt=train.get('endAt'))
+                  if len(people)!=550 or counts!=expected:raise RuntimeError('Expected roster 550 and role counts 1/3/9/74/463')
+                  print('Roster and role counts OK. Training ID:',ID,flush=True)
+                  if MODE=='preflight':
+                      print('READ ONLY preflight finished. No attendance/approval writes.',flush=True);return
+                  if MODE!='full':raise RuntimeError('Invalid test mode')
+                  now=datetime.datetime.now(datetime.timezone.utc)
+                  if not datetime.datetime.fromisoformat(train['startAt'].replace('Z','+00:00'))<=now<=datetime.datetime.fromisoformat(train['endAt'].replace('Z','+00:00')):raise RuntimeError('Training is not open. Extend its input time in admin first.')
+                  if any(p.get('status') or p.get('checked') or p.get('absenceReason') for p in people):raise RuntimeError('Use a fresh roster or reset statuses and approvals in this TEST training before rerunning full mode.')
+                  async with async_playwright() as pw:
+                      browser=await pw.chromium.launch(headless=True)
+                      context=await browser.new_context()
+                      # No screenshots/traces/network body logging: do not export names or employee IDs.
+                      admin=await context.new_page();await admin.goto(BASE+'admin',wait_until='domcontentloaded')
+                      await admin.locator('#trainingSelect option[value="'+ID+'"]').wait_for(state='attached',timeout=45000)
+                      await admin.locator('#trainingSelect').select_option(ID)
+                      await admin.wait_for_function("id => document.querySelector('#selectedTrainingId')?.textContent===id",arg=ID,timeout=45000)
+                      await admin.wait_for_function("document.querySelector('#totalCount')?.textContent==='537'",timeout=45000)
+                      await asyncio.sleep(5)
+                      managers=[p for p in people if role(p)!='일반'];pages=[]
+                      sem=asyncio.Semaphore(4)
+                      async def open_manager(pair):
+                          index,p=pair
+                          async with sem:
+                              page=await context.new_page()
+                              page.on('dialog',lambda d:asyncio.create_task(d.accept()))
+                              await page.goto(dashboard_url(p),wait_until='domcontentloaded');await dashboard_ready(page,role(p))
+                              pages.append((page,p,index));record('supervisor_open',role=role(p),client=index)
+                      await asyncio.gather(*(open_manager(x) for x in enumerate(managers)))
+                      if len(pages)!=87:raise RuntimeError('87 dashboards did not initialize')
+                      await admin.bring_to_front()
+                      print('Admin hub + 87 real dashboard pages ready',flush=True)
+                      tasks.extend(asyncio.create_task(supervisor(page,p,i)) for page,p,i in pages)
+                      try:
+                          read=lambda _:req(s,'participant_training_read','GET',FS+'/'+PATH)
+                          for n in [10,50,100]:await wave('preflight'+str(n),people[:n],read)
+                          initial=await wave('simultaneous550-read',people,read)
+                          for p,d in zip(people,initial):
+                              lookup=data(d).get('participantLookup',{})
+                              right=hashlib.sha256((norm(p['name'])+'|'+str(p['empNo']).strip()).encode()).hexdigest()
+                              wrong=hashlib.sha256(('잘못된가상성명|'+str(p['empNo']).strip()).encode()).hexdigest()
+                              if right not in lookup or wrong in lookup:raise RuntimeError('Participant lookup validation failed')
+                          record('local_wrong_identity_checks',count=550,additionalRequests=0)
+                          await wave('simultaneous550-write',people,lambda p:status(s,p,'대피완료'))
+                          for i in range(3):
+                              if errors:raise RuntimeError('Supervisor failed')
+                              await wave('participant-refresh-'+str(i+1),people,read)
+                          corrections=[p for p in people if role(p)=='일반'][:55]
+                          await wave('status-corrections55',list(enumerate(corrections)),lambda x:status(s,x[1],['구조요청','휴가','출장','교육','기타'][x[0]%5]))
+                          # Require corrections to reach HQ before restoring, avoiding a stale all-clear pass.
+                          hq=[page for page,p,i in pages if role(p)=='본부장'][0]
+                          for _ in range(24):
+                              await asyncio.sleep(5)
+                              if errors:raise RuntimeError('Supervisor failed')
+                              if await hq.locator('#metricChecking').inner_text()!='0' or await hq.locator('#metricAbsent').inner_text()!='0':
+                                  record('corrections_reached_hq');break
+                          else:raise RuntimeError('Corrections did not reach HQ within 120 seconds')
+                          # Guarantee a meaningful period for repeat approvals and refreshes.
+                          await asyncio.sleep(30)
+                          await wave('restore-evacuated55',corrections,lambda p:status(s,p,'대피완료'))
+                          final_time=time.monotonic();hq=[page for page,p,i in pages if role(p)=='본부장'][0]
+                          for _ in range(36):
+                              if errors:raise RuntimeError('Supervisor failed')
+                              total=await hq.locator('#metricTotal').inner_text();evac=await hq.locator('#metricEvacuated').inner_text()
+                              if total=='537' and evac=='537':
+                                  # Confirm all participant documents, including senior managers, and the final hub counts.
+                                  final=await roster(s)
+                                  if len(final)==550 and all(p.get('status')=='대피완료' for p in final):
+                                      record('final_converged',participants=550,hqRoster=537,secondsAfterFinalWrites=round(time.monotonic()-final_time,2));print('PASS: 550 stored, HQ 537/537 evacuated',flush=True);break
+                              await asyncio.sleep(5)
+                          else:raise RuntimeError('Final HQ convergence timeout (180 seconds)')
+                      finally:
+                          done.set();await asyncio.gather(*tasks,return_exceptions=True)
+                          await browser.close();browser=None
+          
+          async def entry():
+              try:await asyncio.wait_for(main(),timeout=600)
+              except Exception as e:
+                  errors.append({'where':'main','error':str(e) if isinstance(e,RuntimeError) else type(e).__name__});print('STOP:',errors[-1],flush=True);raise
+              finally:
+                  done.set()
+                  for task in tasks:task.cancel()
+                  if tasks:await asyncio.gather(*tasks,return_exceptions=True)
+                  if browser:
+                      try:await browser.close()
+                      except Exception:pass
+                  save()
+          if __name__=='__main__':asyncio.run(entry())
+          PYTHON_SCRIPT
+      - name: Run test
+        run: python -u test.py
+      - name: Save result files even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emergency-test-results
+          path: results/
+          if-no-files-found: warn
+          retention-days: 7
